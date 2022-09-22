@@ -2,9 +2,13 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
+	"github.com/flashbots/go-boost-utils/types"
 	"github.com/flashbots/go-template/database"
 	"github.com/flashbots/mev-boost-relay/beaconclient"
 	"github.com/flashbots/mev-boost-relay/common"
@@ -98,37 +102,50 @@ func (s *RelayCheckerService) Start() {
 }
 
 func (s *RelayCheckerService) CallGetHeader(slot uint64, parentHash, proposerPubkey string) {
-	url := fmt.Sprintf("/eth/v1/builder/header/%d/%s/%s", slot, parentHash, proposerPubkey)
-	s.log.Infof("querying in 12 sec: %s", url)
+	s.log.Infof("querying relays for bid in 12 sec...")
 
 	// Wait 12 seconds, allowing the builder to prepare bids
 	time.Sleep(12 * time.Second)
 
-	// // Query the relay for bid
-	// url = *relay + url
-	// s.log.Infof("Querying %s", url)
-	// res, err := http.Get(url)
-	// if err != nil {
-	// 	s.log.WithError(err).Error("error on getHeader request")
-	// 	continue
-	// }
-	// s.log.Infof("relay status returned: %d", res.StatusCode)
+	for _, relay := range s.relays {
+		go s.CallGetHeaderOnRelay(relay, slot, parentHash, proposerPubkey)
+	}
+}
 
-	// if res.StatusCode == 200 {
-	// 	bodyBytes, err := io.ReadAll(res.Body)
-	// 	res.Body.Close()
+func (s *RelayCheckerService) CallGetHeaderOnRelay(relay RelayEntry, slot uint64, parentHash, proposerPubkey string) {
+	path := fmt.Sprintf("/eth/v1/builder/header/%d/%s/%s", slot, parentHash, proposerPubkey)
+	url := relay.GetURI(path)
 
-	// 	if err != nil {
-	// 		s.log.WithError(err).Error("Couldn't read response body")
-	// 		continue
-	// 	}
+	defer func() {
+		// TODO: save to db
+		// s.db.SaveBidForSlot()
+	}()
 
-	// 	var dst types.GetHeaderResponse
-	// 	if err := json.Unmarshal(bodyBytes, &dst); err != nil {
-	// 		s.log.WithError(err).Errorf("Couldn't unmarshal response body: %s", string(bodyBytes))
-	// 		continue
-	// 	}
+	s.log.Infof("Querying %s", url)
+	res, err := http.Get(url)
+	if err != nil {
+		s.log.WithError(err).Error("error on getHeader request")
+		return
+	}
+	s.log.Infof("relay status returned: %d", res.StatusCode)
 
-	// 	s.log.Infof("bid received! slot: %d / value: %s / hash: %s / parentHash: %s", nextSlot, dst.Data.Message.Value.String(), dst.Data.Message.Header.BlockHash, block.Data.Message.Body.ExecutionPayload.BlockHash)
-	// }
+	var bodyBytes []byte
+	if res.ContentLength > 0 {
+		bodyBytes, err = io.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			s.log.WithError(err).Error("Couldn't read response body")
+		}
+	}
+
+	if res.StatusCode == 200 {
+		// should be a bid bid
+		var dst types.GetHeaderResponse
+		if err := json.Unmarshal(bodyBytes, &dst); err != nil {
+			s.log.WithError(err).Errorf("Couldn't unmarshal response body: %s", string(bodyBytes))
+		}
+		s.log.Infof("bid received! slot: %d / value: %s / hash: %s / parentHash: %s", slot, dst.Data.Message.Value.String(), dst.Data.Message.Header.BlockHash, parentHash)
+	} else {
+		// TODO: try to unpack into error struct
+	}
 }

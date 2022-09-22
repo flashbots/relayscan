@@ -10,7 +10,7 @@ import (
 )
 
 type IDatabaseService interface {
-	Close() error
+	SaveBidForSlot(relay string, slot uint64, parentHash, proposerPubkey string, respStatus uint64, respBid any, respError string) error
 }
 
 type DatabaseService struct {
@@ -45,6 +45,10 @@ func NewDatabaseService(dsn string) (*DatabaseService, error) {
 
 func (s *DatabaseService) Close() error {
 	return s.DB.Close()
+}
+
+func (s *DatabaseService) SaveBidForSlot(relay string, slot uint64, parentHash, proposerPubkey string, respStatus uint64, respBid any, respError string) error {
+	return nil
 }
 
 // func (s *DatabaseService) SaveValidatorRegistration(registration types.SignedValidatorRegistration) error {
