@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/flashbots/go-boost-utils/types"
-	"github.com/flashbots/go-template/database"
 	"github.com/flashbots/mev-boost-relay/beaconclient"
 	"github.com/flashbots/mev-boost-relay/common"
+	"github.com/metachris/relayscan/database"
 	"github.com/sirupsen/logrus"
 )
 

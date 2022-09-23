@@ -4,8 +4,8 @@ import (
 	"flag"
 	"os"
 
-	"github.com/flashbots/go-template/database"
-	"github.com/flashbots/go-template/service"
+	"github.com/metachris/relayscan/database"
+	"github.com/metachris/relayscan/service"
 	"github.com/sirupsen/logrus"
 )
 
