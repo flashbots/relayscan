@@ -3,7 +3,7 @@ module github.com/metachris/relayscan
 go 1.18
 
 require (
-	github.com/flashbots/go-boost-utils v1.2.0
+	github.com/flashbots/go-boost-utils v1.2.1-0.20220923095440-1107b5564bc4
 	github.com/flashbots/mev-boost-relay v0.8.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.7
