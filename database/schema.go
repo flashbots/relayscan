@@ -7,11 +7,10 @@ import (
 var (
 	tableBase = common.GetEnv("DB_TABLE_PREFIX", "dev")
 
-	TableBid = tableBase + "_bid"
-	// TableExecutionPayload       = tableBase + "_execution_payload"
-	// TableBuilderBlockSubmission = tableBase + "_builder_block_submission"
-	// TableDeliveredPayload       = tableBase + "_payload_delivered"
-	// TableBlockBuilder           = tableBase + "_blockbuilder"
+	TableBid                     = tableBase + "_bid"
+	TableDataAPIPayloadDelivered = tableBase + "_data_api_payload_delivered"
+	TableDataAPIBuilderBid       = tableBase + "_data_api_builder_bid"
+	TableError                   = tableBase + "_error"
 )
 
 var schema = `

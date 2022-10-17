@@ -16,15 +16,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type RelayCheckerService struct {
+type RelayCollector struct {
 	log    *logrus.Entry
 	relays []common.RelayEntry
 	bn     *beaconclient.ProdBeaconInstance
 	db     database.IDatabaseService
 }
 
-func NewRelayCheckerService(log *logrus.Entry, relays []common.RelayEntry, beaconURL string, db database.IDatabaseService) *RelayCheckerService {
-	srv := &RelayCheckerService{
+func NewRelayCollector(log *logrus.Entry, relays []common.RelayEntry, beaconURL string, db database.IDatabaseService) *RelayCollector {
+	srv := &RelayCollector{
 		log:    log,
 		relays: relays,
 		db:     db,
@@ -34,8 +34,8 @@ func NewRelayCheckerService(log *logrus.Entry, relays []common.RelayEntry, beaco
 	return srv
 }
 
-func (s *RelayCheckerService) Start() {
-	s.log.Info("Starting relay checker service")
+func (s *RelayCollector) Start() {
+	s.log.Info("Starting relay collector service")
 
 	//  Check beacon-node sync status, process current slot and start slot updates
 	syncStatus, err := s.bn.SyncStatus()
@@ -102,7 +102,7 @@ func (s *RelayCheckerService) Start() {
 	}
 }
 
-func (s *RelayCheckerService) CallGetHeader(slot uint64, parentHash, proposerPubkey string) {
+func (s *RelayCollector) CallGetHeader(slot uint64, parentHash, proposerPubkey string) {
 	s.log.Infof("querying relays for bid in 12 sec...")
 
 	// Wait 12 seconds, allowing the builder to prepare bids
@@ -113,7 +113,7 @@ func (s *RelayCheckerService) CallGetHeader(slot uint64, parentHash, proposerPub
 	}
 }
 
-func (s *RelayCheckerService) CallGetHeaderOnRelay(relay common.RelayEntry, slot uint64, parentHash, proposerPubkey string) {
+func (s *RelayCollector) CallGetHeaderOnRelay(relay common.RelayEntry, slot uint64, parentHash, proposerPubkey string) {
 	path := fmt.Sprintf("/eth/v1/builder/header/%d/%s/%s", slot, parentHash, proposerPubkey)
 	url := relay.GetURI(path)
 

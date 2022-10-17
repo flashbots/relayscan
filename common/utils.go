@@ -20,6 +20,10 @@ func (r *RelayEntry) String() string {
 	return r.URL.String()
 }
 
+func (r *RelayEntry) Hostname() string {
+	return r.URL.Hostname()
+}
+
 // GetURI returns the full request URI with scheme, host, path and args for the relay.
 func (r *RelayEntry) GetURI(path string) string {
 	return GetURI(r.URL, path)
