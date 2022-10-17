@@ -12,7 +12,7 @@ import (
 type IDatabaseService interface {
 	SaveBidForSlot(relay string, slot uint64, parentHash, proposerPubkey string, respStatus uint64, respBid any, respError string, durationMs uint64) error
 
-	GetDataAPILatestPayloadDelivered() (*PayloadDeliveredEntry, error)
+	GetDataAPILatestPayloadDelivered(relay string) (*PayloadDeliveredEntry, error)
 	SaveDataAPIPayloadDelivered(entry *PayloadDeliveredEntry) error
 }
 
@@ -63,10 +63,10 @@ func (s *DatabaseService) SaveDataAPIPayloadDelivered(entry *PayloadDeliveredEnt
 	return err
 }
 
-func (s *DatabaseService) GetDataAPILatestPayloadDelivered() (*PayloadDeliveredEntry, error) {
+func (s *DatabaseService) GetDataAPILatestPayloadDelivered(relay string) (*PayloadDeliveredEntry, error) {
 	entry := new(PayloadDeliveredEntry)
-	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number FROM ` + TableDataAPIPayloadDelivered + ` ORDER BY slot DESC LIMIT 1`
-	err := s.DB.Get(entry, query)
+	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number FROM ` + TableDataAPIPayloadDelivered + ` WHERE relay=$1 ORDER BY slot DESC LIMIT 1`
+	err := s.DB.Get(entry, query, relay)
 	return entry, err
 }
 

@@ -88,7 +88,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 	log.Infof("backfilling relay %s ...", bf.relay.String())
 
 	// 1. get latest entry from DB
-	latestEntry, err := bf.db.GetDataAPILatestPayloadDelivered()
+	latestEntry, err := bf.db.GetDataAPILatestPayloadDelivered(bf.relay.Hostname())
 	latestSlotInDB := uint64(0)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.WithError(err).Fatal("failed to get latest entry")

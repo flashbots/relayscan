@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS ` + TableDataAPIPayloadDelivered + ` (
 	gas_used               bigint NOT NULL,
 	value                  NUMERIC(48, 0) NOT NULL,
 	num_tx                 int,
-	block_number           bigint NOT NULL
+	block_number           bigint
 );
 
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_relay_idx ON ` + TableDataAPIPayloadDelivered + `("relay");
