@@ -1,5 +1,5 @@
-// Package service provides the relay check service
-package service
+// Package collector collects data from the relays
+package collector
 
 import (
 	"encoding/json"
@@ -10,19 +10,20 @@ import (
 
 	"github.com/flashbots/go-boost-utils/types"
 	"github.com/flashbots/mev-boost-relay/beaconclient"
-	"github.com/flashbots/mev-boost-relay/common"
+	relaycommon "github.com/flashbots/mev-boost-relay/common"
+	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
 	"github.com/sirupsen/logrus"
 )
 
 type RelayCheckerService struct {
 	log    *logrus.Entry
-	relays []RelayEntry
+	relays []common.RelayEntry
 	bn     *beaconclient.ProdBeaconInstance
 	db     database.IDatabaseService
 }
 
-func NewRelayCheckerService(log *logrus.Entry, relays []RelayEntry, beaconURL string, db database.IDatabaseService) *RelayCheckerService {
+func NewRelayCheckerService(log *logrus.Entry, relays []common.RelayEntry, beaconURL string, db database.IDatabaseService) *RelayCheckerService {
 	srv := &RelayCheckerService{
 		log:    log,
 		relays: relays,
@@ -59,7 +60,7 @@ func (s *RelayCheckerService) Start() {
 		}
 
 		latestSlot = headEvent.Slot
-		currentEpoch := latestSlot / uint64(common.SlotsPerEpoch)
+		currentEpoch := latestSlot / uint64(relaycommon.SlotsPerEpoch)
 
 		// On every new epoch, get proposer duties for current and next epoch (to skip boundary problems)
 		if currentEpoch > latestEpoch {
@@ -112,7 +113,7 @@ func (s *RelayCheckerService) CallGetHeader(slot uint64, parentHash, proposerPub
 	}
 }
 
-func (s *RelayCheckerService) CallGetHeaderOnRelay(relay RelayEntry, slot uint64, parentHash, proposerPubkey string) {
+func (s *RelayCheckerService) CallGetHeaderOnRelay(relay common.RelayEntry, slot uint64, parentHash, proposerPubkey string) {
 	path := fmt.Sprintf("/eth/v1/builder/header/%d/%s/%s", slot, parentHash, proposerPubkey)
 	url := relay.GetURI(path)
 

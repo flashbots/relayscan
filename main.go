@@ -4,8 +4,9 @@ import (
 	"flag"
 	"os"
 
+	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
-	"github.com/metachris/relayscan/service"
+	"github.com/metachris/relayscan/services/collector"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,15 +50,15 @@ func main() {
 	}
 
 	var err error
-	relayEntries := make([]service.RelayEntry, len(relays))
+	relayEntries := make([]common.RelayEntry, len(relays))
 	for i, relayStr := range relays {
-		relayEntries[i], err = service.NewRelayEntry(relayStr)
+		relayEntries[i], err = common.NewRelayEntry(relayStr)
 		if err != nil {
 			log.WithError(err).Fatal("failed to parse relay entry")
 		}
 	}
 
-	srv := service.NewRelayCheckerService(log, relayEntries, *beaconNodeURI, &database.MockDB{})
+	srv := collector.NewRelayCheckerService(log, relayEntries, *beaconNodeURI, &database.MockDB{})
 	log.Info("Starting server...")
 	srv.Start()
 }
