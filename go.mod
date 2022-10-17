@@ -1,6 +1,6 @@
 module github.com/metachris/relayscan
 
-go 1.18
+go 1.19
 
 require (
 	github.com/flashbots/go-boost-utils v1.2.1-0.20220923095440-1107b5564bc4
@@ -14,7 +14,6 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/VictoriaMetrics/fastcache v1.6.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.1 // indirect
-	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/ethereum/go-ethereum v1.10.25 // indirect

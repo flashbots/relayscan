@@ -10,7 +10,7 @@ import (
 )
 
 type IDatabaseService interface {
-	SaveBidForSlot(relay string, slot uint64, parentHash, proposerPubkey string, respStatus uint64, respBid any, respError string) error
+	SaveBidForSlot(relay string, slot uint64, parentHash, proposerPubkey string, respStatus uint64, respBid any, respError string, durationMs uint64) error
 }
 
 type DatabaseService struct {
@@ -47,7 +47,7 @@ func (s *DatabaseService) Close() error {
 	return s.DB.Close()
 }
 
-func (s *DatabaseService) SaveBidForSlot(relay string, slot uint64, parentHash, proposerPubkey string, respStatus uint64, respBid any, respError string) error {
+func (s *DatabaseService) SaveBidForSlot(relay string, slot uint64, parentHash, proposerPubkey string, respStatus uint64, respBid any, respError string, durationMs uint64) error {
 	return nil
 }
 
