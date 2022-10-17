@@ -11,6 +11,9 @@ import (
 
 type IDatabaseService interface {
 	SaveBidForSlot(relay string, slot uint64, parentHash, proposerPubkey string, respStatus uint64, respBid any, respError string, durationMs uint64) error
+
+	GetDataAPILatestPayloadDelivered() (*PayloadDeliveredEntry, error)
+	SaveDataAPIPayloadDelivered(entry *PayloadDeliveredEntry) error
 }
 
 type DatabaseService struct {
@@ -49,6 +52,22 @@ func (s *DatabaseService) Close() error {
 
 func (s *DatabaseService) SaveBidForSlot(relay string, slot uint64, parentHash, proposerPubkey string, respStatus uint64, respBid any, respError string, durationMs uint64) error {
 	return nil
+}
+
+func (s *DatabaseService) SaveDataAPIPayloadDelivered(entry *PayloadDeliveredEntry) error {
+	query := `INSERT INTO ` + TableDataAPIPayloadDelivered + `
+		(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number) VALUES
+		(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value, :num_tx, :block_number)
+		ON CONFLICT DO NOTHING`
+	_, err := s.DB.NamedExec(query, entry)
+	return err
+}
+
+func (s *DatabaseService) GetDataAPILatestPayloadDelivered() (*PayloadDeliveredEntry, error) {
+	entry := new(PayloadDeliveredEntry)
+	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number FROM ` + TableDataAPIPayloadDelivered + ` ORDER BY slot DESC LIMIT 1`
+	err := s.DB.Get(entry, query)
+	return entry, err
 }
 
 // func (s *DatabaseService) SaveValidatorRegistration(registration types.SignedValidatorRegistration) error {

@@ -1,7 +1,16 @@
 package cmd
 
 import (
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+
+	relaycommon "github.com/flashbots/mev-boost-relay/common"
 	"github.com/metachris/relayscan/common"
+	"github.com/metachris/relayscan/database"
 	"github.com/spf13/cobra"
 )
 
@@ -37,23 +46,112 @@ var apiCmd = &cobra.Command{
 			log.WithError(err).Fatal("failed to get relays")
 		}
 
+		// Connect to Postgres
+		dbURL, err := url.Parse(postgresDSN)
+		if err != nil {
+			log.WithError(err).Fatalf("couldn't read db URL")
+		}
+		log.Infof("Connecting to Postgres database at %s%s ...", dbURL.Host, dbURL.Path)
+		db, err := database.NewDatabaseService(postgresDSN)
+		if err != nil {
+			log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
+		}
+
 		log.Infof("Using %d relays", len(relays))
 		for index, relay := range relays {
 			log.Infof("relay #%d: %s", index+1, relay.Hostname())
 		}
 
-		for _, relay := range relays {
-			backfillRelayPayloadsDelivered(relay)
-			return
-		}
+		backfiller := newBackfiller(db, relays[len(relays)-1])
+		backfiller.backfillPayloadsDelivered()
+
+		// for _, relay := range relays {
+		// 	backfillRelayPayloadsDelivered(relay)
+		// 	return
+		// }
 	},
 }
 
-func backfillRelayPayloadsDelivered(relay common.RelayEntry) error {
-	log.Info("backfilling relay: ", relay.Hostname())
-	baseURL := relay.GetURI("/relay/v1/data/bidtraces/proposer_payload_delivered")
-	for {
+type backfiller struct {
+	relay common.RelayEntry
+	db    database.IDatabaseService
+}
 
+func newBackfiller(db database.IDatabaseService, relay common.RelayEntry) *backfiller {
+	return &backfiller{
+		relay: relay,
+		db:    db,
 	}
-	return nil
+}
+
+func (bf *backfiller) backfillPayloadsDelivered() error {
+	log.Infof("backfilling relay %s ...", bf.relay.String())
+
+	// 1. get latest entry from DB
+	latestEntry, err := bf.db.GetDataAPILatestPayloadDelivered()
+	latestSlotInDB := uint64(0)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.WithError(err).Fatal("failed to get latest entry")
+		return err
+	} else {
+		latestSlotInDB = latestEntry.Slot
+	}
+	log.Infof("last known slot: %d", latestSlotInDB)
+
+	// 2. backfill until latest DB entry is reached
+	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/proposer_payload_delivered")
+	cursorSlot := uint64(0) // lowest known slot
+	slotsReceived := make(map[uint64]bool)
+
+	for {
+		payloadsNew := 0
+		url := baseURL
+		if cursorSlot > 0 {
+			url = fmt.Sprintf("%s?cursor=%d", baseURL, cursorSlot)
+		}
+		log.Info("url: ", url)
+		resp, err := http.Get(url)
+		if err != nil {
+			log.WithError(err).Fatal("failed to get data")
+			return err
+		}
+
+		var data []relaycommon.BidTraceV2JSON
+		err = json.NewDecoder(resp.Body).Decode(&data)
+		if err != nil {
+			log.WithError(err).Fatal("failed to decode data")
+			return err
+		}
+
+		log.Infof("got %d entries", len(data))
+		for _, dataEntry := range data {
+			log.Infof("saving entry for slot %d", dataEntry.Slot)
+			dbEntry := database.BidTraceV2JSONToPayloadDeliveredEntry(bf.relay.Hostname(), dataEntry)
+			err := bf.db.SaveDataAPIPayloadDelivered(&dbEntry)
+			if err != nil {
+				log.WithError(err).Fatal("failed to save entry")
+				return err
+			}
+
+			if !slotsReceived[dataEntry.Slot] {
+				slotsReceived[dataEntry.Slot] = true
+				payloadsNew += 1
+			}
+
+			if cursorSlot == 0 || cursorSlot > dataEntry.Slot {
+				cursorSlot = dataEntry.Slot
+			}
+		}
+
+		if payloadsNew == 0 {
+			log.Info("No new payloads, all done")
+			return nil
+		}
+
+		if cursorSlot < latestSlotInDB {
+			log.Infof("Payloads backfilled until last in DB (%d)", latestSlotInDB)
+			return nil
+		}
+		// time.Sleep(1 * time.Second)
+	}
 }
