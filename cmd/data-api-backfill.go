@@ -31,7 +31,6 @@ var apiCmd = &cobra.Command{
 	Use:   "data-api-backfill",
 	Short: "Backfill all relays data API",
 	Run: func(cmd *cobra.Command, args []string) {
-		log := common.LogSetup(logJSON, logLevel)
 		log.Info("hello")
 		relays, err := common.GetRelays()
 		if err != nil {
@@ -42,5 +41,19 @@ var apiCmd = &cobra.Command{
 		for index, relay := range relays {
 			log.Infof("relay #%d: %s", index+1, relay.Hostname())
 		}
+
+		for _, relay := range relays {
+			backfillRelayPayloadsDelivered(relay)
+			return
+		}
 	},
+}
+
+func backfillRelayPayloadsDelivered(relay common.RelayEntry) error {
+	log.Info("backfilling relay: ", relay.Hostname())
+	baseURL := relay.GetURI("/relay/v1/data/bidtraces/proposer_payload_delivered")
+	for {
+
+	}
+	return nil
 }
