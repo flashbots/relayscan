@@ -24,7 +24,7 @@ func init() {
 	rootCmd.AddCommand(backfillDataAPICmd)
 	backfillDataAPICmd.Flags().StringVar(&cliRelay, "relay", "", "specific relay only")
 	backfillDataAPICmd.Flags().Uint64Var(&initCursor, "cursor", 0, "initial cursor")
-	backfillDataAPICmd.Flags().BoolVar(&bidsOnly, "bids", false, "only bids")
+	// backfillDataAPICmd.Flags().BoolVar(&bidsOnly, "bids", false, "only bids")
 }
 
 var backfillDataAPICmd = &cobra.Command{
@@ -70,8 +70,8 @@ var backfillDataAPICmd = &cobra.Command{
 
 		for _, relay := range relays {
 			backfiller := newBackfiller(db, relay, initCursor)
-			backfiller.backfillDataAPIBids()
-			// backfiller.backfillPayloadsDelivered()
+			// backfiller.backfillDataAPIBids()
+			backfiller.backfillPayloadsDelivered()
 		}
 	},
 }
@@ -91,7 +91,7 @@ func newBackfiller(db database.IDatabaseService, relay common.RelayEntry, cursor
 }
 
 func (bf *backfiller) backfillPayloadsDelivered() error {
-	log.Infof("backfilling relay %s ...", bf.relay.Hostname())
+	log.Infof("backfilling payloads data-api for relay %s ...", bf.relay.Hostname())
 
 	// 1. get latest entry from DB
 	latestEntry, err := bf.db.GetDataAPILatestPayloadDelivered(bf.relay.Hostname())
@@ -102,7 +102,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 	} else {
 		latestSlotInDB = latestEntry.Slot
 	}
-	log.Infof("last known slot: %d", latestSlotInDB)
+	log.Infof("last payload in db at slot: %d", latestSlotInDB)
 
 	// 2. backfill until latest DB entry is reached
 	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/proposer_payload_delivered")
@@ -132,9 +132,13 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 				payloadsNew += 1
 			}
 
-			if cursorSlot == 0 || cursorSlot > dataEntry.Slot {
+			if cursorSlot == 0 {
+				log.Infof("latest received payload at slot %d", dataEntry.Slot)
+				cursorSlot = dataEntry.Slot
+			} else if cursorSlot > dataEntry.Slot {
 				cursorSlot = dataEntry.Slot
 			}
+
 		}
 
 		err := bf.db.SaveDataAPIPayloadDeliveredBatch(entries)
@@ -144,12 +148,12 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		}
 
 		if payloadsNew == 0 {
-			log.Info("No new payloads, all done")
+			log.Info("No new payloads, all done. Earliest payload for slot: %d", cursorSlot)
 			return nil
 		}
 
 		if cursorSlot < latestSlotInDB {
-			log.Infof("Payloads backfilled until last in DB (%d)", latestSlotInDB)
+			log.Infof("Payloads backfilled until last in DB - at slot %d", latestSlotInDB)
 			return nil
 		}
 		// time.Sleep(1 * time.Second)
