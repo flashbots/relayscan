@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS ` + TableSignedBuilderBid + ` (
 	extra_data    text NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS ` + TableSignedBuilderBid + `_relay_idx ON ` + TableSignedBuilderBid + `("relay");
+CREATE UNIQUE INDEX IF NOT EXISTS ` + TableSignedBuilderBid + `_u_relay_slot_n_hashes_idx ON ` + TableSignedBuilderBid + `("relay", "slot", "parent_hash", "block_hash");
 CREATE INDEX IF NOT EXISTS ` + TableSignedBuilderBid + `_slot_idx ON ` + TableSignedBuilderBid + `("slot");
 CREATE INDEX IF NOT EXISTS ` + TableSignedBuilderBid + `_block_number_idx ON ` + TableSignedBuilderBid + `("block_number");
 CREATE INDEX IF NOT EXISTS ` + TableSignedBuilderBid + `_value_idx ON ` + TableSignedBuilderBid + `("value");
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS ` + TableDataAPIPayloadDelivered + ` (
 	block_number           bigint
 );
 
-CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_relay_idx ON ` + TableDataAPIPayloadDelivered + `("relay");
+CREATE UNIQUE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_u_relay_slot_blockhash_idx ON ` + TableDataAPIPayloadDelivered + `("relay", "slot", "block_hash");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_slot_idx ON ` + TableDataAPIPayloadDelivered + `("slot");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_builder_pubkey_idx ON ` + TableDataAPIPayloadDelivered + `("builder_pubkey");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_block_number_idx ON ` + TableDataAPIPayloadDelivered + `("block_number");

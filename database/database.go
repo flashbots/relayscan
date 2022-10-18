@@ -67,6 +67,9 @@ func (s *DatabaseService) SaveDataAPIPayloadDelivered(entry *PayloadDeliveredEnt
 }
 
 func (s *DatabaseService) SaveDataAPIPayloadDeliveredBatch(entries []*PayloadDeliveredEntry) error {
+	if len(entries) == 0 {
+		return nil
+	}
 	query := `INSERT INTO ` + TableDataAPIPayloadDelivered + `
 	(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number) VALUES
 	(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value, :num_tx, :block_number)

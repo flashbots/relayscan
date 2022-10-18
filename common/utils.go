@@ -31,10 +31,10 @@ func (r *RelayEntry) GetURI(path string) string {
 
 // NewRelayEntry creates a new instance based on an input string
 // relayURL can be IP@PORT, PUBKEY@IP:PORT, https://IP, etc.
-func NewRelayEntry(relayURL string) (entry RelayEntry, err error) {
+func NewRelayEntry(relayURL string, requireUser bool) (entry RelayEntry, err error) {
 	// Add protocol scheme prefix if it does not exist.
 	if !strings.HasPrefix(relayURL, "http") {
-		relayURL = "http://" + relayURL
+		relayURL = "https://" + relayURL
 	}
 
 	// Parse the provided relay's URL and save the parsed URL in the RelayEntry.
@@ -44,11 +44,13 @@ func NewRelayEntry(relayURL string) (entry RelayEntry, err error) {
 	}
 
 	// Extract the relay's public key from the parsed URL.
-	if entry.URL.User.Username() == "" {
+	if requireUser && entry.URL.User.Username() == "" {
 		return entry, ErrMissingRelayPubkey
 	}
 
-	err = entry.PublicKey.UnmarshalText([]byte(entry.URL.User.Username()))
+	if entry.URL.User.Username() != "" {
+		err = entry.PublicKey.UnmarshalText([]byte(entry.URL.User.Username()))
+	}
 	return entry, err
 }
 

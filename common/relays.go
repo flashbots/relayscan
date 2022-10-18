@@ -10,16 +10,11 @@ var RelayURLs = []string{
 	"https://0x98650451ba02064f7b000f5768cf0cf4d4e492317d82871bdc87ef841a0743f69f0f1eea11168503240ac35d101c9135@mainnet-relay.securerpc.com",
 }
 
-func RelayURLToEntry(url string) (RelayEntry, error) {
-	entry, err := NewRelayEntry(url)
-	return entry, err
-}
-
 func GetRelays() ([]RelayEntry, error) {
 	var err error
 	relays := make([]RelayEntry, len(RelayURLs))
 	for i, relayStr := range RelayURLs {
-		relays[i], err = NewRelayEntry(relayStr)
+		relays[i], err = NewRelayEntry(relayStr, true)
 		if err != nil {
 			return relays, err
 		}

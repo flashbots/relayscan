@@ -14,11 +14,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ()
+var (
+	cliRelay   string
+	initCursor uint64
+)
 
 func init() {
 	rootCmd.AddCommand(backfillDataAPICmd)
-	// apiCmd.Flags().BoolVar(&logJSON, "json", defaultLogJSON, "log in JSON format instead of text")
+	backfillDataAPICmd.Flags().StringVar(&cliRelay, "relay", "", "specific relay only")
+	backfillDataAPICmd.Flags().Uint64Var(&initCursor, "cursor", 0, "initial cursor")
 	// apiCmd.Flags().StringVar(&logLevel, "loglevel", defaultLogLevel, "log-level: trace, debug, info, warn/warning, error, fatal, panic")
 	// apiCmd.Flags().StringVar(&apiLogTag, "log-tag", apiDefaultLogTag, "if set, a 'tag' field will be added to all log entries")
 	// apiCmd.Flags().BoolVar(&apiLogVersion, "log-version", apiDefaultLogVersion, "if set, a 'version' field will be added to all log entries")
@@ -40,10 +44,30 @@ var backfillDataAPICmd = &cobra.Command{
 	Use:   "data-api-backfill",
 	Short: "Backfill all relays data API",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Info("hello")
-		relays, err := common.GetRelays()
-		if err != nil {
-			log.WithError(err).Fatal("failed to get relays")
+		var err error
+		var relays []common.RelayEntry
+
+		if cliRelay != "" {
+			var relayEntry common.RelayEntry
+			if cliRelay == "fb" {
+				relayEntry, err = common.NewRelayEntry(common.RelayURLs[0], false)
+			} else {
+				relayEntry, err = common.NewRelayEntry(cliRelay, false)
+			}
+			if err != nil {
+				log.WithField("relay", cliRelay).WithError(err).Fatal("failed to decode relay")
+			}
+			relays = []common.RelayEntry{relayEntry}
+		} else {
+			relays, err = common.GetRelays()
+			if err != nil {
+				log.WithError(err).Fatal("failed to get relays")
+			}
+		}
+
+		log.Infof("Using %d relays", len(relays))
+		for index, relay := range relays {
+			log.Infof("relay #%d: %s", index+1, relay.Hostname())
 		}
 
 		// Connect to Postgres
@@ -57,27 +81,24 @@ var backfillDataAPICmd = &cobra.Command{
 			log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
 		}
 
-		log.Infof("Using %d relays", len(relays))
-		for index, relay := range relays {
-			log.Infof("relay #%d: %s", index+1, relay.Hostname())
-		}
-
 		for _, relay := range relays {
-			backfiller := newBackfiller(db, relay)
+			backfiller := newBackfiller(db, relay, initCursor)
 			backfiller.backfillPayloadsDelivered()
 		}
 	},
 }
 
 type backfiller struct {
-	relay common.RelayEntry
-	db    database.IDatabaseService
+	relay      common.RelayEntry
+	db         database.IDatabaseService
+	cursorSlot uint64
 }
 
-func newBackfiller(db database.IDatabaseService, relay common.RelayEntry) *backfiller {
+func newBackfiller(db database.IDatabaseService, relay common.RelayEntry, cursorSlot uint64) *backfiller {
 	return &backfiller{
-		relay: relay,
-		db:    db,
+		relay:      relay,
+		db:         db,
+		cursorSlot: cursorSlot,
 	}
 }
 
@@ -97,7 +118,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 
 	// 2. backfill until latest DB entry is reached
 	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/proposer_payload_delivered")
-	cursorSlot := uint64(0) // lowest known slot
+	cursorSlot := bf.cursorSlot
 	slotsReceived := make(map[uint64]bool)
 
 	for {
