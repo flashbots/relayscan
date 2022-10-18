@@ -9,8 +9,8 @@ import (
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
 )
 
-func BidTraceV2JSONToPayloadDeliveredEntry(relay string, entry relaycommon.BidTraceV2JSON) PayloadDeliveredEntry {
-	ret := PayloadDeliveredEntry{
+func BidTraceV2JSONToPayloadDeliveredEntry(relay string, entry relaycommon.BidTraceV2JSON) DataAPIPayloadDeliveredEntry {
+	ret := DataAPIPayloadDeliveredEntry{
 		Relay:                relay,
 		Epoch:                entry.Slot / 32,
 		Slot:                 entry.Slot,
@@ -22,6 +22,32 @@ func BidTraceV2JSONToPayloadDeliveredEntry(relay string, entry relaycommon.BidTr
 		GasLimit:             entry.GasLimit,
 		GasUsed:              entry.GasUsed,
 		Value:                entry.Value,
+	}
+
+	if entry.NumTx > 0 {
+		ret.NumTx = NewNullInt64(int64(entry.NumTx))
+	}
+
+	if entry.BlockNumber > 0 {
+		ret.BlockNumber = NewNullInt64(int64(entry.BlockNumber))
+	}
+	return ret
+}
+
+func BidTraceV2WithTimestampJSONToBuilderBidEntry(relay string, entry relaycommon.BidTraceV2WithTimestampJSON) DataAPIBuilderBidEntry {
+	ret := DataAPIBuilderBidEntry{
+		Relay:                relay,
+		Epoch:                entry.Slot / 32,
+		Slot:                 entry.Slot,
+		ParentHash:           entry.ParentHash,
+		BlockHash:            entry.BlockHash,
+		BuilderPubkey:        entry.BuilderPubkey,
+		ProposerPubkey:       entry.ProposerPubkey,
+		ProposerFeeRecipient: entry.ProposerFeeRecipient,
+		GasLimit:             entry.GasLimit,
+		GasUsed:              entry.GasUsed,
+		Value:                entry.Value,
+		Timestamp:            time.Unix(entry.Timestamp, 0).UTC(),
 	}
 
 	if entry.NumTx > 0 {
