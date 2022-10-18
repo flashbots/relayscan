@@ -17,7 +17,7 @@ import (
 var ()
 
 func init() {
-	rootCmd.AddCommand(apiCmd)
+	rootCmd.AddCommand(backfillDataAPICmd)
 	// apiCmd.Flags().BoolVar(&logJSON, "json", defaultLogJSON, "log in JSON format instead of text")
 	// apiCmd.Flags().StringVar(&logLevel, "loglevel", defaultLogLevel, "log-level: trace, debug, info, warn/warning, error, fatal, panic")
 	// apiCmd.Flags().StringVar(&apiLogTag, "log-tag", apiDefaultLogTag, "if set, a 'tag' field will be added to all log entries")
@@ -36,7 +36,7 @@ func init() {
 	// apiCmd.Flags().BoolVar(&apiInternalAPI, "internal-api", apiDefaultInternalAPIEnabled, "enable internal API (/internal/...)")
 }
 
-var apiCmd = &cobra.Command{
+var backfillDataAPICmd = &cobra.Command{
 	Use:   "data-api-backfill",
 	Short: "Backfill all relays data API",
 	Run: func(cmd *cobra.Command, args []string) {
