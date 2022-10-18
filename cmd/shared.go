@@ -10,6 +10,7 @@ import (
 var (
 	Version = "dev" // is set during build process
 	log     = common.LogSetup(logJSON, logLevel)
+	debug   = false
 
 	defaultBeaconURI = relaycommon.GetEnv("BEACON_URI", "http://localhost:3500")
 	postgresDSN      = relaycommon.GetEnv("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")

@@ -62,7 +62,7 @@ func (s *RelayCollector) Start() {
 		latestSlot = headEvent.Slot
 		currentEpoch := latestSlot / uint64(relaycommon.SlotsPerEpoch)
 
-		// On every new epoch, get proposer duties for current and next epoch (to skip boundary problems)
+		// On every new epoch, get proposer duties for current and next epoch (to avoid boundary problems)
 		if currentEpoch > latestEpoch {
 			dutiesResp, err := s.bn.GetProposerDuties(currentEpoch)
 			if err != nil {
@@ -118,9 +118,11 @@ func (s *RelayCollector) CallGetHeaderOnRelay(relay common.RelayEntry, slot uint
 	url := relay.GetURI(path)
 	log := s.log.WithField("relay", relay.Hostname())
 
-	log.Infof("Querying %s", url)
+	log.Debugf("Querying %s", url)
 	var bid types.GetHeaderResponse
+	timeRequestStart := time.Now().UTC()
 	code, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &bid)
+	timeRequestEnd := time.Now().UTC()
 	if err != nil {
 		if strings.Contains(err.Error(), "no builder bid") {
 			return
@@ -132,12 +134,14 @@ func (s *RelayCollector) CallGetHeaderOnRelay(relay common.RelayEntry, slot uint
 		// log.WithField("code", code).Info("no bid received")
 		return
 	}
-	timeBidReceived := time.Now().UTC()
 	log.Infof("bid received! slot: %d \t value: %s \t block_hash: %s", slot, bid.Data.Message.Value.String(), bid.Data.Message.Header.BlockHash.String())
-	entry := database.SignedBuilderBidToEntry(relay.Hostname(), slot, timeBidReceived, bid.Data)
+	entry := database.SignedBuilderBidToEntry(relay.Hostname(), slot, parentHash, proposerPubkey, timeRequestStart, timeRequestEnd, bid.Data)
 	err = s.db.SaveSignedBuilderBid(entry)
 	if err != nil {
-		log.WithField("extraData", bid.Data.Message.Header.ExtraData.String()).WithError(err).Error("failed saving bid to database")
+		log.WithFields(logrus.Fields{
+			"extraData":          bid.Data.Message.Header.ExtraData.String(),
+			"extraDataProcessed": entry.ExtraData,
+		}).WithError(err).Error("failed saving bid to database")
 		return
 	}
 }

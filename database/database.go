@@ -57,8 +57,8 @@ func (s *DatabaseService) Close() error {
 
 func (s *DatabaseService) SaveSignedBuilderBid(entry SignedBuilderBidEntry) error {
 	query := `INSERT INTO ` + TableSignedBuilderBid + `
-		(relay, received_at, epoch, slot, signature, pubkey, value, parent_hash, fee_recipient, block_hash, block_number, gas_limit, gas_used, extra_data) VALUES
-		(:relay, :received_at, :epoch, :slot, :signature, :pubkey, :value, :parent_hash, :fee_recipient, :block_hash, :block_number, :gas_limit, :gas_used, :extra_data)
+		(relay, requested_at, received_at, duration_ms, slot, parent_hash, proposer_pubkey, pubkey, signature, value, fee_recipient, block_hash, block_number, gas_limit, gas_used, extra_data, epoch) VALUES
+		(:relay, :requested_at, :received_at, :duration_ms, :slot, :parent_hash, :proposer_pubkey, :pubkey, :signature, :value, :fee_recipient, :block_hash, :block_number, :gas_limit, :gas_used, :extra_data, :epoch)
 		ON CONFLICT DO NOTHING`
 	_, err := s.DB.NamedExec(query, entry)
 	return err

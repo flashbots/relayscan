@@ -63,20 +63,25 @@ type DataAPIBuilderBidEntry struct {
 type SignedBuilderBidEntry struct {
 	ID         int64     `db:"id"`
 	InsertedAt time.Time `db:"inserted_at"`
-	ReceivedAt time.Time `db:"received_at"`
-	Relay      string    `db:"relay"`
 
-	Epoch uint64 `db:"epoch"`
-	Slot  uint64 `db:"slot"`
+	Relay       string    `db:"relay"`
+	RequestedAt time.Time `db:"requested_at"`
+	ReceivedAt  time.Time `db:"received_at"`
+	LatencyMS   int64     `db:"duration_ms"`
 
-	Signature    string `db:"signature"`
-	Pubkey       string `db:"pubkey"`
+	Slot           uint64 `db:"slot"`
+	ParentHash     string `db:"parent_hash"`
+	ProposerPubkey string `db:"proposer_pubkey"`
+
+	Pubkey    string `db:"pubkey"`
+	Signature string `db:"signature"`
+
 	Value        string `db:"value"`
-	ParentHash   string `db:"parent_hash"`
 	FeeRecipient string `db:"fee_recipient"`
 	BlockHash    string `db:"block_hash"`
 	BlockNumber  uint64 `db:"block_number"`
 	GasLimit     uint64 `db:"gas_limit"`
 	GasUsed      uint64 `db:"gas_used"`
 	ExtraData    string `db:"extra_data"`
+	Epoch        uint64 `db:"epoch"`
 }

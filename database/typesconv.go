@@ -60,10 +60,10 @@ func BidTraceV2WithTimestampJSONToBuilderBidEntry(relay string, entry relaycommo
 	return ret
 }
 
-func SignedBuilderBidToEntry(relay string, slot uint64, receivedAt time.Time, bid *types.SignedBuilderBid) SignedBuilderBidEntry {
+func SignedBuilderBidToEntry(relay string, slot uint64, parentHash, proposerPubkey string, timeRequestStart, timeRequestEnd time.Time, bid *types.SignedBuilderBid) SignedBuilderBidEntry {
 	extraDataBytes := bid.Message.Header.ExtraData
 	for i, b := range extraDataBytes {
-		if b > 127 {
+		if b < 32 || b > 126 {
 			extraDataBytes[i] = 32
 		}
 	}
@@ -75,20 +75,25 @@ func SignedBuilderBidToEntry(relay string, slot uint64, receivedAt time.Time, bi
 	}
 
 	return SignedBuilderBidEntry{
-		Relay:      relay,
-		ReceivedAt: receivedAt,
-		Epoch:      slot / 32,
-		Slot:       slot,
+		Relay:       relay,
+		RequestedAt: timeRequestStart,
+		ReceivedAt:  timeRequestEnd,
+		LatencyMS:   timeRequestEnd.Sub(timeRequestStart).Milliseconds(),
 
-		Signature:    bid.Signature.String(),
-		Pubkey:       bid.Message.Pubkey.String(),
+		Slot:           slot,
+		ParentHash:     parentHash,
+		ProposerPubkey: proposerPubkey,
+
+		Pubkey:    bid.Message.Pubkey.String(),
+		Signature: bid.Signature.String(),
+
 		Value:        bid.Message.Value.String(),
-		ParentHash:   bid.Message.Header.ParentHash.String(),
 		FeeRecipient: bid.Message.Header.FeeRecipient.String(),
 		BlockHash:    bid.Message.Header.BlockHash.String(),
 		BlockNumber:  bid.Message.Header.BlockNumber,
 		GasLimit:     bid.Message.Header.GasLimit,
 		GasUsed:      bid.Message.Header.GasUsed,
 		ExtraData:    extraData,
+		Epoch:        slot / 32,
 	}
 }
