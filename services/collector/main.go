@@ -2,9 +2,8 @@
 package collector
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -116,37 +115,34 @@ func (s *RelayCollector) CallGetHeader(slot uint64, parentHash, proposerPubkey s
 func (s *RelayCollector) CallGetHeaderOnRelay(relay common.RelayEntry, slot uint64, parentHash, proposerPubkey string) {
 	path := fmt.Sprintf("/eth/v1/builder/header/%d/%s/%s", slot, parentHash, proposerPubkey)
 	url := relay.GetURI(path)
+	log := s.log.WithField("relay", relay.Hostname())
 
 	defer func() {
 		// TODO: save to db
 		// s.db.SaveBidForSlot()
 	}()
 
-	s.log.Infof("Querying %s", url)
-	res, err := http.Get(url)
+	log.Infof("Querying %s", url)
+	var bid types.GetHeaderResponse
+	code, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &bid)
 	if err != nil {
-		s.log.WithError(err).Error("error on getHeader request")
+		log.WithField("code", code).WithError(err).Error("error on getHeader request")
 		return
 	}
-	s.log.Infof("relay status returned: %d", res.StatusCode)
-
-	var bodyBytes []byte
-	if res.ContentLength > 0 {
-		bodyBytes, err = io.ReadAll(res.Body)
-		res.Body.Close()
-		if err != nil {
-			s.log.WithError(err).Error("Couldn't read response body")
-		}
+	if code != 200 {
+		log.WithField("code", code).Info("no bid received")
+		return
 	}
+	log.Infof("bid received! slot: %d \t value: %s \t block_hash: %s", slot, bid.Data.Message.Value.String(), bid.Data.Message.Header.BlockHash.String())
 
-	if res.StatusCode == 200 {
-		// should be a bid bid
-		var dst types.GetHeaderResponse
-		if err := json.Unmarshal(bodyBytes, &dst); err != nil {
-			s.log.WithError(err).Errorf("Couldn't unmarshal response body: %s", string(bodyBytes))
-		}
-		s.log.Infof("bid received! slot: %d / value: %s / hash: %s / parentHash: %s", slot, dst.Data.Message.Value.String(), dst.Data.Message.Header.BlockHash, parentHash)
-	} else {
-		// TODO: try to unpack into error struct
-	}
+	// if res.StatusCode == 200 {
+	// 	// should be a bid bid
+
+	// 	if err := json.Unmarshal(bodyBytes, &dst); err != nil {
+	// 		s.log.WithError(err).Errorf("Couldn't unmarshal response body: %s", string(bodyBytes))
+	// 	}
+	// 	s.log.Infof("bid received! slot: %d / value: %s / hash: %s / parentHash: %s", slot, dst.Data.Message.Value.String(), dst.Data.Message.Header.BlockHash, parentHash)
+	// } else {
+	// 	// TODO: try to unpack into error struct
+	// }
 }
