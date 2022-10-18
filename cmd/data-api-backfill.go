@@ -62,13 +62,10 @@ var apiCmd = &cobra.Command{
 			log.Infof("relay #%d: %s", index+1, relay.Hostname())
 		}
 
-		backfiller := newBackfiller(db, relays[len(relays)-3])
-		backfiller.backfillPayloadsDelivered()
-
-		// for _, relay := range relays {
-		// 	backfillRelayPayloadsDelivered(relay)
-		// 	return
-		// }
+		for _, relay := range relays {
+			backfiller := newBackfiller(db, relay)
+			backfiller.backfillPayloadsDelivered()
+		}
 	},
 }
 
@@ -85,7 +82,7 @@ func newBackfiller(db database.IDatabaseService, relay common.RelayEntry) *backf
 }
 
 func (bf *backfiller) backfillPayloadsDelivered() error {
-	log.Infof("backfilling relay %s ...", bf.relay.String())
+	log.Infof("backfilling relay %s ...", bf.relay.Hostname())
 
 	// 1. get latest entry from DB
 	latestEntry, err := bf.db.GetDataAPILatestPayloadDelivered(bf.relay.Hostname())
@@ -117,7 +114,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		entries := make([]*database.PayloadDeliveredEntry, len(data))
 
 		for index, dataEntry := range data {
-			log.Infof("saving entry for slot %d", dataEntry.Slot)
+			log.Debugf("saving entry for slot %d", dataEntry.Slot)
 			dbEntry := database.BidTraceV2JSONToPayloadDeliveredEntry(bf.relay.Hostname(), dataEntry)
 			entries[index] = &dbEntry
 
