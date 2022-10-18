@@ -14,6 +14,7 @@ type IDatabaseService interface {
 
 	GetDataAPILatestPayloadDelivered(relay string) (*PayloadDeliveredEntry, error)
 	SaveDataAPIPayloadDelivered(entry *PayloadDeliveredEntry) error
+	SaveDataAPIPayloadDeliveredBatch(entries []*PayloadDeliveredEntry) error
 }
 
 type DatabaseService struct {
@@ -60,6 +61,15 @@ func (s *DatabaseService) SaveDataAPIPayloadDelivered(entry *PayloadDeliveredEnt
 		(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value, :num_tx, :block_number)
 		ON CONFLICT DO NOTHING`
 	_, err := s.DB.NamedExec(query, entry)
+	return err
+}
+
+func (s *DatabaseService) SaveDataAPIPayloadDeliveredBatch(entries []*PayloadDeliveredEntry) error {
+	query := `INSERT INTO ` + TableDataAPIPayloadDelivered + `
+		(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number) VALUES
+		(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value, :num_tx, :block_number)
+		ON CONFLICT DO NOTHING`
+	_, err := s.DB.NamedExec(query, entries)
 	return err
 }
 

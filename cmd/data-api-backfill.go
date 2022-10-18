@@ -114,14 +114,12 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
 
 		log.Infof("got %d entries", len(data))
-		for _, dataEntry := range data {
+		entries := make([]*database.PayloadDeliveredEntry, len(data))
+
+		for index, dataEntry := range data {
 			log.Infof("saving entry for slot %d", dataEntry.Slot)
 			dbEntry := database.BidTraceV2JSONToPayloadDeliveredEntry(bf.relay.Hostname(), dataEntry)
-			err := bf.db.SaveDataAPIPayloadDelivered(&dbEntry)
-			if err != nil {
-				log.WithError(err).Fatal("failed to save entry")
-				return err
-			}
+			entries[index] = &dbEntry
 
 			if !slotsReceived[dataEntry.Slot] {
 				slotsReceived[dataEntry.Slot] = true
@@ -131,6 +129,12 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 			if cursorSlot == 0 || cursorSlot > dataEntry.Slot {
 				cursorSlot = dataEntry.Slot
 			}
+		}
+
+		err := bf.db.SaveDataAPIPayloadDeliveredBatch(entries)
+		if err != nil {
+			log.WithError(err).Fatal("failed to save entries")
+			return err
 		}
 
 		if payloadsNew == 0 {
