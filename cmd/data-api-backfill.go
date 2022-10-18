@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -62,7 +62,7 @@ var apiCmd = &cobra.Command{
 			log.Infof("relay #%d: %s", index+1, relay.Hostname())
 		}
 
-		backfiller := newBackfiller(db, relays[len(relays)-1])
+		backfiller := newBackfiller(db, relays[len(relays)-3])
 		backfiller.backfillPayloadsDelivered()
 
 		// for _, relay := range relays {
@@ -110,18 +110,8 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 			url = fmt.Sprintf("%s?cursor=%d", baseURL, cursorSlot)
 		}
 		log.Info("url: ", url)
-		resp, err := http.Get(url)
-		if err != nil {
-			log.WithError(err).Fatal("failed to get data")
-			return err
-		}
-
 		var data []relaycommon.BidTraceV2JSON
-		err = json.NewDecoder(resp.Body).Decode(&data)
-		if err != nil {
-			log.WithError(err).Fatal("failed to decode data")
-			return err
-		}
+		common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
 
 		log.Infof("got %d entries", len(data))
 		for _, dataEntry := range data {
