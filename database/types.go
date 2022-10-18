@@ -38,3 +38,24 @@ type PayloadDeliveredEntry struct {
 	NumTx                sql.NullInt64 `db:"num_tx"`
 	BlockNumber          sql.NullInt64 `db:"block_number"`
 }
+
+type SignedBuilderBidEntry struct {
+	ID         int64     `db:"id"`
+	InsertedAt time.Time `db:"inserted_at"`
+	ReceivedAt time.Time `db:"received_at"`
+	Relay      string    `db:"relay"`
+
+	Epoch uint64 `db:"epoch"`
+	Slot  uint64 `db:"slot"`
+
+	Signature    string `db:"signature"`
+	Pubkey       string `db:"pubkey"`
+	Value        string `db:"value"`
+	ParentHash   string `db:"parent_hash"`
+	FeeRecipient string `db:"fee_recipient"`
+	BlockHash    string `db:"block_hash"`
+	BlockNumber  uint64 `db:"block_number"`
+	GasLimit     uint64 `db:"gas_limit"`
+	GasUsed      uint64 `db:"gas_used"`
+	ExtraData    string `db:"extra_data"`
+}

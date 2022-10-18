@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/flashbots/go-boost-utils/types"
@@ -117,32 +118,26 @@ func (s *RelayCollector) CallGetHeaderOnRelay(relay common.RelayEntry, slot uint
 	url := relay.GetURI(path)
 	log := s.log.WithField("relay", relay.Hostname())
 
-	defer func() {
-		// TODO: save to db
-		// s.db.SaveBidForSlot()
-	}()
-
 	log.Infof("Querying %s", url)
 	var bid types.GetHeaderResponse
 	code, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &bid)
 	if err != nil {
+		if strings.Contains(err.Error(), "no builder bid") {
+			return
+		}
 		log.WithField("code", code).WithError(err).Error("error on getHeader request")
 		return
 	}
 	if code != 200 {
-		log.WithField("code", code).Info("no bid received")
+		// log.WithField("code", code).Info("no bid received")
 		return
 	}
+	timeBidReceived := time.Now().UTC()
 	log.Infof("bid received! slot: %d \t value: %s \t block_hash: %s", slot, bid.Data.Message.Value.String(), bid.Data.Message.Header.BlockHash.String())
-
-	// if res.StatusCode == 200 {
-	// 	// should be a bid bid
-
-	// 	if err := json.Unmarshal(bodyBytes, &dst); err != nil {
-	// 		s.log.WithError(err).Errorf("Couldn't unmarshal response body: %s", string(bodyBytes))
-	// 	}
-	// 	s.log.Infof("bid received! slot: %d / value: %s / hash: %s / parentHash: %s", slot, dst.Data.Message.Value.String(), dst.Data.Message.Header.BlockHash, parentHash)
-	// } else {
-	// 	// TODO: try to unpack into error struct
-	// }
+	entry := database.SignedBuilderBidToEntry(relay.Hostname(), slot, timeBidReceived, bid.Data)
+	err = s.db.SaveSignedBuilderBid(entry)
+	if err != nil {
+		log.WithField("extraData", bid.Data.Message.Header.ExtraData.String()).WithError(err).Error("failed saving bid to database")
+		return
+	}
 }

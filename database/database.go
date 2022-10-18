@@ -15,6 +15,8 @@ type IDatabaseService interface {
 	GetDataAPILatestPayloadDelivered(relay string) (*PayloadDeliveredEntry, error)
 	SaveDataAPIPayloadDelivered(entry *PayloadDeliveredEntry) error
 	SaveDataAPIPayloadDeliveredBatch(entries []*PayloadDeliveredEntry) error
+
+	SaveSignedBuilderBid(entry SignedBuilderBidEntry) error
 }
 
 type DatabaseService struct {
@@ -66,9 +68,9 @@ func (s *DatabaseService) SaveDataAPIPayloadDelivered(entry *PayloadDeliveredEnt
 
 func (s *DatabaseService) SaveDataAPIPayloadDeliveredBatch(entries []*PayloadDeliveredEntry) error {
 	query := `INSERT INTO ` + TableDataAPIPayloadDelivered + `
-		(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number) VALUES
-		(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value, :num_tx, :block_number)
-		ON CONFLICT DO NOTHING`
+	(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number) VALUES
+	(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value, :num_tx, :block_number)
+	ON CONFLICT DO NOTHING`
 	_, err := s.DB.NamedExec(query, entries)
 	return err
 }
@@ -80,19 +82,11 @@ func (s *DatabaseService) GetDataAPILatestPayloadDelivered(relay string) (*Paylo
 	return entry, err
 }
 
-// func (s *DatabaseService) SaveValidatorRegistration(registration types.SignedValidatorRegistration) error {
-// 	entry := ValidatorRegistrationEntry{
-// 		Pubkey:       registration.Message.Pubkey.String(),
-// 		FeeRecipient: registration.Message.FeeRecipient.String(),
-// 		Timestamp:    registration.Message.Timestamp,
-// 		GasLimit:     registration.Message.GasLimit,
-// 		Signature:    registration.Signature.String(),
-// 	}
-
-// 	query := `INSERT INTO ` + TableValidatorRegistration + `
-// 		(pubkey, fee_recipient, timestamp, gas_limit, signature) VALUES
-// 		(:pubkey, :fee_recipient, :timestamp, :gas_limit, :signature)
-// 		ON CONFLICT (pubkey, fee_recipient) DO NOTHING;`
-// 	_, err := s.DB.NamedExec(query, entry)
-// 	return err
-// }
+func (s *DatabaseService) SaveSignedBuilderBid(entry SignedBuilderBidEntry) error {
+	query := `INSERT INTO ` + TableSignedBuilderBid + `
+		(relay, received_at, epoch, slot, signature, pubkey, value, parent_hash, fee_recipient, block_hash, block_number, gas_limit, gas_used, extra_data) VALUES
+		(:relay, :received_at, :epoch, :slot, :signature, :pubkey, :value, :parent_hash, :fee_recipient, :block_hash, :block_number, :gas_limit, :gas_used, :extra_data)
+		ON CONFLICT DO NOTHING`
+	_, err := s.DB.NamedExec(query, entry)
+	return err
+}
