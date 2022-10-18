@@ -9,7 +9,7 @@ clean:
 	rm -rf your-project build/
 
 build:
-	go build -trimpath -ldflags "-X main.version=${VERSION}" -v -o your-project main.go
+	go build -trimpath -ldflags "-s -X cmd.Version=${VERSION} -X main.Version=${VERSION}" -v -o relayscan .
 
 test:
 	go test ./...
@@ -38,4 +38,4 @@ cover-html:
 	unlink /tmp/go-sim-lb.cover.tmp
 
 docker-image:
-	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --build-arg VERSION=${VERSION} . -t your-project
+	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --build-arg VERSION=${VERSION} . -t relayscan
