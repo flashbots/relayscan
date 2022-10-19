@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS ` + TableDataAPIPayloadDelivered + ` (
 	block_number           bigint
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_u_relay_slot_blockhash_idx ON ` + TableDataAPIPayloadDelivered + `("relay", "slot", "block_hash");
+CREATE UNIQUE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_u_relay_slot_blockhash_idx ON ` + TableDataAPIPayloadDelivered + `("relay", "slot", "parent_hash", "block_hash");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_slot_idx ON ` + TableDataAPIPayloadDelivered + `("slot");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_builder_pubkey_idx ON ` + TableDataAPIPayloadDelivered + `("builder_pubkey");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_block_number_idx ON ` + TableDataAPIPayloadDelivered + `("block_number");
