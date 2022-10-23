@@ -5,6 +5,13 @@ import (
 	"time"
 )
 
+func NewNullBool(b bool) sql.NullBool {
+	return sql.NullBool{
+		Bool:  b,
+		Valid: true,
+	}
+}
+
 func NewNullInt64(i int64) sql.NullInt64 {
 	return sql.NullInt64{
 		Int64: i,
@@ -39,15 +46,16 @@ type DataAPIPayloadDeliveredEntry struct {
 	NumTx                sql.NullInt64 `db:"num_tx"`
 	BlockNumber          sql.NullInt64 `db:"block_number"`
 
-	ValueCheckOk          sql.NullBool   `db:"value_check_ok"`
-	ValueCheckMethod      sql.NullString `db:"value_check_method"`
-	ValueDeliveredWei     sql.NullString `db:"value_delivered_wei"`
-	ValueDeliveredEth     sql.NullString `db:"value_delivered_eth"`
-	ValueDeliveredDiffWei sql.NullString `db:"value_delivered_diff_wei"`
-	ValueDeliveredDiffEth sql.NullString `db:"value_delivered_diff_eth"`
-	BlockCoinbaseAddress  sql.NullString `db:"block_coinbase_addr"`
-	CoinbaseDiffWei       sql.NullString `db:"value_delivered_wei"`
-	CoinbaseDiffEth       sql.NullString `db:"value_delivered_eth"`
+	ValueCheckOk            sql.NullBool   `db:"value_check_ok"`
+	ValueCheckMethod        sql.NullString `db:"value_check_method"`
+	ValueDeliveredWei       sql.NullString `db:"value_delivered_wei"`
+	ValueDeliveredEth       sql.NullString `db:"value_delivered_eth"`
+	ValueDeliveredDiffWei   sql.NullString `db:"value_delivered_diff_wei"`
+	ValueDeliveredDiffEth   sql.NullString `db:"value_delivered_diff_eth"`
+	BlockCoinbaseAddress    sql.NullString `db:"block_coinbase_addr"`
+	BlockCoinbaseIsProposer sql.NullBool   `db:"block_coinbase_is_proposer"`
+	CoinbaseDiffWei         sql.NullString `db:"coinbase_diff_wei"`
+	CoinbaseDiffEth         sql.NullString `db:"coinbase_diff_eth"`
 }
 
 type DataAPIBuilderBidEntry struct {

@@ -68,15 +68,16 @@ CREATE TABLE IF NOT EXISTS ` + TableDataAPIPayloadDelivered + ` (
 	num_tx                 int,
 	block_number           bigint,
 
-	value_check_ok            boolean, 		  -- null means not yet checked
-	value_check_method        text,  		  -- how value was checked (i.e. blockBalanceDiff)
-	value_delivered_wei       NUMERIC(48, 0), -- actually delivered value
-	value_delivered_eth       NUMERIC(16, 8), -- actually delivered value
-	value_delivered_diff_wei  NUMERIC(48, 0), -- value_delivered - value_claimed
-	value_delivered_diff_eth  NUMERIC(16, 8), -- value_delivered - value_claimed
-	block_coinbase_addr		  varchar(42),    -- block coinbase address
-	coinbase_diff_wei         NUMERIC(48, 0), -- builder value difference
-	coinbase_diff_eth         NUMERIC(16, 8)  -- builder value difference
+	value_check_ok              boolean, 		-- null means not yet checked
+	value_check_method          text,  		    -- how value was checked (i.e. blockBalanceDiff)
+	value_delivered_wei         NUMERIC(48, 0), -- actually delivered value
+	value_delivered_eth         NUMERIC(16, 8), -- actually delivered value
+	value_delivered_diff_wei    NUMERIC(48, 0), -- value_delivered - value_claimed
+	value_delivered_diff_eth    NUMERIC(16, 8), -- value_delivered - value_claimed
+	block_coinbase_addr		    varchar(42),    -- block coinbase address
+	block_coinbase_is_proposer  boolean,        -- true if coinbase == proposerFeeRecipient
+	coinbase_diff_wei           NUMERIC(48, 0), -- builder value difference
+	coinbase_diff_eth           NUMERIC(16, 8)  -- builder value difference
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_u_relay_slot_blockhash_idx ON ` + TableDataAPIPayloadDelivered + `("relay", "slot", "parent_hash", "block_hash");

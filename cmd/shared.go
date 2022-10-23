@@ -12,8 +12,10 @@ var (
 	log     = common.LogSetup(logJSON, logLevel)
 	debug   = false
 
-	defaultBeaconURI = relaycommon.GetEnv("BEACON_URI", "http://localhost:3500")
-	postgresDSN      = relaycommon.GetEnv("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
-	logJSON          = os.Getenv("LOG_JSON") != ""
-	logLevel         = relaycommon.GetEnv("LOG_LEVEL", "info")
+	defaultBeaconURI        = relaycommon.GetEnv("BEACON_URI", "http://localhost:3500")
+	postgresDSN             = relaycommon.GetEnv("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
+	logJSON                 = os.Getenv("LOG_JSON") != ""
+	logLevel                = relaycommon.GetEnv("LOG_LEVEL", "info")
+	defaultEthNodeURI       = relaycommon.GetEnv("ETH_NODE_URI", "")
+	defaultEthBackupNodeURI = relaycommon.GetEnv("ETH_NODE_BACKUP_URI", "")
 )

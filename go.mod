@@ -28,6 +28,7 @@ require (
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
+	github.com/onrik/ethrpc v1.1.1 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.21.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
