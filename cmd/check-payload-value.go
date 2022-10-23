@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
+	"sync"
 
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
@@ -12,6 +13,7 @@ import (
 )
 
 var (
+	slot             uint64
 	numPayloads      uint64
 	numThreads       uint64
 	ethNodeURI       string
@@ -20,7 +22,8 @@ var (
 
 func init() {
 	rootCmd.AddCommand(checkPayloadValueCmd)
-	checkPayloadValueCmd.Flags().Uint64Var(&numPayloads, "num", 100, "how many payloads")
+	checkPayloadValueCmd.Flags().Uint64Var(&slot, "slot", 0, "a specific slot")
+	checkPayloadValueCmd.Flags().Uint64Var(&numPayloads, "num", 1000, "how many payloads")
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", defaultEthNodeURI, "eth node URI (i.e. Infura)")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", defaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
@@ -51,22 +54,39 @@ var checkPayloadValueCmd = &cobra.Command{
 		}
 
 		var entries = []database.DataAPIPayloadDeliveredEntry{}
-		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NULL ORDER BY slot DESC LIMIT $1`
-		err = db.DB.Select(&entries, query, numPayloads)
+		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered
+		if slot != 0 {
+			query += ` WHERE slot=$1`
+			err = db.DB.Select(&entries, query, slot)
+		} else {
+			query += ` WHERE value_check_ok IS NULL ORDER BY slot DESC LIMIT $1`
+			err = db.DB.Select(&entries, query, numPayloads)
+		}
 		if err != nil {
 			log.WithError(err).Fatalf("couldn't get entries")
 		}
 
 		log.Infof("got %d entries", len(entries))
+		if len(entries) == 0 {
+			return
+		}
+
+		wg := new(sync.WaitGroup)
 		entryC := make(chan database.DataAPIPayloadDeliveredEntry)
+		if slot != 0 {
+			numThreads = 1
+		}
 		for i := 0; i < int(numThreads); i++ {
 			log.Infof("starting worker %d", i+1)
-			go startUpdateWorker(db, client, client2, entryC)
+			wg.Add(1)
+			go startUpdateWorker(wg, db, client, client2, entryC)
 		}
 
 		for _, entry := range entries {
 			entryC <- entry
 		}
+		close(entryC)
+		wg.Wait()
 	},
 }
 
@@ -83,7 +103,7 @@ func _getBalanceDiff(ethClient *ethrpc.EthRPC, address string, blockNumber int) 
 	return balanceDiff, nil
 }
 
-func startUpdateWorker(db *database.DatabaseService, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
+func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
 	getBalanceDiff := func(address string, blockNumber int) (*big.Int, error) {
 		r, err := _getBalanceDiff(client, address, blockNumber)
 		if err != nil {
@@ -118,7 +138,7 @@ func startUpdateWorker(db *database.DatabaseService, client, client2 *ethrpc.Eth
 		// fmt.Println("diff ", proposerBalanceDiffWei)
 		// fmt.Println("rema ", proposerValueDiffFromClaim)
 		if proposerValueDiffFromClaim.String() != "0" {
-			log.Warnf("Value delivered diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d", proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot)
+			log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot)
 		}
 
 		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
@@ -159,4 +179,6 @@ func startUpdateWorker(db *database.DatabaseService, client, client2 *ethrpc.Eth
 			log.WithError(err).Fatalf("failed to save entry")
 		}
 	}
+
+	wg.Done()
 }
