@@ -34,9 +34,20 @@ type DataAPIPayloadDeliveredEntry struct {
 	ProposerFeeRecipient string        `db:"proposer_fee_recipient"`
 	GasLimit             uint64        `db:"gas_limit"`
 	GasUsed              uint64        `db:"gas_used"`
-	Value                string        `db:"value"`
+	ValueClaimedWei      string        `db:"value_claimed_wei"`
+	ValueClaimedEth      string        `db:"value_claimed_eth"`
 	NumTx                sql.NullInt64 `db:"num_tx"`
 	BlockNumber          sql.NullInt64 `db:"block_number"`
+
+	ValueCheckOk          sql.NullBool   `db:"value_check_ok"`
+	ValueCheckMethod      sql.NullString `db:"value_check_method"`
+	ValueDeliveredWei     sql.NullString `db:"value_delivered_wei"`
+	ValueDeliveredEth     sql.NullString `db:"value_delivered_eth"`
+	ValueDeliveredDiffWei sql.NullString `db:"value_delivered_diff_wei"`
+	ValueDeliveredDiffEth sql.NullString `db:"value_delivered_diff_eth"`
+	BlockCoinbaseAddress  sql.NullString `db:"block_coinbase_addr"`
+	CoinbaseDiffWei       sql.NullString `db:"value_delivered_wei"`
+	CoinbaseDiffEth       sql.NullString `db:"value_delivered_eth"`
 }
 
 type DataAPIBuilderBidEntry struct {

@@ -2,9 +2,11 @@ package common
 
 import (
 	"fmt"
+	"math/big"
 	"net/url"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/flashbots/go-boost-utils/types"
 )
 
@@ -69,4 +71,26 @@ func GetURI(url *url.URL, path string) string {
 	u2.User = nil
 	u2.Path = path
 	return u2.String()
+}
+
+func EthToWei(eth *big.Int) *big.Float {
+	if eth == nil {
+		return big.NewFloat(0)
+	}
+	return new(big.Float).Quo(new(big.Float).SetInt(eth), new(big.Float).SetInt(big.NewInt(params.Ether)))
+}
+
+func PercentDiff(x *big.Int, y *big.Int) *big.Float {
+	fx := new(big.Float).SetInt(x)
+	fy := new(big.Float).SetInt(y)
+	r := new(big.Float).Quo(fy, fx)
+	return new(big.Float).Sub(r, big.NewFloat(1))
+}
+
+func WeiToEth(wei *big.Int) (ethValue *big.Float) {
+	// wei / 10^18
+	fbalance := new(big.Float)
+	fbalance.SetString(wei.String())
+	ethValue = new(big.Float).Quo(fbalance, big.NewFloat(1e18))
+	return
 }

@@ -63,9 +63,20 @@ CREATE TABLE IF NOT EXISTS ` + TableDataAPIPayloadDelivered + ` (
 	proposer_fee_recipient varchar(42) NOT NULL,
 	gas_limit              bigint NOT NULL,
 	gas_used               bigint NOT NULL,
-	value                  NUMERIC(48, 0) NOT NULL,
+	value_claimed_wei      NUMERIC(48, 0) NOT NULL,
+	value_claimed_eth      NUMERIC(16, 8) NOT NULL,
 	num_tx                 int,
-	block_number           bigint
+	block_number           bigint,
+
+	value_check_ok            boolean, 		  -- null means not yet checked
+	value_check_method        text,  		  -- how value was checked (i.e. blockBalanceDiff)
+	value_delivered_wei       NUMERIC(48, 0), -- actually delivered value
+	value_delivered_eth       NUMERIC(16, 8), -- actually delivered value
+	value_delivered_diff_wei  NUMERIC(48, 0), -- value_delivered - value_claimed
+	value_delivered_diff_eth  NUMERIC(16, 8), -- value_delivered - value_claimed
+	block_coinbase_addr		  varchar(42),    -- block coinbase address
+	coinbase_diff_wei         NUMERIC(48, 0), -- builder value difference
+	coinbase_diff_eth         NUMERIC(16, 8)  -- builder value difference
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_u_relay_slot_blockhash_idx ON ` + TableDataAPIPayloadDelivered + `("relay", "slot", "parent_hash", "block_hash");
@@ -73,7 +84,8 @@ CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_insertedat_idx O
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_slot_idx ON ` + TableDataAPIPayloadDelivered + `("slot");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_builder_pubkey_idx ON ` + TableDataAPIPayloadDelivered + `("builder_pubkey");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_block_number_idx ON ` + TableDataAPIPayloadDelivered + `("block_number");
-CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_value_idx ON ` + TableDataAPIPayloadDelivered + `("value");
+CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_value_wei_idx ON ` + TableDataAPIPayloadDelivered + `("value_claimed_wei");
+CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_value_eth_idx ON ` + TableDataAPIPayloadDelivered + `("value_claimed_eth");
 
 
 CREATE TABLE IF NOT EXISTS ` + TableDataAPIBuilderBid + ` (

@@ -2,14 +2,21 @@ package database
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 	"unicode/utf8"
 
 	"github.com/flashbots/go-boost-utils/types"
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
+	"github.com/metachris/relayscan/common"
 )
 
 func BidTraceV2JSONToPayloadDeliveredEntry(relay string, entry relaycommon.BidTraceV2JSON) DataAPIPayloadDeliveredEntry {
+	wei, ok := new(big.Int).SetString(entry.Value, 10)
+	if !ok {
+		wei = big.NewInt(0)
+	}
+	eth := common.WeiToEth(wei)
 	ret := DataAPIPayloadDeliveredEntry{
 		Relay:                relay,
 		Epoch:                entry.Slot / 32,
@@ -21,7 +28,8 @@ func BidTraceV2JSONToPayloadDeliveredEntry(relay string, entry relaycommon.BidTr
 		ProposerFeeRecipient: entry.ProposerFeeRecipient,
 		GasLimit:             entry.GasLimit,
 		GasUsed:              entry.GasUsed,
-		Value:                entry.Value,
+		ValueClaimedWei:      entry.Value,
+		ValueClaimedEth:      eth.String(),
 	}
 
 	if entry.NumTx > 0 {
