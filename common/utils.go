@@ -94,3 +94,12 @@ func WeiToEth(wei *big.Int) (ethValue *big.Float) {
 	ethValue = new(big.Float).Quo(fbalance, big.NewFloat(1e18))
 	return
 }
+
+func StringSliceContains(haystack []string, needle string) bool {
+	for _, entry := range haystack {
+		if entry == needle {
+			return true
+		}
+	}
+	return false
+}

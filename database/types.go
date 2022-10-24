@@ -57,8 +57,10 @@ type DataAPIPayloadDeliveredEntry struct {
 	CoinbaseDiffWei         sql.NullString `db:"coinbase_diff_wei"`
 	CoinbaseDiffEth         sql.NullString `db:"coinbase_diff_eth"`
 	FoundOnChain            sql.NullBool   `db:"found_onchain"`
+	WasUncled               sql.NullBool   `db:"was_uncled"`
 	BlockHashOnChain        sql.NullString `db:"block_hash_onchain"`
 	BlockHashOnChainDiffs   sql.NullBool   `db:"block_hash_onchain_diffs"`
+	Notes                   sql.NullString `db:"notes"`
 }
 
 type DataAPIBuilderBidEntry struct {

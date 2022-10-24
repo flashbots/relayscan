@@ -9,6 +9,7 @@ import (
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
 	"github.com/onrik/ethrpc"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -119,100 +120,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		return r, err
 	}
 
-	var err error
-	var block *ethrpc.Block
-	for entry := range entryC {
-		log.Infof("checking slot: %d / block: %d %s / relay: %s", entry.Slot, entry.BlockNumber.Int64, entry.BlockHash, entry.Relay)
-		claimedProposerValue, ok := new(big.Int).SetString(entry.ValueClaimedWei, 10)
-		if !ok {
-			log.Fatalf("couldn't convert claimed value to big.Int: %s", entry.ValueClaimedWei)
-		}
-
-		// query block by hash
-		block, err = client.EthGetBlockByHash(entry.BlockHash, true)
-		if err != nil {
-			log.WithError(err).Fatalf("couldn't get block %s", entry.BlockHash)
-		} else if block == nil {
-			log.WithError(err).Warnf("block not found: %s", entry.BlockHash)
-			continue
-		}
-		if !entry.BlockNumber.Valid {
-			entry.BlockNumber = database.NewNullInt64(int64(block.Number))
-		}
-
-		// query block by number to ensure that's what landed on-chain
-		blockByNum, err := client.EthGetBlockByNumber(block.Number, false)
-		if err != nil {
-			log.WithError(err).Fatalf("couldn't get block by number %s", block.Number)
-		} else if block == nil {
-			log.WithError(err).Warnf("block not found: %s", block.Number)
-			continue
-		}
-
-		if blockByNum.Hash != block.Hash {
-			log.Warnf("block hash mismatch! payload: %s / by number: %s", entry.BlockHash, blockByNum.Hash)
-			nextBlockByNum, err := client.EthGetBlockByNumber(block.Number+1, false)
-			if err != nil {
-				log.WithError(err).Fatalf("couldn't get block by number+1 %s", block.Number+1)
-			}
-			log.Infof("next block (%d) has %d uncles", block.Number+1, len(nextBlockByNum.Uncles))
-			continue
-		}
-
-		// Get proposer balance diff
-		checkMethod := "balanceDiffV1"
-		proposerBalanceDiffWei, err := getBalanceDiff(entry.ProposerFeeRecipient, block.Number)
-		if err != nil {
-			log.WithError(err).Fatalf("couldn't get balance diff")
-		}
-
-		proposerValueDiffFromClaim := new(big.Int).Sub(claimedProposerValue, proposerBalanceDiffWei)
-		if proposerValueDiffFromClaim.String() != "0" {
-			// Value delivered is off. Might be due to a forwarder contract... Checking payment tx...
-			isDeliveredValueIncorrect := true
-			if len(block.Transactions) > 0 {
-				paymentTx := block.Transactions[len(block.Transactions)-1]
-				proposerValueDiffFromClaim = new(big.Int).Sub(claimedProposerValue, &paymentTx.Value)
-				if proposerValueDiffFromClaim.String() == "0" {
-					log.Debug("all good, payment is in last tx but was probably forwarded through smart contract")
-					isDeliveredValueIncorrect = false
-				}
-			}
-
-			if isDeliveredValueIncorrect {
-				log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.Number)
-			}
-
-			// for i, tx := range block.Transactions {
-			// 	if tx.From == entry.ProposerFeeRecipient {
-			// 		log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value.String())
-			// 	} else if tx.To == entry.ProposerFeeRecipient && i < len(block.Transactions)-1 {
-			// 		log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value.String())
-			// 	}
-			// }
-		}
-
-		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
-		entry.ValueCheckMethod = database.NewNullString(checkMethod)
-		entry.ValueDeliveredWei = database.NewNullString(proposerBalanceDiffWei.String())
-		entry.ValueDeliveredEth = database.NewNullString(common.WeiToEth(proposerBalanceDiffWei).String())
-		entry.ValueDeliveredDiffWei = database.NewNullString(proposerValueDiffFromClaim.String())
-		entry.ValueDeliveredDiffEth = database.NewNullString(common.WeiToEth(proposerValueDiffFromClaim).String())
-		entry.BlockCoinbaseAddress = database.NewNullString(block.Miner)
-
-		coinbaseIsProposer := block.Miner == entry.ProposerFeeRecipient
-		entry.BlockCoinbaseIsProposer = database.NewNullBool(coinbaseIsProposer)
-		if !coinbaseIsProposer {
-			// Get builder balance diff
-			builderBalanceDiffWei, err := getBalanceDiff(block.Miner, block.Number)
-			if err != nil {
-				log.WithError(err).Fatalf("couldn't get balance diff")
-			}
-			// fmt.Println("builder diff", block.Miner, builderBalanceDiffWei)
-			entry.CoinbaseDiffWei = database.NewNullString(builderBalanceDiffWei.String())
-			entry.CoinbaseDiffEth = database.NewNullString(common.WeiToEth(builderBalanceDiffWei).String())
-		}
-
+	saveEntry := func(_log *logrus.Entry, entry database.DataAPIPayloadDeliveredEntry) {
 		query := `UPDATE ` + database.TableDataAPIPayloadDelivered + ` SET
 				block_number=:block_number,
 				value_check_ok=:value_check_ok,
@@ -224,11 +132,139 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 				block_coinbase_addr=:block_coinbase_addr,
 				block_coinbase_is_proposer=:block_coinbase_is_proposer,
 				coinbase_diff_wei=:coinbase_diff_wei,
-				coinbase_diff_eth=:coinbase_diff_eth
+				coinbase_diff_eth=:coinbase_diff_eth,
+				found_onchain=:found_onchain,
+				was_uncled=:was_uncled,
+				block_hash_onchain=:block_hash_onchain,
+				block_hash_onchain_diffs=:block_hash_onchain_diffs
 			WHERE slot=:slot`
-		_, err = db.DB.NamedExec(query, entry)
+		_, err := db.DB.NamedExec(query, entry)
 		if err != nil {
-			log.WithError(err).Fatalf("failed to save entry")
+			_log.WithError(err).Fatalf("failed to save entry")
 		}
+	}
+
+	var err error
+	var block *ethrpc.Block
+	for entry := range entryC {
+		_log := log.WithFields(logrus.Fields{
+			"slot":        entry.Slot,
+			"blockNumber": entry.BlockNumber.Int64,
+			"blockHash":   entry.BlockHash,
+			"relay":       entry.Relay,
+		})
+		_log.Infof("checking slot...")
+		claimedProposerValue, ok := new(big.Int).SetString(entry.ValueClaimedWei, 10)
+		if !ok {
+			_log.Fatalf("couldn't convert claimed value to big.Int: %s", entry.ValueClaimedWei)
+		}
+
+		// query block by hash
+		block, err = client.EthGetBlockByHash(entry.BlockHash, true)
+		if err != nil {
+			_log.WithError(err).Fatalf("couldn't get block %s", entry.BlockHash)
+		} else if block == nil {
+			_log.WithError(err).Warnf("block not found: %s", entry.BlockHash)
+			entry.FoundOnChain = database.NewNullBool(false)
+			saveEntry(_log, entry)
+			continue
+		}
+
+		entry.FoundOnChain = database.NewNullBool(true)
+		if !entry.BlockNumber.Valid {
+			entry.BlockNumber = database.NewNullInt64(int64(block.Number))
+		}
+
+		entry.BlockCoinbaseAddress = database.NewNullString(block.Miner)
+		coinbaseIsProposer := block.Miner == entry.ProposerFeeRecipient
+		entry.BlockCoinbaseIsProposer = database.NewNullBool(coinbaseIsProposer)
+
+		// query block by number to ensure that's what landed on-chain
+		blockByNum, err := client.EthGetBlockByNumber(block.Number, false)
+		if err != nil {
+			_log.WithError(err).Fatalf("couldn't get block by number %s", block.Number)
+		} else if block == nil {
+			_log.WithError(err).Warnf("block not found: %s", block.Number)
+			continue
+		}
+
+		entry.BlockHashOnChain = database.NewNullString(blockByNum.Hash)
+		entry.BlockHashOnChainDiffs = database.NewNullBool(blockByNum.Hash != block.Hash)
+		if blockByNum.Hash != block.Hash {
+			entry.ValueCheckOk = database.NewNullBool(false)
+			_log.Warnf("block hash mismatch! payload: %s / by number: %s", entry.BlockHash, blockByNum.Hash)
+
+			// check if it was uncled
+			_log.Info("checking for uncling...")
+			for i := block.Number + 1; i < block.Number+8; i++ {
+				nextBlockByNum, err := client.EthGetBlockByNumber(i, false)
+				if err != nil {
+					_log.WithError(err).Warnf("couldn't get +block by number %s", i)
+				}
+				wasUncled := common.StringSliceContains(nextBlockByNum.Uncles, block.Hash)
+				_log.Infof("block %d has %d uncles. original block included? %v", i, len(nextBlockByNum.Uncles), wasUncled)
+				entry.WasUncled = database.NewNullBool(false)
+				if wasUncled {
+					_log.Info("-- was uncled!")
+					entry.WasUncled = database.NewNullBool(true)
+					break
+				}
+			}
+			saveEntry(_log, entry)
+			continue
+		}
+
+		// Block was found on chain and is same for this blocknumber. Now check the payment!
+		checkMethod := "balanceDiffV1"
+		proposerBalanceDiffWei, err := getBalanceDiff(entry.ProposerFeeRecipient, block.Number)
+		if err != nil {
+			_log.WithError(err).Fatalf("couldn't get balance diff")
+		}
+
+		proposerValueDiffFromClaim := new(big.Int).Sub(claimedProposerValue, proposerBalanceDiffWei)
+		if proposerValueDiffFromClaim.String() != "0" {
+			// Value delivered is off. Might be due to a forwarder contract... Checking payment tx...
+			checkMethod = "txValue"
+			isDeliveredValueIncorrect := true
+			if len(block.Transactions) > 0 {
+				paymentTx := block.Transactions[len(block.Transactions)-1]
+				proposerValueDiffFromClaim = new(big.Int).Sub(claimedProposerValue, &paymentTx.Value)
+				if proposerValueDiffFromClaim.String() == "0" {
+					_log.Debug("all good, payment is in last tx but was probably forwarded through smart contract")
+					isDeliveredValueIncorrect = false
+				}
+			}
+
+			if isDeliveredValueIncorrect {
+				_log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.Number)
+			}
+
+			// for i, tx := range block.Transactions {
+			// 	if tx.From == entry.ProposerFeeRecipient {
+			// 		_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value.String())
+			// 	} else if tx.To == entry.ProposerFeeRecipient && i < len(block.Transactions)-1 {
+			// 		_log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value.String())
+			// 	}
+			// }
+		}
+
+		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
+		entry.ValueCheckMethod = database.NewNullString(checkMethod)
+		entry.ValueDeliveredWei = database.NewNullString(proposerBalanceDiffWei.String())
+		entry.ValueDeliveredEth = database.NewNullString(common.WeiToEth(proposerBalanceDiffWei).String())
+		entry.ValueDeliveredDiffWei = database.NewNullString(proposerValueDiffFromClaim.String())
+		entry.ValueDeliveredDiffEth = database.NewNullString(common.WeiToEth(proposerValueDiffFromClaim).String())
+
+		if !coinbaseIsProposer {
+			// Get builder balance diff
+			builderBalanceDiffWei, err := getBalanceDiff(block.Miner, block.Number)
+			if err != nil {
+				_log.WithError(err).Fatalf("couldn't get balance diff")
+			}
+			// fmt.Println("builder diff", block.Miner, builderBalanceDiffWei)
+			entry.CoinbaseDiffWei = database.NewNullString(builderBalanceDiffWei.String())
+			entry.CoinbaseDiffEth = database.NewNullString(common.WeiToEth(builderBalanceDiffWei).String())
+		}
+		saveEntry(_log, entry)
 	}
 }

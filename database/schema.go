@@ -78,8 +78,9 @@ CREATE TABLE IF NOT EXISTS ` + TableDataAPIPayloadDelivered + ` (
 	block_coinbase_is_proposer  boolean,        -- true if coinbase == proposerFeeRecipient
 	coinbase_diff_wei           NUMERIC(48, 0), -- builder value difference
 	coinbase_diff_eth           NUMERIC(16, 8), -- builder value difference
-	found_onchain               boolean,        -- whether this block was found on chain
-	block_hash_onchain          varchar(66),    -- block hash that was found onchain
+	found_onchain               boolean,        -- whether the payload blockhash can be found on chain (at all)
+	was_uncled                  boolean,        -- whether the payload block was uncled
+	block_hash_onchain          varchar(66),    -- block hash that was found onchain for that block number
 	block_hash_onchain_diffs    boolean,        -- if onchain blockhash is different from payload blockhash
 	notes						text
 );
