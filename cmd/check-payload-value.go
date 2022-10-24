@@ -13,20 +13,22 @@ import (
 )
 
 var (
-	slot             uint64
-	numPayloads      uint64
-	numThreads       uint64
-	ethNodeURI       string
-	ethNodeBackupURI string
+	slot               uint64
+	numPayloads        uint64
+	numThreads         uint64
+	ethNodeURI         string
+	ethNodeBackupURI   string
+	checkIncorrectOnly bool
 )
 
 func init() {
 	rootCmd.AddCommand(checkPayloadValueCmd)
 	checkPayloadValueCmd.Flags().Uint64Var(&slot, "slot", 0, "a specific slot")
-	checkPayloadValueCmd.Flags().Uint64Var(&numPayloads, "num", 1000, "how many payloads")
+	checkPayloadValueCmd.Flags().Uint64Var(&numPayloads, "payloads", 1000, "how many payloads")
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", defaultEthNodeURI, "eth node URI (i.e. Infura)")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", defaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
+	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
 }
 
 var checkPayloadValueCmd = &cobra.Command{
@@ -43,19 +45,22 @@ var checkPayloadValueCmd = &cobra.Command{
 		}
 
 		// Connect to Postgres
-		dbURL, err := url.Parse(postgresDSN)
+		dbURL, err := url.Parse(defaultPostgresDSN)
 		if err != nil {
 			log.WithError(err).Fatalf("couldn't read db URL")
 		}
 		log.Infof("Connecting to Postgres database at %s%s ...", dbURL.Host, dbURL.Path)
-		db, err := database.NewDatabaseService(postgresDSN)
+		db, err := database.NewDatabaseService(defaultPostgresDSN)
 		if err != nil {
 			log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
 		}
 
 		var entries = []database.DataAPIPayloadDeliveredEntry{}
 		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered
-		if slot != 0 {
+		if checkIncorrectOnly {
+			query += ` WHERE value_check_ok=false`
+			err = db.DB.Select(&entries, query)
+		} else if slot != 0 {
 			query += ` WHERE slot=$1`
 			err = db.DB.Select(&entries, query, slot)
 		} else {
@@ -104,6 +109,8 @@ func _getBalanceDiff(ethClient *ethrpc.EthRPC, address string, blockNumber int) 
 }
 
 func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
+	defer wg.Done()
+
 	getBalanceDiff := func(address string, blockNumber int) (*big.Int, error) {
 		r, err := _getBalanceDiff(client, address, blockNumber)
 		if err != nil {
@@ -115,34 +122,78 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 	var err error
 	var block *ethrpc.Block
 	for entry := range entryC {
-		log.Infof("checking slot: %d / relay: %s", entry.Slot, entry.Relay)
+		log.Infof("checking slot: %d / block: %d %s / relay: %s", entry.Slot, entry.BlockNumber.Int64, entry.BlockHash, entry.Relay)
 		claimedProposerValue, ok := new(big.Int).SetString(entry.ValueClaimedWei, 10)
 		if !ok {
 			log.Fatalf("couldn't convert claimed value to big.Int: %s", entry.ValueClaimedWei)
 		}
 
-		// log.Infof("querying block for %s", entry.BlockHash)
+		// query block by hash
 		block, err = client.EthGetBlockByHash(entry.BlockHash, true)
 		if err != nil {
 			log.WithError(err).Fatalf("couldn't get block %s", entry.BlockHash)
+		} else if block == nil {
+			log.WithError(err).Warnf("block not found: %s", entry.BlockHash)
+			continue
+		}
+		if !entry.BlockNumber.Valid {
+			entry.BlockNumber = database.NewNullInt64(int64(block.Number))
+		}
+
+		// query block by number to ensure that's what landed on-chain
+		blockByNum, err := client.EthGetBlockByNumber(block.Number, false)
+		if err != nil {
+			log.WithError(err).Fatalf("couldn't get block by number %s", block.Number)
+		} else if block == nil {
+			log.WithError(err).Warnf("block not found: %s", block.Number)
+			continue
+		}
+
+		if blockByNum.Hash != block.Hash {
+			log.Warnf("block hash mismatch! payload: %s / by number: %s", entry.BlockHash, blockByNum.Hash)
+			nextBlockByNum, err := client.EthGetBlockByNumber(block.Number+1, false)
+			if err != nil {
+				log.WithError(err).Fatalf("couldn't get block by number+1 %s", block.Number+1)
+			}
+			log.Infof("next block (%d) has %d uncles", block.Number+1, len(nextBlockByNum.Uncles))
+			continue
 		}
 
 		// Get proposer balance diff
+		checkMethod := "balanceDiffV1"
 		proposerBalanceDiffWei, err := getBalanceDiff(entry.ProposerFeeRecipient, block.Number)
 		if err != nil {
 			log.WithError(err).Fatalf("couldn't get balance diff")
 		}
 
 		proposerValueDiffFromClaim := new(big.Int).Sub(claimedProposerValue, proposerBalanceDiffWei)
-		// fmt.Println("claim", entry.ValueClaimedWei)
-		// fmt.Println("diff ", proposerBalanceDiffWei)
-		// fmt.Println("rema ", proposerValueDiffFromClaim)
 		if proposerValueDiffFromClaim.String() != "0" {
-			log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot)
+			// Value delivered is off. Might be due to a forwarder contract... Checking payment tx...
+			isDeliveredValueIncorrect := true
+			if len(block.Transactions) > 0 {
+				paymentTx := block.Transactions[len(block.Transactions)-1]
+				proposerValueDiffFromClaim = new(big.Int).Sub(claimedProposerValue, &paymentTx.Value)
+				if proposerValueDiffFromClaim.String() == "0" {
+					log.Debug("all good, payment is in last tx but was probably forwarded through smart contract")
+					isDeliveredValueIncorrect = false
+				}
+			}
+
+			if isDeliveredValueIncorrect {
+				log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.Number)
+			}
+
+			// for i, tx := range block.Transactions {
+			// 	if tx.From == entry.ProposerFeeRecipient {
+			// 		log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value.String())
+			// 	} else if tx.To == entry.ProposerFeeRecipient && i < len(block.Transactions)-1 {
+			// 		log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value.String())
+			// 	}
+			// }
 		}
 
 		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
-		entry.ValueCheckMethod = database.NewNullString("balanceDiffV1")
+		entry.ValueCheckMethod = database.NewNullString(checkMethod)
 		entry.ValueDeliveredWei = database.NewNullString(proposerBalanceDiffWei.String())
 		entry.ValueDeliveredEth = database.NewNullString(common.WeiToEth(proposerBalanceDiffWei).String())
 		entry.ValueDeliveredDiffWei = database.NewNullString(proposerValueDiffFromClaim.String())
@@ -163,6 +214,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		}
 
 		query := `UPDATE ` + database.TableDataAPIPayloadDelivered + ` SET
+				block_number=:block_number,
 				value_check_ok=:value_check_ok,
 				value_check_method=:value_check_method,
 				value_delivered_wei=:value_delivered_wei,
@@ -179,6 +231,4 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			log.WithError(err).Fatalf("failed to save entry")
 		}
 	}
-
-	wg.Done()
 }

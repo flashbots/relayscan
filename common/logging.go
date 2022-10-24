@@ -6,7 +6,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func LogSetup(json bool, logLevel string) *logrus.Entry {
+func LogSetup(json bool, logLevel string, logDebug bool) *logrus.Entry {
 	log := logrus.NewEntry(logrus.New())
 	log.Logger.SetOutput(os.Stdout)
 
@@ -18,6 +18,9 @@ func LogSetup(json bool, logLevel string) *logrus.Entry {
 		})
 	}
 
+	if logDebug {
+		logLevel = "debug"
+	}
 	if logLevel != "" {
 		lvl, err := logrus.ParseLevel(logLevel)
 		if err != nil {

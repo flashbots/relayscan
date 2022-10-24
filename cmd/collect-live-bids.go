@@ -23,12 +23,12 @@ var liveBidsCmd = &cobra.Command{
 	Short: "On every slot, ask for live bids",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Connect to Postgres
-		dbURL, err := url.Parse(postgresDSN)
+		dbURL, err := url.Parse(defaultPostgresDSN)
 		if err != nil {
 			log.WithError(err).Fatalf("couldn't read db URL")
 		}
 		log.Infof("Connecting to Postgres database at %s%s ...", dbURL.Host, dbURL.Path)
-		db, err := database.NewDatabaseService(postgresDSN)
+		db, err := database.NewDatabaseService(defaultPostgresDSN)
 		if err != nil {
 			log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
 		}

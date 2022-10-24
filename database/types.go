@@ -56,7 +56,9 @@ type DataAPIPayloadDeliveredEntry struct {
 	BlockCoinbaseIsProposer sql.NullBool   `db:"block_coinbase_is_proposer"`
 	CoinbaseDiffWei         sql.NullString `db:"coinbase_diff_wei"`
 	CoinbaseDiffEth         sql.NullString `db:"coinbase_diff_eth"`
-	FoundOnchain            sql.NullBool   `db:"found_onchain"`
+	FoundOnChain            sql.NullBool   `db:"found_onchain"`
+	BlockHashOnChain        sql.NullString `db:"block_hash_onchain"`
+	BlockHashOnChainDiffs   sql.NullBool   `db:"block_hash_onchain_diffs"`
 }
 
 type DataAPIBuilderBidEntry struct {

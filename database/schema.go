@@ -78,7 +78,10 @@ CREATE TABLE IF NOT EXISTS ` + TableDataAPIPayloadDelivered + ` (
 	block_coinbase_is_proposer  boolean,        -- true if coinbase == proposerFeeRecipient
 	coinbase_diff_wei           NUMERIC(48, 0), -- builder value difference
 	coinbase_diff_eth           NUMERIC(16, 8), -- builder value difference
-	found_onchain               boolean         -- whether this block was found on chain
+	found_onchain               boolean,        -- whether this block was found on chain
+	block_hash_onchain          varchar(66),    -- block hash that was found onchain
+	block_hash_onchain_diffs    boolean,        -- if onchain blockhash is different from payload blockhash
+	notes						text
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_u_relay_slot_blockhash_idx ON ` + TableDataAPIPayloadDelivered + `("relay", "slot", "parent_hash", "block_hash");
@@ -87,7 +90,6 @@ CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_slot_idx ON ` + 
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_builder_pubkey_idx ON ` + TableDataAPIPayloadDelivered + `("builder_pubkey");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_block_number_idx ON ` + TableDataAPIPayloadDelivered + `("block_number");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_value_wei_idx ON ` + TableDataAPIPayloadDelivered + `("value_claimed_wei");
-CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_value_eth_idx ON ` + TableDataAPIPayloadDelivered + `("value_claimed_eth");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_valuecheck_ok_idx ON ` + TableDataAPIPayloadDelivered + `("value_check_ok");
 
 
