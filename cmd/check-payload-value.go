@@ -184,7 +184,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		}
 
 		// Check if slot was delivered
-		if headSlot-entry.Slot < 40_000 { // before, my BN always returns the error
+		if headSlot-entry.Slot < 20_000 { // before, my BN always returns the error
 			_, err := bn.GetHeaderForSlot(entry.Slot)
 			entry.SlotWasMissed = database.NewNullBool(false)
 			if err != nil {
@@ -280,17 +280,26 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 				}
 			}
 
+			// if isDeliveredValueIncorrect { // check tx in + out
+			// 	for i, tx := range block.Transactions {
+			// 		if tx.From == entry.ProposerFeeRecipient {
+			// 			_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value.String())
+			// 			proposerValueDiffFromClaim = new(big.Int).Add(proposerValueDiffFromClaim, &tx.Value)
+			// 		} else if tx.To == entry.ProposerFeeRecipient && i < len(block.Transactions)-1 {
+			// 			_log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value.String())
+			// 		}
+			// 	}
+			// 	if proposerValueDiffFromClaim.String() == "0" {
+			// 		_log.Debug("all good after considering outgoing tx")
+			// 		isDeliveredValueIncorrect = false
+			// 	} else {
+			// 		_log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.Number)
+			// 	}
+			// }
+
 			if isDeliveredValueIncorrect {
 				_log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.Number)
 			}
-
-			// for i, tx := range block.Transactions {
-			// 	if tx.From == entry.ProposerFeeRecipient {
-			// 		_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value.String())
-			// 	} else if tx.To == entry.ProposerFeeRecipient && i < len(block.Transactions)-1 {
-			// 		_log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value.String())
-			// 	}
-			// }
 		}
 
 		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
