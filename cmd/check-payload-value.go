@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
+	"strings"
 	"sync"
 
+	"github.com/flashbots/mev-boost-relay/beaconclient"
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
 	"github.com/onrik/ethrpc"
@@ -30,6 +32,7 @@ func init() {
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", defaultEthNodeURI, "eth node URI (i.e. Infura)")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", defaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
 	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
+	checkPayloadValueCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", defaultBeaconURI, "beacon endpoint")
 }
 
 var checkPayloadValueCmd = &cobra.Command{
@@ -37,6 +40,15 @@ var checkPayloadValueCmd = &cobra.Command{
 	Short: "Check payload value for delivered payloads",
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
+		log.Infof("Using beacon node: %s", beaconNodeURI)
+		bn := beaconclient.NewProdBeaconInstance(log, beaconNodeURI)
+		syncStatus, err := bn.SyncStatus()
+		if err != nil {
+			log.WithError(err).Fatal("couldn't get BN sync status")
+		} else if syncStatus.IsSyncing {
+			log.Fatal("beacon node is syncing")
+		}
+
 		log.Infof("Using eth node: %s", ethNodeURI)
 		client := ethrpc.New(ethNodeURI)
 		var client2 *ethrpc.EthRPC
@@ -85,7 +97,7 @@ var checkPayloadValueCmd = &cobra.Command{
 		for i := 0; i < int(numThreads); i++ {
 			log.Infof("starting worker %d", i+1)
 			wg.Add(1)
-			go startUpdateWorker(wg, db, client, client2, entryC)
+			go startUpdateWorker(wg, db, bn, client, client2, entryC)
 		}
 
 		for _, entry := range entries {
@@ -109,7 +121,7 @@ func _getBalanceDiff(ethClient *ethrpc.EthRPC, address string, blockNumber int) 
 	return balanceDiff, nil
 }
 
-func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
+func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *beaconclient.ProdBeaconInstance, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
 	defer wg.Done()
 
 	getBalanceDiff := func(address string, blockNumber int) (*big.Int, error) {
@@ -123,6 +135,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 	saveEntry := func(_log *logrus.Entry, entry database.DataAPIPayloadDeliveredEntry) {
 		query := `UPDATE ` + database.TableDataAPIPayloadDelivered + ` SET
 				block_number=:block_number,
+				slot_missed=:slot_missed,
 				value_check_ok=:value_check_ok,
 				value_check_method=:value_check_method,
 				value_delivered_wei=:value_delivered_wei,
@@ -144,7 +157,6 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		}
 	}
 
-	var err error
 	var block *ethrpc.Block
 	for entry := range entryC {
 		_log := log.WithFields(logrus.Fields{
@@ -157,6 +169,18 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		claimedProposerValue, ok := new(big.Int).SetString(entry.ValueClaimedWei, 10)
 		if !ok {
 			_log.Fatalf("couldn't convert claimed value to big.Int: %s", entry.ValueClaimedWei)
+		}
+
+		// Check if slot was delivered
+		_, err := bn.GetHeaderForSlot(entry.Slot)
+		entry.SlotWasMissed = database.NewNullBool(false)
+		if err != nil {
+			if strings.Contains(err.Error(), "Could not find requested block") {
+				entry.SlotWasMissed = database.NewNullBool(true)
+				_log.Warn("couldn't find block in beacon node, probably missed the proposal!")
+			} else {
+				_log.WithError(err).Fatalf("couldn't get slot from BN")
+			}
 		}
 
 		// query block by hash
@@ -178,6 +202,11 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		entry.BlockCoinbaseAddress = database.NewNullString(block.Miner)
 		coinbaseIsProposer := block.Miner == entry.ProposerFeeRecipient
 		entry.BlockCoinbaseIsProposer = database.NewNullBool(coinbaseIsProposer)
+
+		if entry.SlotWasMissed.Bool {
+			saveEntry(_log, entry)
+			continue
+		}
 
 		// query block by number to ensure that's what landed on-chain
 		blockByNum, err := client.EthGetBlockByNumber(block.Number, false)

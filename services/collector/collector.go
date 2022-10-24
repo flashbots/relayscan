@@ -41,8 +41,7 @@ func (s *RelayCollector) Start() {
 	syncStatus, err := s.bn.SyncStatus()
 	if err != nil {
 		s.log.WithError(err).Fatal("couldn't get BN sync status")
-	}
-	if syncStatus.IsSyncing {
+	} else if syncStatus.IsSyncing {
 		s.log.Fatal("beacon node is syncing")
 	}
 

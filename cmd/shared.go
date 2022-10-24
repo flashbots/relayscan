@@ -8,10 +8,11 @@ import (
 )
 
 var (
-	Version  = "dev" // is set during build process
-	log      = common.LogSetup(logJSON, defaultLogLevel, logDebug)
-	logDebug = os.Getenv("DEBUG") != ""
-	logJSON  = os.Getenv("LOG_JSON") != ""
+	Version       = "dev" // is set during build process
+	log           = common.LogSetup(logJSON, defaultLogLevel, logDebug)
+	logDebug      = os.Getenv("DEBUG") != ""
+	logJSON       = os.Getenv("LOG_JSON") != ""
+	beaconNodeURI string
 
 	defaultBeaconURI        = relaycommon.GetEnv("BEACON_URI", "http://localhost:3500")
 	defaultPostgresDSN      = relaycommon.GetEnv("POSTGRES_DSN", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")

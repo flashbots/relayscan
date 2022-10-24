@@ -9,10 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	beaconNodeURI string
-)
-
 func init() {
 	rootCmd.AddCommand(liveBidsCmd)
 	liveBidsCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", defaultBeaconURI, "beacon endpoint")

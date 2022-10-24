@@ -46,6 +46,7 @@ type DataAPIPayloadDeliveredEntry struct {
 	NumTx                sql.NullInt64 `db:"num_tx"`
 	BlockNumber          sql.NullInt64 `db:"block_number"`
 
+	SlotWasMissed           sql.NullBool   `db:"slot_missed"`
 	ValueCheckOk            sql.NullBool   `db:"value_check_ok"`
 	ValueCheckMethod        sql.NullString `db:"value_check_method"`
 	ValueDeliveredWei       sql.NullString `db:"value_delivered_wei"`
