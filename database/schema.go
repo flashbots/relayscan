@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS ` + TableDataAPIPayloadDelivered + ` (
 	num_tx                 int,
 	block_number           bigint,
 
+	slot_missed	                boolean, 		-- null means not yet checked
 	value_check_ok              boolean, 		-- null means not yet checked
 	value_check_method          text,  		    -- how value was checked (i.e. blockBalanceDiff)
 	value_delivered_wei         NUMERIC(48, 0), -- actually delivered value
@@ -92,6 +93,7 @@ CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_builder_pubkey_i
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_block_number_idx ON ` + TableDataAPIPayloadDelivered + `("block_number");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_value_wei_idx ON ` + TableDataAPIPayloadDelivered + `("value_claimed_wei");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_valuecheck_ok_idx ON ` + TableDataAPIPayloadDelivered + `("value_check_ok");
+CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_slotmissed_idx ON ` + TableDataAPIPayloadDelivered + `("slot_missed");
 
 
 CREATE TABLE IF NOT EXISTS ` + TableDataAPIBuilderBid + ` (

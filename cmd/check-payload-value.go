@@ -17,22 +17,24 @@ import (
 
 var (
 	slot               uint64
-	numPayloads        uint64
+	limit              uint64
 	numThreads         uint64
 	ethNodeURI         string
 	ethNodeBackupURI   string
 	checkIncorrectOnly bool
+	checkMissedOnly    bool
 )
 
 func init() {
 	rootCmd.AddCommand(checkPayloadValueCmd)
 	checkPayloadValueCmd.Flags().Uint64Var(&slot, "slot", 0, "a specific slot")
-	checkPayloadValueCmd.Flags().Uint64Var(&numPayloads, "payloads", 1000, "how many payloads")
+	checkPayloadValueCmd.Flags().Uint64Var(&limit, "limit", 1000, "how many payloads")
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", defaultEthNodeURI, "eth node URI (i.e. Infura)")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", defaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
-	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
 	checkPayloadValueCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", defaultBeaconURI, "beacon endpoint")
+	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
+	checkPayloadValueCmd.Flags().BoolVar(&checkMissedOnly, "check-missed", false, "whether to double-check missed slots only")
 }
 
 var checkPayloadValueCmd = &cobra.Command{
@@ -71,14 +73,23 @@ var checkPayloadValueCmd = &cobra.Command{
 		var entries = []database.DataAPIPayloadDeliveredEntry{}
 		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered
 		if checkIncorrectOnly {
-			query += ` WHERE value_check_ok=false`
+			query += ` WHERE value_check_ok=false ORDER BY slot DESC`
+			if limit > 0 {
+				query += fmt.Sprintf(" limit %d", limit)
+			}
+			err = db.DB.Select(&entries, query)
+		} else if checkMissedOnly {
+			query += ` WHERE slot_missed=true ORDER BY slot DESC`
+			if limit > 0 {
+				query += fmt.Sprintf(" limit %d", limit)
+			}
 			err = db.DB.Select(&entries, query)
 		} else if slot != 0 {
 			query += ` WHERE slot=$1`
 			err = db.DB.Select(&entries, query, slot)
 		} else {
 			query += ` WHERE value_check_ok IS NULL ORDER BY slot DESC LIMIT $1`
-			err = db.DB.Select(&entries, query, numPayloads)
+			err = db.DB.Select(&entries, query, limit)
 		}
 		if err != nil {
 			log.WithError(err).Fatalf("couldn't get entries")
@@ -97,7 +108,7 @@ var checkPayloadValueCmd = &cobra.Command{
 		for i := 0; i < int(numThreads); i++ {
 			log.Infof("starting worker %d", i+1)
 			wg.Add(1)
-			go startUpdateWorker(wg, db, bn, client, client2, entryC)
+			go startUpdateWorker(wg, db, bn, syncStatus.HeadSlot, client, client2, entryC)
 		}
 
 		for _, entry := range entries {
@@ -121,7 +132,7 @@ func _getBalanceDiff(ethClient *ethrpc.EthRPC, address string, blockNumber int) 
 	return balanceDiff, nil
 }
 
-func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *beaconclient.ProdBeaconInstance, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
+func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *beaconclient.ProdBeaconInstance, headSlot uint64, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
 	defer wg.Done()
 
 	getBalanceDiff := func(address string, blockNumber int) (*big.Int, error) {
@@ -157,6 +168,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		}
 	}
 
+	var err error
 	var block *ethrpc.Block
 	for entry := range entryC {
 		_log := log.WithFields(logrus.Fields{
@@ -172,14 +184,16 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		}
 
 		// Check if slot was delivered
-		_, err := bn.GetHeaderForSlot(entry.Slot)
-		entry.SlotWasMissed = database.NewNullBool(false)
-		if err != nil {
-			if strings.Contains(err.Error(), "Could not find requested block") {
-				entry.SlotWasMissed = database.NewNullBool(true)
-				_log.Warn("couldn't find block in beacon node, probably missed the proposal!")
-			} else {
-				_log.WithError(err).Fatalf("couldn't get slot from BN")
+		if headSlot-entry.Slot < 40_000 { // before, my BN always returns the error
+			_, err := bn.GetHeaderForSlot(entry.Slot)
+			entry.SlotWasMissed = database.NewNullBool(false)
+			if err != nil {
+				if strings.Contains(err.Error(), "Could not find requested block") {
+					entry.SlotWasMissed = database.NewNullBool(true)
+					_log.Warn("couldn't find block in beacon node, probably missed the proposal!")
+				} else {
+					_log.WithError(err).Fatalf("couldn't get slot from BN")
+				}
 			}
 		}
 
@@ -244,7 +258,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		}
 
 		// Block was found on chain and is same for this blocknumber. Now check the payment!
-		checkMethod := "balanceDiffV1"
+		checkMethod := "balanceDiff"
 		proposerBalanceDiffWei, err := getBalanceDiff(entry.ProposerFeeRecipient, block.Number)
 		if err != nil {
 			_log.WithError(err).Fatalf("couldn't get balance diff")
@@ -253,14 +267,16 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		proposerValueDiffFromClaim := new(big.Int).Sub(claimedProposerValue, proposerBalanceDiffWei)
 		if proposerValueDiffFromClaim.String() != "0" {
 			// Value delivered is off. Might be due to a forwarder contract... Checking payment tx...
-			checkMethod = "txValue"
+			checkMethod = "balanceDiff+txValue"
 			isDeliveredValueIncorrect := true
 			if len(block.Transactions) > 0 {
 				paymentTx := block.Transactions[len(block.Transactions)-1]
-				proposerValueDiffFromClaim = new(big.Int).Sub(claimedProposerValue, &paymentTx.Value)
-				if proposerValueDiffFromClaim.String() == "0" {
-					_log.Debug("all good, payment is in last tx but was probably forwarded through smart contract")
-					isDeliveredValueIncorrect = false
+				if paymentTx.To == entry.ProposerFeeRecipient {
+					proposerValueDiffFromClaim = new(big.Int).Sub(claimedProposerValue, &paymentTx.Value)
+					if proposerValueDiffFromClaim.String() == "0" {
+						_log.Debug("all good, payment is in last tx but was probably forwarded through smart contract")
+						isDeliveredValueIncorrect = false
+					}
 				}
 			}
 
