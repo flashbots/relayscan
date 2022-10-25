@@ -70,7 +70,7 @@ var checkPayloadValueCmd = &cobra.Command{
 			log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
 		}
 
-		var entries = []database.DataAPIPayloadDeliveredEntry{}
+		entries := []database.DataAPIPayloadDeliveredEntry{}
 		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered
 		if checkIncorrectOnly {
 			query += ` WHERE value_check_ok=false ORDER BY slot DESC`
@@ -143,6 +143,14 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		return r, err
 	}
 
+	getBlockByHash := func(blockHash string, withTransactions bool) (*ethrpc.Block, error) {
+		block, err := client.EthGetBlockByHash(blockHash, withTransactions)
+		if err != nil {
+			block, err = client2.EthGetBlockByHash(blockHash, withTransactions)
+		}
+		return block, err
+	}
+
 	saveEntry := func(_log *logrus.Entry, entry database.DataAPIPayloadDeliveredEntry) {
 		query := `UPDATE ` + database.TableDataAPIPayloadDelivered + ` SET
 				block_number=:block_number,
@@ -199,7 +207,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		}
 
 		// query block by hash
-		block, err = client.EthGetBlockByHash(entry.BlockHash, true)
+		block, err = getBlockByHash(entry.BlockHash, true)
 		if err != nil {
 			_log.WithError(err).Fatalf("couldn't get block %s", entry.BlockHash)
 		} else if block == nil {
@@ -226,9 +234,9 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		// query block by number to ensure that's what landed on-chain
 		blockByNum, err := client.EthGetBlockByNumber(block.Number, false)
 		if err != nil {
-			_log.WithError(err).Fatalf("couldn't get block by number %s", block.Number)
+			_log.WithError(err).Fatalf("couldn't get block by number %d", block.Number)
 		} else if block == nil {
-			_log.WithError(err).Warnf("block not found: %s", block.Number)
+			_log.WithError(err).Warnf("block by number not found: %d", block.Number)
 			continue
 		}
 
@@ -243,7 +251,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 			for i := block.Number + 1; i < block.Number+8; i++ {
 				nextBlockByNum, err := client.EthGetBlockByNumber(i, false)
 				if err != nil {
-					_log.WithError(err).Warnf("couldn't get +block by number %s", i)
+					_log.WithError(err).Warnf("couldn't get +block by number %d", i)
 				}
 				wasUncled := common.StringSliceContains(nextBlockByNum.Uncles, block.Hash)
 				_log.Infof("block %d has %d uncles. original block included? %v", i, len(nextBlockByNum.Uncles), wasUncled)

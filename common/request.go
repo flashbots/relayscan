@@ -10,9 +10,7 @@ import (
 	"net/http"
 )
 
-var (
-	errHTTPErrorResponse = errors.New("HTTP error response")
-)
+var errHTTPErrorResponse = errors.New("HTTP error response")
 
 // type ErrorMessage struct {
 // 	code    int

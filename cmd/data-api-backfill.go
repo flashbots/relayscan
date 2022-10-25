@@ -148,7 +148,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		}
 
 		if payloadsNew == 0 {
-			log.Info("No new payloads, all done. Earliest payload for slot: %d", cursorSlot)
+			log.Infof("No new payloads, all done. Earliest payload for slot: %d", cursorSlot)
 			return nil
 		}
 

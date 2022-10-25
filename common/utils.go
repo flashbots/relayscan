@@ -1,3 +1,4 @@
+// Package common includes common utilities
 package common
 
 import (
@@ -80,7 +81,7 @@ func EthToWei(eth *big.Int) *big.Float {
 	return new(big.Float).Quo(new(big.Float).SetInt(eth), new(big.Float).SetInt(big.NewInt(params.Ether)))
 }
 
-func PercentDiff(x *big.Int, y *big.Int) *big.Float {
+func PercentDiff(x, y *big.Int) *big.Float {
 	fx := new(big.Float).SetInt(x)
 	fy := new(big.Float).SetInt(y)
 	r := new(big.Float).Quo(fy, fx)
