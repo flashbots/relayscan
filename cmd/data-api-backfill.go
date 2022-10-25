@@ -159,6 +159,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		// time.Sleep(1 * time.Second)
 	}
 }
+
 func (bf *backfiller) backfillDataAPIBids() error {
 	log.Infof("backfilling bids from relay %s ...", bf.relay.Hostname())
 
