@@ -88,7 +88,7 @@ var checkPayloadValueCmd = &cobra.Command{
 			query += ` WHERE slot=$1`
 			err = db.DB.Select(&entries, query, slot)
 		} else {
-			query += ` WHERE value_check_ok IS NULL ORDER BY slot DESC LIMIT $1`
+			query += ` WHERE value_check_ok IS NULL AND slot_missed IS NULL ORDER BY slot DESC LIMIT $1`
 			err = db.DB.Select(&entries, query, limit)
 		}
 		if err != nil {
@@ -184,7 +184,8 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		}
 
 		// Check if slot was delivered
-		if headSlot-entry.Slot < 20_000 { // before, my BN always returns the error
+		// _log.Infof("%d - %d = %d", headSlot, entry.Slot, headSlot-entry.Slot)
+		if headSlot-entry.Slot < 30_000 { // before, my BN always returns the error
 			_, err := bn.GetHeaderForSlot(entry.Slot)
 			entry.SlotWasMissed = database.NewNullBool(false)
 			if err != nil {
