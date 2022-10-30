@@ -126,7 +126,10 @@ func (s *RelayCollector) CallGetHeaderOnRelay(relay common.RelayEntry, slot uint
 		if strings.Contains(err.Error(), "no builder bid") {
 			return
 		}
-		log.WithField("code", code).WithError(err).Error("error on getHeader request")
+		log.WithFields(logrus.Fields{
+			"code": code,
+			"url":  url,
+		}).WithError(err).Error("error on getHeader request")
 		return
 	}
 	if code != 200 {
