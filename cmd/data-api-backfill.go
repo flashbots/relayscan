@@ -17,7 +17,7 @@ import (
 var (
 	cliRelay   string
 	initCursor uint64
-	bidsOnly   bool
+	// bidsOnly   bool
 )
 
 func init() {
@@ -71,7 +71,10 @@ var backfillDataAPICmd = &cobra.Command{
 		for _, relay := range relays {
 			backfiller := newBackfiller(db, relay, initCursor)
 			// backfiller.backfillDataAPIBids()
-			backfiller.backfillPayloadsDelivered()
+			err = backfiller.backfillPayloadsDelivered()
+			if err != nil {
+				log.WithError(err).WithField("relay", relay).Error("backfill failed")
+			}
 		}
 	},
 }
@@ -117,7 +120,10 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		}
 		log.Info("url: ", url)
 		var data []relaycommon.BidTraceV2JSON
-		common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
+		_, err = common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
+		if err != nil {
+			return err
+		}
 
 		log.Infof("got %d entries", len(data))
 		entries := make([]*database.DataAPIPayloadDeliveredEntry, len(data))
@@ -138,7 +144,6 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 			} else if cursorSlot > dataEntry.Slot {
 				cursorSlot = dataEntry.Slot
 			}
-
 		}
 
 		err := bf.db.SaveDataAPIPayloadDeliveredBatch(entries)
@@ -160,69 +165,69 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 	}
 }
 
-func (bf *backfiller) backfillDataAPIBids() error {
-	log.Infof("backfilling bids from relay %s ...", bf.relay.Hostname())
+// func (bf *backfiller) backfillDataAPIBids() error {
+// 	log.Infof("backfilling bids from relay %s ...", bf.relay.Hostname())
 
-	// 1. get latest entry from DB
-	latestEntry, err := bf.db.GetDataAPILatestBid(bf.relay.Hostname())
-	latestSlotInDB := uint64(0)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.WithError(err).Fatal("failed to get latest entry")
-		return err
-	} else {
-		latestSlotInDB = latestEntry.Slot
-	}
-	log.Infof("last known slot: %d", latestSlotInDB)
+// 	// 1. get latest entry from DB
+// 	latestEntry, err := bf.db.GetDataAPILatestBid(bf.relay.Hostname())
+// 	latestSlotInDB := uint64(0)
+// 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+// 		log.WithError(err).Fatal("failed to get latest entry")
+// 		return err
+// 	} else {
+// 		latestSlotInDB = latestEntry.Slot
+// 	}
+// 	log.Infof("last known slot: %d", latestSlotInDB)
 
-	// 2. backfill until latest DB entry is reached
-	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/builder_blocks_received")
-	cursorSlot := bf.cursorSlot
-	slotsReceived := make(map[uint64]bool)
+// 	// 2. backfill until latest DB entry is reached
+// 	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/builder_blocks_received")
+// 	cursorSlot := bf.cursorSlot
+// 	slotsReceived := make(map[uint64]bool)
 
-	for {
-		entriesNew := 0
-		url := baseURL
-		if cursorSlot > 0 {
-			url = fmt.Sprintf("%s?slot=%d", baseURL, cursorSlot)
-		}
-		log.Info("url: ", url)
-		var data []relaycommon.BidTraceV2WithTimestampJSON
-		common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
+// 	for {
+// 		entriesNew := 0
+// 		url := baseURL
+// 		if cursorSlot > 0 {
+// 			url = fmt.Sprintf("%s?slot=%d", baseURL, cursorSlot)
+// 		}
+// 		log.Info("url: ", url)
+// 		var data []relaycommon.BidTraceV2WithTimestampJSON
+// 		common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
 
-		log.Infof("got %d entries", len(data))
-		entries := make([]*database.DataAPIBuilderBidEntry, len(data))
+// 		log.Infof("got %d entries", len(data))
+// 		entries := make([]*database.DataAPIBuilderBidEntry, len(data))
 
-		for index, dataEntry := range data {
-			log.Debugf("saving entry for slot %d", dataEntry.Slot)
-			dbEntry := database.BidTraceV2WithTimestampJSONToBuilderBidEntry(bf.relay.Hostname(), dataEntry)
-			entries[index] = &dbEntry
+// 		for index, dataEntry := range data {
+// 			log.Debugf("saving entry for slot %d", dataEntry.Slot)
+// 			dbEntry := database.BidTraceV2WithTimestampJSONToBuilderBidEntry(bf.relay.Hostname(), dataEntry)
+// 			entries[index] = &dbEntry
 
-			if !slotsReceived[dataEntry.Slot] {
-				slotsReceived[dataEntry.Slot] = true
-				entriesNew += 1
-			}
+// 			if !slotsReceived[dataEntry.Slot] {
+// 				slotsReceived[dataEntry.Slot] = true
+// 				entriesNew += 1
+// 			}
 
-			if cursorSlot == 0 {
-				cursorSlot = dataEntry.Slot
-			}
-		}
+// 			if cursorSlot == 0 {
+// 				cursorSlot = dataEntry.Slot
+// 			}
+// 		}
 
-		err := bf.db.SaveDataAPIBids(entries)
-		if err != nil {
-			log.WithError(err).Fatal("failed to save bids")
-			return err
-		}
+// 		err := bf.db.SaveDataAPIBids(entries)
+// 		if err != nil {
+// 			log.WithError(err).Fatal("failed to save bids")
+// 			return err
+// 		}
 
-		if entriesNew == 0 {
-			log.Info("No new bids, all done")
-			return nil
-		}
+// 		if entriesNew == 0 {
+// 			log.Info("No new bids, all done")
+// 			return nil
+// 		}
 
-		if cursorSlot < latestSlotInDB {
-			log.Infof("Bids backfilled until last in DB (%d)", latestSlotInDB)
-			return nil
-		}
-		cursorSlot -= 1
-		// time.Sleep(1 * time.Second)
-	}
-}
+// 		if cursorSlot < latestSlotInDB {
+// 			log.Infof("Bids backfilled until last in DB (%d)", latestSlotInDB)
+// 			return nil
+// 		}
+// 		cursorSlot -= 1
+// 		// time.Sleep(1 * time.Second)
+// 	}
+// }

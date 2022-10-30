@@ -58,6 +58,15 @@ linters-settings:
     excludes:
       - G108
 
+  gocognit:
+    min-complexity: 55 # default: 30
+
+  gocyclo:
+    min-complexity: 33 # default: 30
+
+  maintidx:
+    under: 15
+
   tagliatelle:
     case:
       rules:

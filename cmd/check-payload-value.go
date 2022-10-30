@@ -121,11 +121,11 @@ var checkPayloadValueCmd = &cobra.Command{
 func _getBalanceDiff(ethClient *ethrpc.EthRPC, address string, blockNumber int) (*big.Int, error) {
 	balanceBefore, err := ethClient.EthGetBalance(address, fmt.Sprintf("0x%x", blockNumber-1))
 	if err != nil {
-		return nil, fmt.Errorf("couldn't get balance for %s @ %d", address, blockNumber-1)
+		return nil, fmt.Errorf("couldn't get balance for %s @ %d", address, blockNumber-1) //nolint
 	}
 	balanceAfter, err := ethClient.EthGetBalance(address, fmt.Sprintf("0x%x", blockNumber))
 	if err != nil {
-		return nil, fmt.Errorf("couldn't get balance for %s @ %d", address, blockNumber-1)
+		return nil, fmt.Errorf("couldn't get balance for %s @ %d", address, blockNumber-1) //nolint
 	}
 	balanceDiff := new(big.Int).Sub(&balanceAfter, &balanceBefore)
 	return balanceDiff, nil

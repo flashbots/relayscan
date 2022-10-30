@@ -14,8 +14,8 @@ Starting point for new Go projects:
 
 ```bash
 go install mvdan.cc/gofumpt@latest
-go install honnef.co/go/tools/cmd/staticcheck@v0.3.1
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.48.0
+go install honnef.co/go/tools/cmd/staticcheck@v0.3.3
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.49.0
 ```
 
 ### Test
