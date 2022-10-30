@@ -1,10 +1,14 @@
-# go-template
+# relayscan
 
 [![Test status](https://github.com/metachris/relayscan/workflows/Checks/badge.svg)](https://github.com/metachris/relayscan/actions?query=workflow%3A%22Checks%22)
 
-Starting point for new Go projects:
+Monitoring of Eth2 mev-boost relays:
 
-* Entry file [`main.go`](https://github.com/metachris/relayscan/blob/main/main.go)
+* Build PostgreSQL with all delivered payloads of all relays
+* Ensure payments are correct (according to claim in bid), and save payment details in the DB
+* Call `getHeader` on every relay on every slot and save to DB
+
+Running on https://relayscan.io
 
 ---
 
