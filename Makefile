@@ -6,7 +6,7 @@ v:
 	@echo "Version: ${VERSION}"
 
 clean:
-	rm -rf your-project build/
+	rm -rf relayscan build/
 
 build:
 	go build -trimpath -ldflags "-s -X cmd.Version=${VERSION} -X main.Version=${VERSION}" -v -o relayscan .
