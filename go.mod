@@ -4,13 +4,13 @@ go 1.19
 
 require (
 	github.com/ethereum/go-ethereum v1.10.25
-	github.com/flashbots/go-boost-utils v1.2.2-0.20221025140515-77cc08cb0edb
-	github.com/flashbots/mev-boost-relay v0.12.3-0.20221024121114-389ce5c23a9f
+	github.com/flashbots/go-boost-utils v1.2.2
+	github.com/flashbots/mev-boost-relay v0.12.4-0.20221030185100-97b9e2297a1d
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.7
 	github.com/onrik/ethrpc v1.1.1
 	github.com/sirupsen/logrus v1.9.0
-	github.com/spf13/cobra v1.6.0
+	github.com/spf13/cobra v1.6.1
 )
 
 require (
