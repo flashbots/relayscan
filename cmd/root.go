@@ -13,7 +13,7 @@ var rootCmd = &cobra.Command{
 	Short: "relayscan",
 	Long:  `https://github.com/metachris/relayscan`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("mev-boost-relay %s\n", Version)
+		fmt.Printf("relayscan %s\n", Version)
 		_ = cmd.Help()
 	},
 }
