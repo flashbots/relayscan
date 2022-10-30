@@ -230,11 +230,6 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		coinbaseIsProposer := block.Miner == entry.ProposerFeeRecipient
 		entry.BlockCoinbaseIsProposer = database.NewNullBool(coinbaseIsProposer)
 
-		if entry.SlotWasMissed.Bool {
-			saveEntry(_log, entry)
-			continue
-		}
-
 		// query block by number to ensure that's what landed on-chain
 		blockByNum, err := getBlockByNumber(block.Number, false)
 		if err != nil {
