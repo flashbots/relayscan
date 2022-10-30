@@ -46,9 +46,12 @@ type DataAPIPayloadDeliveredEntry struct {
 	NumTx                sql.NullInt64 `db:"num_tx"`
 	BlockNumber          sql.NullInt64 `db:"block_number"`
 
-	SlotWasMissed           sql.NullBool   `db:"slot_missed"`
-	ValueCheckOk            sql.NullBool   `db:"value_check_ok"`
-	ValueCheckMethod        sql.NullString `db:"value_check_method"`
+	FoundOnChain  sql.NullBool `db:"found_onchain"`
+	SlotWasMissed sql.NullBool `db:"slot_missed"`
+
+	ValueCheckOk     sql.NullBool   `db:"value_check_ok"`
+	ValueCheckMethod sql.NullString `db:"value_check_method"`
+
 	ValueDeliveredWei       sql.NullString `db:"value_delivered_wei"`
 	ValueDeliveredEth       sql.NullString `db:"value_delivered_eth"`
 	ValueDeliveredDiffWei   sql.NullString `db:"value_delivered_diff_wei"`
@@ -57,10 +60,6 @@ type DataAPIPayloadDeliveredEntry struct {
 	BlockCoinbaseIsProposer sql.NullBool   `db:"block_coinbase_is_proposer"`
 	CoinbaseDiffWei         sql.NullString `db:"coinbase_diff_wei"`
 	CoinbaseDiffEth         sql.NullString `db:"coinbase_diff_eth"`
-	FoundOnChain            sql.NullBool   `db:"found_onchain"`
-	WasUncled               sql.NullBool   `db:"was_uncled"`
-	BlockHashOnChain        sql.NullString `db:"block_hash_onchain"`
-	BlockHashOnChainDiffs   sql.NullBool   `db:"block_hash_onchain_diffs"`
 	Notes                   sql.NullString `db:"notes"`
 }
 

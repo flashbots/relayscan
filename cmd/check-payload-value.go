@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
-	"strings"
 	"sync"
 
-	"github.com/flashbots/mev-boost-relay/beaconclient"
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
 	"github.com/onrik/ethrpc"
@@ -32,7 +30,7 @@ func init() {
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", defaultEthNodeURI, "eth node URI (i.e. Infura)")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", defaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
-	checkPayloadValueCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", defaultBeaconURI, "beacon endpoint")
+	// checkPayloadValueCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", defaultBeaconURI, "beacon endpoint")
 	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
 	checkPayloadValueCmd.Flags().BoolVar(&checkMissedOnly, "check-missed", false, "whether to double-check missed slots only")
 }
@@ -42,14 +40,14 @@ var checkPayloadValueCmd = &cobra.Command{
 	Short: "Check payload value for delivered payloads",
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
-		log.Infof("Using beacon node: %s", beaconNodeURI)
-		bn := beaconclient.NewProdBeaconInstance(log, beaconNodeURI)
-		syncStatus, err := bn.SyncStatus()
-		if err != nil {
-			log.WithError(err).Fatal("couldn't get BN sync status")
-		} else if syncStatus.IsSyncing {
-			log.Fatal("beacon node is syncing")
-		}
+		// log.Infof("Using beacon node: %s", beaconNodeURI)
+		// bn := beaconclient.NewProdBeaconInstance(log, beaconNodeURI)
+		// syncStatus, err := bn.SyncStatus()
+		// if err != nil {
+		// 	log.WithError(err).Fatal("couldn't get BN sync status")
+		// } else if syncStatus.IsSyncing {
+		// 	log.Fatal("beacon node is syncing")
+		// }
 
 		log.Infof("Using eth node: %s", ethNodeURI)
 		client := ethrpc.New(ethNodeURI)
@@ -88,7 +86,8 @@ var checkPayloadValueCmd = &cobra.Command{
 			query += ` WHERE slot=$1`
 			err = db.DB.Select(&entries, query, slot)
 		} else {
-			query += ` WHERE value_check_ok IS NULL AND slot_missed IS NULL ORDER BY slot DESC LIMIT $1`
+			// query += ` WHERE value_check_ok IS NULL AND slot_missed IS NULL ORDER BY slot DESC LIMIT $1`
+			query += ` WHERE value_check_ok IS NULL ORDER BY slot DESC LIMIT $1`
 			err = db.DB.Select(&entries, query, limit)
 		}
 		if err != nil {
@@ -108,7 +107,7 @@ var checkPayloadValueCmd = &cobra.Command{
 		for i := 0; i < int(numThreads); i++ {
 			log.Infof("starting worker %d", i+1)
 			wg.Add(1)
-			go startUpdateWorker(wg, db, bn, syncStatus.HeadSlot, client, client2, entryC)
+			go startUpdateWorker(wg, db, client, client2, entryC)
 		}
 
 		for _, entry := range entries {
@@ -132,7 +131,7 @@ func _getBalanceDiff(ethClient *ethrpc.EthRPC, address string, blockNumber int) 
 	return balanceDiff, nil
 }
 
-func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *beaconclient.ProdBeaconInstance, headSlot uint64, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
+func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
 	defer wg.Done()
 
 	getBalanceDiff := func(address string, blockNumber int) (*big.Int, error) {
@@ -145,8 +144,16 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 
 	getBlockByHash := func(blockHash string, withTransactions bool) (*ethrpc.Block, error) {
 		block, err := client.EthGetBlockByHash(blockHash, withTransactions)
-		if err != nil {
+		if err != nil || block == nil {
 			block, err = client2.EthGetBlockByHash(blockHash, withTransactions)
+		}
+		return block, err
+	}
+
+	getBlockByNumber := func(blockNumber int, withTransactions bool) (*ethrpc.Block, error) {
+		block, err := client.EthGetBlockByNumber(blockNumber, withTransactions)
+		if err != nil || block == nil {
+			block, err = client2.EthGetBlockByNumber(blockNumber, withTransactions)
 		}
 		return block, err
 	}
@@ -165,10 +172,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 				block_coinbase_is_proposer=:block_coinbase_is_proposer,
 				coinbase_diff_wei=:coinbase_diff_wei,
 				coinbase_diff_eth=:coinbase_diff_eth,
-				found_onchain=:found_onchain,
-				was_uncled=:was_uncled,
-				block_hash_onchain=:block_hash_onchain,
-				block_hash_onchain_diffs=:block_hash_onchain_diffs
+				found_onchain=:found_onchain
 			WHERE slot=:slot`
 		_, err := db.DB.NamedExec(query, entry)
 		if err != nil {
@@ -193,18 +197,18 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 
 		// Check if slot was delivered
 		// _log.Infof("%d - %d = %d", headSlot, entry.Slot, headSlot-entry.Slot)
-		if headSlot-entry.Slot < 30_000 { // before, my BN always returns the error
-			_, err := bn.GetHeaderForSlot(entry.Slot)
-			entry.SlotWasMissed = database.NewNullBool(false)
-			if err != nil {
-				if strings.Contains(err.Error(), "Could not find requested block") {
-					entry.SlotWasMissed = database.NewNullBool(true)
-					_log.Warn("couldn't find block in beacon node, probably missed the proposal!")
-				} else {
-					_log.WithError(err).Fatalf("couldn't get slot from BN")
-				}
-			}
-		}
+		// if headSlot-entry.Slot < 30_000 { // before, my BN always returns the error
+		// 	_, err := bn.GetHeaderForSlot(entry.Slot)
+		// 	entry.SlotWasMissed = database.NewNullBool(false)
+		// 	if err != nil {
+		// 		if strings.Contains(err.Error(), "Could not find requested block") {
+		// 			entry.SlotWasMissed = database.NewNullBool(true)
+		// 			_log.Warn("couldn't find block in beacon node, probably missed the proposal!")
+		// 		} else {
+		// 			_log.WithError(err).Fatalf("couldn't get slot from BN")
+		// 		}
+		// 	}
+		// }
 
 		// query block by hash
 		block, err = getBlockByHash(entry.BlockHash, true)
@@ -232,39 +236,44 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, bn *bea
 		}
 
 		// query block by number to ensure that's what landed on-chain
-		blockByNum, err := client.EthGetBlockByNumber(block.Number, false)
+		blockByNum, err := getBlockByNumber(block.Number, false)
 		if err != nil {
 			_log.WithError(err).Fatalf("couldn't get block by number %d", block.Number)
-		} else if block == nil {
+		} else if blockByNum == nil {
 			_log.WithError(err).Warnf("block by number not found: %d", block.Number)
 			continue
-		}
-
-		entry.BlockHashOnChain = database.NewNullString(blockByNum.Hash)
-		entry.BlockHashOnChainDiffs = database.NewNullBool(blockByNum.Hash != block.Hash)
-		if blockByNum.Hash != block.Hash {
-			entry.ValueCheckOk = database.NewNullBool(false)
-			_log.Warnf("block hash mismatch! payload: %s / by number: %s", entry.BlockHash, blockByNum.Hash)
-
-			// check if it was uncled
-			_log.Info("checking for uncling...")
-			for i := block.Number + 1; i < block.Number+8; i++ {
-				nextBlockByNum, err := client.EthGetBlockByNumber(i, false)
-				if err != nil {
-					_log.WithError(err).Warnf("couldn't get +block by number %d", i)
-				}
-				wasUncled := common.StringSliceContains(nextBlockByNum.Uncles, block.Hash)
-				_log.Infof("block %d has %d uncles. original block included? %v", i, len(nextBlockByNum.Uncles), wasUncled)
-				entry.WasUncled = database.NewNullBool(false)
-				if wasUncled {
-					_log.Info("-- was uncled!")
-					entry.WasUncled = database.NewNullBool(true)
-					break
-				}
-			}
+		} else if blockByNum.Hash != entry.BlockHash {
+			_log.Warnf("block hash mismatch when checking by number. probably missed slot! entry hash: %s / by number: %s", entry.BlockHash, blockByNum.Hash)
+			entry.SlotWasMissed = database.NewNullBool(true)
 			saveEntry(_log, entry)
 			continue
 		}
+
+		// entry.BlockHashOnChain = database.NewNullString(blockByNum.Hash)
+		// entry.BlockHashOnChainDiffs = database.NewNullBool(blockByNum.Hash != block.Hash)
+		// if blockByNum.Hash != block.Hash {
+		// 	entry.ValueCheckOk = database.NewNullBool(false)
+		// 	_log.Warnf("block hash mismatch! payload: %s / by number: %s", entry.BlockHash, blockByNum.Hash)
+
+		// 	// check if it was uncled
+		// 	_log.Info("checking for uncling...")
+		// 	for i := block.Number + 1; i < block.Number+8; i++ {
+		// 		nextBlockByNum, err := getBlockByNumber(i, false)
+		// 		if err != nil {
+		// 			_log.WithError(err).Warnf("couldn't get +block by number %d", i)
+		// 		}
+		// 		wasUncled := common.StringSliceContains(nextBlockByNum.Uncles, block.Hash)
+		// 		_log.Infof("block %d has %d uncles. original block included? %v", i, len(nextBlockByNum.Uncles), wasUncled)
+		// 		entry.WasUncled = database.NewNullBool(false)
+		// 		if wasUncled {
+		// 			_log.Info("-- was uncled!")
+		// 			entry.WasUncled = database.NewNullBool(true)
+		// 			break
+		// 		}
+		// 	}
+		// 	saveEntry(_log, entry)
+		// 	continue
+		// }
 
 		// Block was found on chain and is same for this blocknumber. Now check the payment!
 		checkMethod := "balanceDiff"
