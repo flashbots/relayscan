@@ -60,9 +60,11 @@ func (s *RelayCollector) Start() {
 
 		latestSlot = headEvent.Slot
 		currentEpoch := latestSlot / uint64(relaycommon.SlotsPerEpoch)
+		slotsUntilNextEpoch := uint64(relaycommon.SlotsPerEpoch) - (latestSlot % uint64(relaycommon.SlotsPerEpoch))
+		s.log.Infof("headSlot: %d / currentEpoch: %d / slotsUntilNextEpoch: %d", latestSlot, currentEpoch, slotsUntilNextEpoch)
 
 		// On every new epoch, get proposer duties for current and next epoch (to avoid boundary problems)
-		if currentEpoch > latestEpoch {
+		if len(duties) == 0 || currentEpoch > latestEpoch {
 			dutiesResp, err := s.bn.GetProposerDuties(currentEpoch)
 			if err != nil {
 				s.log.WithError(err).Error("couldn't get proposer duties")
@@ -76,7 +78,7 @@ func (s *RelayCollector) Start() {
 
 			dutiesResp, err = s.bn.GetProposerDuties(currentEpoch + 1)
 			if err != nil {
-				s.log.WithError(err).Error("couldn't get proposer duties")
+				s.log.WithError(err).Error("failed get proposer duties")
 			} else {
 				for _, d := range dutiesResp.Data {
 					duties[d.Slot] = d.Pubkey
@@ -89,14 +91,19 @@ func (s *RelayCollector) Start() {
 		// Now get the latest block, for the execution payload
 		block, err := s.bn.GetBlock()
 		if err != nil {
-			s.log.WithError(err).Error("couldn't get proposer duties")
+			s.log.WithError(err).Error("failed get latest block from BN")
 			continue
 		}
-		s.log.Infof("slot: %d / block: %s / parent: %s", block.Data.Message.Slot, block.Data.Message.Body.ExecutionPayload.BlockHash, block.Data.Message.Body.ExecutionPayload.ParentHash)
 
-		// Prepare URL to request the head
 		nextSlot := block.Data.Message.Slot + 1
-		s.CallGetHeader(nextSlot, block.Data.Message.Body.ExecutionPayload.BlockHash.String(), duties[nextSlot])
+		nextProposerPubkey := duties[nextSlot]
+		s.log.Infof("next slot: %d / block: %s / parent: %s / proposerPubkey: %s", nextSlot, block.Data.Message.Body.ExecutionPayload.BlockHash.String(), block.Data.Message.Body.ExecutionPayload.ParentHash, nextProposerPubkey)
+
+		if nextProposerPubkey == "" {
+			s.log.WithField("duties", duties).Error("no proposerPubkey for next slot")
+		} else {
+			s.CallGetHeader(nextSlot, block.Data.Message.Body.ExecutionPayload.BlockHash.String(), duties[nextSlot])
+		}
 		fmt.Println("")
 	}
 }

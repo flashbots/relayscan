@@ -21,6 +21,7 @@ var (
 	ethNodeBackupURI   string
 	checkIncorrectOnly bool
 	checkMissedOnly    bool
+	checkTx            bool
 )
 
 func init() {
@@ -33,6 +34,7 @@ func init() {
 	// checkPayloadValueCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", defaultBeaconURI, "beacon endpoint")
 	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
 	checkPayloadValueCmd.Flags().BoolVar(&checkMissedOnly, "check-missed", false, "whether to double-check missed slots only")
+	checkPayloadValueCmd.Flags().BoolVar(&checkTx, "check-tx", false, "whether to check for tx from/to proposer feeRecipient")
 }
 
 var checkPayloadValueCmd = &cobra.Command{
@@ -312,6 +314,19 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 
 			if isDeliveredValueIncorrect {
 				_log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.Number)
+			}
+		}
+
+		// check for transactions to/from proposer feeRecipient
+		if checkTx {
+			log.Infof("checking %d tx...", len(block.Transactions))
+			for i, tx := range block.Transactions {
+				if tx.From == entry.ProposerFeeRecipient {
+					_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value.String())
+					proposerValueDiffFromClaim = new(big.Int).Add(proposerValueDiffFromClaim, &tx.Value)
+				} else if tx.To == entry.ProposerFeeRecipient {
+					_log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value.String())
+				}
 			}
 		}
 
