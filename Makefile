@@ -1,6 +1,6 @@
 VERSION := $(shell git describe --tags --always --dirty="-dev")
 
-all: clean build
+all: build-portable
 
 v:
 	@echo "Version: ${VERSION}"
@@ -15,7 +15,7 @@ build-portable:
 	CGO_CFLAGS="-O -D__BLST_PORTABLE__" go build -trimpath -ldflags "-s -X cmd.Version=${VERSION} -X main.Version=${VERSION}" -v -o relayscan .
 
 test:
-	go test ./...
+	CGO_CFLAGS="-O -D__BLST_PORTABLE__" go test ./...
 
 test-race:
 	go test -race ./...

@@ -187,7 +187,7 @@ func (srv *Webserver) updateHTML() {
 	srv.statsAPIRespLock.Lock()
 	resp := statsResp{
 		GeneratedAt: uint64(srv.HTMLData.GeneratedAt.Unix()),
-		DataStart:   uint64(since.Unix()),
+		DataStartAt: uint64(since.Unix()),
 		TopRelays:   srv.HTMLData.TopRelays,
 		TopBuilders: srv.HTMLData.TopBuilders,
 	}
@@ -227,13 +227,6 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		srv.log.WithError(err).Error("error writing template")
 	}
-}
-
-type statsResp struct {
-	GeneratedAt uint64 `json:"generated_at"`
-	DataStart   uint64 `json:"data_start"`
-	TopRelays   []*database.TopRelayEntry
-	TopBuilders []*database.TopBuilderEntry
 }
 
 func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {
