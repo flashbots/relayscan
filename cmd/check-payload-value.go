@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
 	"github.com/onrik/ethrpc"
@@ -163,6 +164,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 	saveEntry := func(_log *logrus.Entry, entry database.DataAPIPayloadDeliveredEntry) {
 		query := `UPDATE ` + database.TableDataAPIPayloadDelivered + ` SET
 				block_number=:block_number,
+				extra_data=:extra_data,
 				slot_missed=:slot_missed,
 				value_check_ok=:value_check_ok,
 				value_check_method=:value_check_method,
@@ -330,6 +332,12 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			}
 		}
 
+		extraDataBytes, err := hexutil.Decode(block.ExtraData)
+		if err != nil {
+			log.WithError(err).Errorf("failed to decode extradata %s", block.ExtraData)
+		} else {
+			entry.ExtraData = database.ExtraDataToUtf8Str(extraDataBytes)
+		}
 		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
 		entry.ValueCheckMethod = database.NewNullString(checkMethod)
 		entry.ValueDeliveredWei = database.NewNullString(proposerBalanceDiffWei.String())

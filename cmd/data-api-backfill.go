@@ -111,6 +111,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/proposer_payload_delivered")
 	cursorSlot := bf.cursorSlot
 	slotsReceived := make(map[uint64]bool)
+	builders := make(map[string]bool)
 
 	for {
 		payloadsNew := 0
@@ -144,12 +145,22 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 			} else if cursorSlot > dataEntry.Slot {
 				cursorSlot = dataEntry.Slot
 			}
+
+			builders[dataEntry.BuilderPubkey] = true
 		}
 
 		err := bf.db.SaveDataAPIPayloadDeliveredBatch(entries)
 		if err != nil {
 			log.WithError(err).Fatal("failed to save entries")
 			return err
+		}
+
+		// save builders
+		for builderPubkey := range builders {
+			err = bf.db.SaveBuilder(&database.BlockBuilderEntry{BuilderPubkey: builderPubkey})
+			if err != nil {
+				log.WithError(err).Error("failed to save builder")
+			}
 		}
 
 		if payloadsNew == 0 {

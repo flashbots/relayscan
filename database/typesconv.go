@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"math/big"
 	"time"
 	"unicode/utf8"
@@ -68,20 +67,23 @@ func BidTraceV2WithTimestampJSONToBuilderBidEntry(relay string, entry relaycommo
 	return ret
 }
 
-func SignedBuilderBidToEntry(relay string, slot uint64, parentHash, proposerPubkey string, timeRequestStart, timeRequestEnd time.Time, bid *types.SignedBuilderBid) SignedBuilderBidEntry {
-	extraDataBytes := bid.Message.Header.ExtraData
-	for i, b := range extraDataBytes {
+func ExtraDataToUtf8Str(extraData types.ExtraData) string {
+	// replace non-ascii bytes
+	for i, b := range extraData {
 		if b < 32 || b > 126 {
-			extraDataBytes[i] = 32
+			extraData[i] = 32
 		}
 	}
 
-	extraData := string(extraDataBytes)
-	if !utf8.Valid(bid.Message.Header.ExtraData) {
-		extraData = ""
-		fmt.Printf("invalid extradata utf8: %s bytes: %s \n", extraData, extraDataBytes)
+	// convert to str
+	if !utf8.Valid(extraData) {
+		return ""
 	}
 
+	return string(extraData)
+}
+
+func SignedBuilderBidToEntry(relay string, slot uint64, parentHash, proposerPubkey string, timeRequestStart, timeRequestEnd time.Time, bid *types.SignedBuilderBid) SignedBuilderBidEntry {
 	return SignedBuilderBidEntry{
 		Relay:       relay,
 		RequestedAt: timeRequestStart,
@@ -101,7 +103,9 @@ func SignedBuilderBidToEntry(relay string, slot uint64, parentHash, proposerPubk
 		BlockNumber:  bid.Message.Header.BlockNumber,
 		GasLimit:     bid.Message.Header.GasLimit,
 		GasUsed:      bid.Message.Header.GasUsed,
-		ExtraData:    extraData,
+		ExtraData:    ExtraDataToUtf8Str(bid.Message.Header.ExtraData),
 		Epoch:        slot / 32,
+		Timestamp:    bid.Message.Header.Timestamp,
+		PrevRandao:   bid.Message.Header.Random.String(),
 	}
 }

@@ -45,6 +45,7 @@ type DataAPIPayloadDeliveredEntry struct {
 	ValueClaimedEth      string        `db:"value_claimed_eth"`
 	NumTx                sql.NullInt64 `db:"num_tx"`
 	BlockNumber          sql.NullInt64 `db:"block_number"`
+	ExtraData            string        `db:"extra_data"`
 
 	FoundOnChain  sql.NullBool `db:"found_onchain"`
 	SlotWasMissed sql.NullBool `db:"slot_missed"`
@@ -107,5 +108,14 @@ type SignedBuilderBidEntry struct {
 	GasLimit     uint64 `db:"gas_limit"`
 	GasUsed      uint64 `db:"gas_used"`
 	ExtraData    string `db:"extra_data"`
+	PrevRandao   string `db:"prev_randao"`
+	Timestamp    uint64 `db:"timestamp"`
 	Epoch        uint64 `db:"epoch"`
+}
+
+type BlockBuilderEntry struct {
+	ID            int64     `db:"id"`
+	InsertedAt    time.Time `db:"inserted_at"`
+	BuilderPubkey string    `db:"builder_pubkey"`
+	Description   string    `db:"description"`
 }

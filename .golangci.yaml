@@ -59,7 +59,7 @@ linters-settings:
       - G108
 
   gocognit:
-    min-complexity: 55 # default: 30
+    min-complexity: 100 # default: 30
 
   gocyclo:
     min-complexity: 33 # default: 30

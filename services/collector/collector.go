@@ -143,8 +143,8 @@ func (s *RelayCollector) CallGetHeaderOnRelay(relay common.RelayEntry, slot uint
 		// log.WithField("code", code).Info("no bid received")
 		return
 	}
-	log.Infof("bid received! slot: %d \t value: %s \t block_hash: %s", slot, bid.Data.Message.Value.String(), bid.Data.Message.Header.BlockHash.String())
 	entry := database.SignedBuilderBidToEntry(relay.Hostname(), slot, parentHash, proposerPubkey, timeRequestStart, timeRequestEnd, bid.Data)
+	log.Infof("bid received! slot: %d \t value: %s \t block_hash: %s \t timestamp: %d / %d", slot, bid.Data.Message.Value.String(), bid.Data.Message.Header.BlockHash.String(), bid.Data.Message.Header.Timestamp, entry.Timestamp)
 	err = s.db.SaveSignedBuilderBid(entry)
 	if err != nil {
 		log.WithFields(logrus.Fields{
