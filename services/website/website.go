@@ -83,7 +83,7 @@ func (srv *Webserver) StartServer() (err error) {
 	srv.updateHTML()
 	go func() {
 		for {
-			time.Sleep(10 * time.Second)
+			time.Sleep(1 * time.Minute)
 			srv.updateHTML()
 		}
 	}()
@@ -150,7 +150,7 @@ func (srv *Webserver) updateHTML() {
 		htmlData.TopBuildersNumPayloads += entry.NumBlocks
 	}
 
-	htmlData.LastUpdateTime = since.UTC().Format("2006-01-02 15:04:05")
+	htmlData.LastUpdateTime = since.UTC().Format("2006-01-02 15:04")
 
 	// default view
 	if err := srv.indexTemplate.Execute(&htmlDefault, htmlData); err != nil {

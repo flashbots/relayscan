@@ -11,6 +11,9 @@ clean:
 build:
 	go build -trimpath -ldflags "-s -X cmd.Version=${VERSION} -X main.Version=${VERSION}" -v -o relayscan .
 
+build-portable:
+	CGO_CFLAGS="-O -D__BLST_PORTABLE__" go build -trimpath -ldflags "-s -X cmd.Version=${VERSION} -X main.Version=${VERSION}" -v -o relayscan .
+
 test:
 	go test ./...
 
