@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"math/big"
 	"text/template"
+	"time"
 
 	"github.com/metachris/relayscan/database"
 	"golang.org/x/text/cases"
@@ -20,13 +21,11 @@ var (
 )
 
 type HTMLData struct {
-	TopRelays        []*database.TopRelayEntry
-	NumPayloadsTotal uint64
-
-	TopBuilders            []*database.TopBuilderEntry
-	TopBuildersNumPayloads uint64
-
+	GeneratedAt    time.Time
 	LastUpdateTime string
+
+	TopRelays   []*database.TopRelayEntry
+	TopBuilders []*database.TopBuilderEntry
 }
 
 func weiToEth(wei string) string {

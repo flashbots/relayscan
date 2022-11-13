@@ -121,11 +121,13 @@ type BlockBuilderEntry struct {
 }
 
 type TopRelayEntry struct {
-	Relay    string `db:"relay"`
-	Payloads uint64 `db:"payloads"`
+	Relay       string `db:"relay" json:"relay"`
+	NumPayloads uint64 `db:"payloads" json:"num_payloads"`
+	Percent     string `json:"percent"`
 }
 
 type TopBuilderEntry struct {
-	ExtraData string `db:"extra_data"`
-	NumBlocks uint64 `db:"blocks"`
+	ExtraData string `db:"extra_data" json:"extra_data"`
+	NumBlocks uint64 `db:"blocks" json:"num_blocks"`
+	Percent   string `json:"percent"`
 }

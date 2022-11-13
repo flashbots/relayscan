@@ -133,12 +133,12 @@ func (s *DatabaseService) GetDataAPILatestBid(relay string) (*DataAPIBuilderBidE
 
 func (s *DatabaseService) GetTopRelays(since time.Time) (res []*TopRelayEntry, err error) {
 	query := `SELECT relay, count(relay) as payloads FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 GROUP BY relay ORDER BY payloads DESC;`
-	err = s.DB.Select(&res, query, since)
+	err = s.DB.Select(&res, query, since.UTC())
 	return res, err
 }
 
 func (s *DatabaseService) GetTopBuilders(since time.Time) (res []*TopBuilderEntry, err error) {
 	query := `SELECT extra_data, count(extra_data) as blocks FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 GROUP BY extra_data ORDER BY blocks DESC;`
-	err = s.DB.Select(&res, query, since)
+	err = s.DB.Select(&res, query, since.UTC())
 	return res, err
 }

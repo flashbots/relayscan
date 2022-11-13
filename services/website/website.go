@@ -3,7 +3,9 @@ package website
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 	"text/template"
@@ -43,6 +45,9 @@ type Webserver struct {
 	indexTemplate    *template.Template
 	HTMLData         HTMLData
 	rootResponseLock sync.RWMutex
+
+	statsAPIResp     *[]byte
+	statsAPIRespLock sync.RWMutex
 
 	htmlDefault *[]byte
 	minifier    *minify.M
@@ -109,6 +114,7 @@ func (srv *Webserver) getRouter() http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/", srv.handleRoot).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
 
 	if srv.opts.EnablePprof {
 		srv.log.Info("pprof API enabled")
@@ -124,7 +130,7 @@ func (srv *Webserver) updateHTML() {
 	// Now generate the HTML
 	htmlDefault := bytes.Buffer{}
 
-	since := time.Now().Add(-24 * time.Hour)
+	since := time.Now().UTC().Add(-24 * time.Hour)
 	topRelays, err := srv.db.GetTopRelays(since)
 	if err != nil {
 		srv.log.WithError(err).Error("failed getting top relays from database")
@@ -139,18 +145,27 @@ func (srv *Webserver) updateHTML() {
 
 	htmlData := HTMLData{}
 	htmlData.TopRelays = topRelays
-	htmlData.NumPayloadsTotal = 0
+	topRelaysNumPayloads := uint64(0)
 	for _, entry := range topRelays {
-		htmlData.NumPayloadsTotal += entry.Payloads
+		topRelaysNumPayloads += entry.NumPayloads
+	}
+	for i, entry := range topRelays {
+		p := float64(entry.NumPayloads) / float64(topRelaysNumPayloads) * 100
+		htmlData.TopRelays[i].Percent = fmt.Sprintf("%.2f", p)
 	}
 
 	htmlData.TopBuilders = topBuilders
-	htmlData.TopBuildersNumPayloads = 0
+	topBuildersNumPayloads := uint64(0)
 	for _, entry := range topBuilders {
-		htmlData.TopBuildersNumPayloads += entry.NumBlocks
+		topBuildersNumPayloads += entry.NumBlocks
+	}
+	for i, entry := range topBuilders {
+		p := float64(entry.NumBlocks) / float64(topBuildersNumPayloads) * 100
+		htmlData.TopBuilders[i].Percent = fmt.Sprintf("%.2f", p)
 	}
 
-	htmlData.LastUpdateTime = since.UTC().Format("2006-01-02 15:04")
+	htmlData.GeneratedAt = time.Now().UTC()
+	htmlData.LastUpdateTime = htmlData.GeneratedAt.Format("2006-01-02 15:04")
 
 	// default view
 	if err := srv.indexTemplate.Execute(&htmlDefault, htmlData); err != nil {
@@ -168,6 +183,22 @@ func (srv *Webserver) updateHTML() {
 	srv.HTMLData = htmlData
 	srv.htmlDefault = &htmlDefaultBytes
 	srv.rootResponseLock.Unlock()
+
+	srv.statsAPIRespLock.Lock()
+	resp := statsResp{
+		GeneratedAt: uint64(srv.HTMLData.GeneratedAt.Unix()),
+		DataStart:   uint64(since.Unix()),
+		TopRelays:   srv.HTMLData.TopRelays,
+		TopBuilders: srv.HTMLData.TopBuilders,
+	}
+	respBytes, err := json.Marshal(resp)
+	if err != nil {
+		srv.log.WithError(err).Error("error marshalling statsAPIResp")
+	} else {
+		srv.statsAPIResp = &respBytes
+	}
+	srv.statsAPIRespLock.Unlock()
+
 }
 
 func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
@@ -196,4 +227,17 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		srv.log.WithError(err).Error("error writing template")
 	}
+}
+
+type statsResp struct {
+	GeneratedAt uint64 `json:"generated_at"`
+	DataStart   uint64 `json:"data_start"`
+	TopRelays   []*database.TopRelayEntry
+	TopBuilders []*database.TopBuilderEntry
+}
+
+func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {
+	srv.statsAPIRespLock.RLock()
+	defer srv.statsAPIRespLock.RUnlock()
+	w.Write(*srv.statsAPIResp)
 }
