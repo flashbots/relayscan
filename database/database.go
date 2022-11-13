@@ -4,6 +4,7 @@ package database
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -20,6 +21,9 @@ type IDatabaseService interface {
 	SaveDataAPIBid(entry *DataAPIBuilderBidEntry) error
 	SaveDataAPIBids(entries []*DataAPIBuilderBidEntry) error
 	SaveBuilder(entry *BlockBuilderEntry) error
+
+	GetTopRelays(since time.Time) (res []*TopRelayEntry, err error)
+	GetTopBuilders(since time.Time) (res []*TopBuilderEntry, err error)
 }
 
 type DatabaseService struct {
@@ -125,4 +129,16 @@ func (s *DatabaseService) GetDataAPILatestBid(relay string) (*DataAPIBuilderBidE
 	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number, timestamp FROM ` + TableDataAPIBuilderBid + ` WHERE relay=$1 ORDER BY slot DESC, timestamp DESC LIMIT 1`
 	err := s.DB.Get(entry, query, relay)
 	return entry, err
+}
+
+func (s *DatabaseService) GetTopRelays(since time.Time) (res []*TopRelayEntry, err error) {
+	query := `SELECT relay, count(relay) as payloads FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 GROUP BY relay ORDER BY payloads DESC;`
+	err = s.DB.Select(&res, query, since)
+	return res, err
+}
+
+func (s *DatabaseService) GetTopBuilders(since time.Time) (res []*TopBuilderEntry, err error) {
+	query := `SELECT extra_data, count(extra_data) as blocks FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 GROUP BY extra_data ORDER BY blocks DESC;`
+	err = s.DB.Select(&res, query, since)
+	return res, err
 }

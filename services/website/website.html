@@ -1,0 +1,101 @@
+{{$numPayloadsTotal := .NumPayloadsTotal}}
+{{$topBuildersNumPayloads := .TopBuildersNumPayloads}}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>relayscan.io &ndash; Ethereum MEV-Boost Monitoring</title>
+    <meta name="description" content="MEV-Boost Relay Monitoring, Analytics & Data">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@2.2.0/build/pure-min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@2.2.0/build/grids-responsive-min.css">
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+    <div class="header">
+        <div class="home-menu pure-menu pure-menu-horizontal">
+            <a class="pure-menu-heading" href="">relayscan.io</a>
+
+
+            <ul class="pure-menu-list">
+                <li class="pure-menu-item"><a href="https://twitter.com/relayscan_io" class="pure-menu-link"><i class="fa fa-twitter"></i></a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="content">
+        <center>
+            <h1>MEV-Boost Relay Monitoring & Analytics</h1>
+        </center>
+        <div class="pure-g">
+            <div class="pure-u-1 pure-u-md-1-2 stats-table">
+                <div>
+                    <h2>Relays by payloads delivered (24h)</h2>
+                    <table class="pure-table pure-table-horizontal">
+                        <thead>
+                            <tr>
+                                <th>Relay</th>
+                                <th>Payloads</th>
+                                <th>Percent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            {{ range .TopRelays }}
+                            <tr>
+                                <td>{{ .Relay }}</td>
+                                <td>{{ .Payloads }}</td>
+                                <td>{{ percent .Payloads $numPayloadsTotal }} %</td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="pure-u-1 pure-u-md-1-2 stats-table">
+
+                <div>
+                    <h2>Builders by blocks landed on-chain (24h)</h2>
+                    <table class="pure-table pure-table-horizontal">
+                        <thead>
+                            <tr>
+                                <th>Builder extra_data</th>
+                                <th>Blocks</th>
+                                <th>Percent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .TopBuilders }}
+                            {{ if (ge .NumBlocks 10) }}
+                            <tr>
+                                <td>{{ .ExtraData }}</td>
+                                <td>{{ .NumBlocks }}</td>
+                                <td>{{ percent .NumBlocks $topBuildersNumPayloads }} %</td>
+                            </tr>
+                            {{ end }}
+                            {{ end }}
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top:80px;">
+            <small>Last updated: {{ .LastUpdateTime }} UTC</small>
+        </div>
+
+        <div style="text-align: center; margin-top:80px;">
+            <img src="/static/images/cows1.jpg" alt="" width="400">
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

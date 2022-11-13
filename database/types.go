@@ -119,3 +119,13 @@ type BlockBuilderEntry struct {
 	BuilderPubkey string    `db:"builder_pubkey"`
 	Description   string    `db:"description"`
 }
+
+type TopRelayEntry struct {
+	Relay    string `db:"relay"`
+	Payloads uint64 `db:"payloads"`
+}
+
+type TopBuilderEntry struct {
+	ExtraData string `db:"extra_data"`
+	NumBlocks uint64 `db:"blocks"`
+}
