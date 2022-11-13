@@ -16,3 +16,4 @@
 .env*
 /relayscan
 /backfill.sh
+/tmp/
