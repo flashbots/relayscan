@@ -7,11 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"sync"
 	"text/template"
 	"time"
-
-	_ "net/http/pprof"
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/flashbots/go-utils/httplogger"
@@ -74,7 +73,7 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 		return nil, err
 	}
 
-	server.HTMLData = HTMLData{}
+	server.HTMLData = HTMLData{} //nolint:exhaustruct
 
 	return server, nil
 }
@@ -143,7 +142,7 @@ func (srv *Webserver) updateHTML() {
 		return
 	}
 
-	htmlData := HTMLData{}
+	htmlData := HTMLData{} //nolint:exhaustruct
 	htmlData.TopRelays = topRelays
 	topRelaysNumPayloads := uint64(0)
 	for _, entry := range topRelays {
@@ -198,7 +197,6 @@ func (srv *Webserver) updateHTML() {
 		srv.statsAPIResp = &respBytes
 	}
 	srv.statsAPIRespLock.Unlock()
-
 }
 
 func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
@@ -232,5 +230,5 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {
 	srv.statsAPIRespLock.RLock()
 	defer srv.statsAPIRespLock.RUnlock()
-	w.Write(*srv.statsAPIResp)
+	_, _ = w.Write(*srv.statsAPIResp)
 }
