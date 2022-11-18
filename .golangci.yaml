@@ -26,6 +26,7 @@ linters:
     - wsl
     - deadcode
     - varcheck
+    - interfacebloat
 
     #
     # Disabled because of generics:

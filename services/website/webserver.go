@@ -303,8 +303,6 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 		srv.RespondError(w, http.StatusBadRequest, "invalid date")
 		return
 	}
-	// srv.log.Infof("date supplied: %s", t.UTC().String())
-
 	now := time.Now().UTC()
 	minDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Add(-24 * time.Hour).UTC()
 	if t.UTC().After(minDate.UTC()) {
@@ -312,7 +310,7 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	// 2. lookup daily stats from DB
+	// 2. lookup daily stats from DB?
 	// 3. query stats from DB
 	since := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 	until := time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, time.UTC)
@@ -321,8 +319,6 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 		srv.RespondError(w, http.StatusBadRequest, "invalid date")
 		return
 	}
-
-	srv.log.Infof("got %d relays, %d builders", len(relays), len(builders))
 
 	htmlData := &HTMLDataDailyStats{
 		Day:                  t.Format("2006-01-02"),
@@ -336,16 +332,21 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 		tpl, err := template.New("website-daily-stats.html").Funcs(funcMap).ParseFiles("services/website/website-daily-stats.html")
 		if err != nil {
 			srv.log.WithError(err).Error("error parsing template")
+			srv.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		err = tpl.Execute(w, htmlData)
 		if err != nil {
 			srv.log.WithError(err).Error("error executing template")
+			srv.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
-		srv.log.Info("rendered template")
 	} else {
-		srv.templateDailyStats.Execute(w, htmlData)
+		err = srv.templateDailyStats.Execute(w, htmlData)
+		if err != nil {
+			srv.log.WithError(err).Error("error executing template")
+			srv.RespondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 }
