@@ -168,10 +168,12 @@ func (srv *Webserver) updateHTML() {
 			topBuilderEntry, isKnown := topBuildersNormalized["builder0x69"]
 			if isKnown {
 				topBuilderEntry.NumBlocks += entry.NumBlocks
+				topBuilderEntry.Aliases = append(topBuilderEntry.Aliases, entry.ExtraData)
 			} else {
 				topBuildersNormalized["builder0x69"] = &database.TopBuilderEntry{
 					ExtraData: "builder0x69",
 					NumBlocks: entry.NumBlocks,
+					Aliases:   []string{entry.ExtraData},
 				}
 			}
 		} else {

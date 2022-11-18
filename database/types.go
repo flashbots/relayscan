@@ -130,4 +130,5 @@ type TopBuilderEntry struct {
 	ExtraData string `db:"extra_data" json:"extra_data"`
 	NumBlocks uint64 `db:"blocks" json:"num_blocks"`
 	Percent   string `json:"percent"`
+	Aliases   []string
 }
