@@ -5,11 +5,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	_ "net/http/pprof"
-	"sort"
-	"strings"
 	"sync"
 	"text/template"
 	"time"
@@ -158,55 +155,8 @@ func (srv *Webserver) updateHTML() {
 	htmlData.LastUpdateTime = htmlData.GeneratedAt.Format("2006-01-02 15:04")
 
 	// Prepare top relay stats
-	htmlData.TopRelays = topRelays
-	topRelaysNumPayloads := uint64(0)
-	for _, entry := range topRelays {
-		topRelaysNumPayloads += entry.NumPayloads
-	}
-	for i, entry := range topRelays {
-		p := float64(entry.NumPayloads) / float64(topRelaysNumPayloads) * 100
-		htmlData.TopRelays[i].Percent = fmt.Sprintf("%.2f", p)
-	}
-
-	// Get total builder payloads, and build consolidated builder list
-	topBuildersNormalized := make(map[string]*database.TopBuilderEntry)
-	topBuildersNumPayloads := uint64(0)
-	for _, entry := range topBuilders {
-		topBuildersNumPayloads += entry.NumBlocks
-		if strings.Contains(entry.ExtraData, "builder0x69") {
-			topBuilderEntry, isKnown := topBuildersNormalized["builder0x69"]
-			if isKnown {
-				topBuilderEntry.NumBlocks += entry.NumBlocks
-				topBuilderEntry.Aliases = append(topBuilderEntry.Aliases, entry.ExtraData)
-			} else {
-				topBuildersNormalized["builder0x69"] = &database.TopBuilderEntry{
-					ExtraData: "builder0x69",
-					NumBlocks: entry.NumBlocks,
-					Aliases:   []string{entry.ExtraData},
-				}
-			}
-		} else {
-			topBuildersNormalized[entry.ExtraData] = entry
-		}
-	}
-
-	// Prepare top builders by extra stats
-	htmlData.TopBuildersByExtraData = topBuilders
-	for i, entry := range topBuilders {
-		p := float64(entry.NumBlocks) / float64(topBuildersNumPayloads) * 100
-		htmlData.TopBuildersByExtraData[i].Percent = fmt.Sprintf("%.2f", p)
-	}
-
-	// Prepare top builders by summary stats
-	htmlData.TopBuildersBySummary = []*database.TopBuilderEntry{}
-	for _, entry := range topBuildersNormalized {
-		p := float64(entry.NumBlocks) / float64(topBuildersNumPayloads) * 100
-		entry.Percent = fmt.Sprintf("%.2f", p)
-		htmlData.TopBuildersBySummary = append(htmlData.TopBuildersBySummary, entry)
-	}
-	sort.Slice(htmlData.TopBuildersBySummary, func(i, j int) bool {
-		return htmlData.TopBuildersBySummary[i].NumBlocks > htmlData.TopBuildersBySummary[j].NumBlocks
-	})
+	htmlData.TopRelays = prepareRelaysEntries(topRelays)
+	htmlData.TopBuilders = consolidateBuilderEntries(topBuilders)
 
 	// Render template
 	if err := srv.templateIndex.Execute(&htmlDefault, htmlData); err != nil {
@@ -230,7 +180,7 @@ func (srv *Webserver) updateHTML() {
 		GeneratedAt: uint64(srv.HTMLData.GeneratedAt.Unix()),
 		DataStartAt: uint64(since.Unix()),
 		TopRelays:   srv.HTMLData.TopRelays,
-		TopBuilders: srv.HTMLData.TopBuildersByExtraData,
+		TopBuilders: srv.HTMLData.TopBuilders,
 	}
 	respBytes, err := json.Marshal(resp)
 	if err != nil {
@@ -267,7 +217,7 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	defer srv.rootResponseLock.RUnlock()
 
 	if srv.opts.Dev {
-		tpl, err := template.New("website.html").Funcs(funcMap).ParseFiles("services/website/website.html")
+		tpl, err := template.New("index.html").Funcs(funcMap).ParseFiles("services/website/templates/index.html")
 		if err != nil {
 			srv.log.WithError(err).Error("error parsing template")
 			return
@@ -332,12 +282,12 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 		DayNext:              dayNext,
 		TimeSince:            since.Format("2006-01-02 15:04:05 UTC"),
 		TimeUntil:            until.Format("2006-01-02 15:04:05 UTC"),
-		TopRelays:            relays,
-		TopBuildersBySummary: consolidateBuilders(builders),
+		TopRelays:            prepareRelaysEntries(relays),
+		TopBuildersBySummary: consolidateBuilderEntries(builders),
 	}
 
 	if srv.opts.Dev {
-		tpl, err := template.New("website-daily-stats.html").Funcs(funcMap).ParseFiles("services/website/website-daily-stats.html")
+		tpl, err := template.New("daily-stats.html").Funcs(funcMap).ParseFiles("services/website/templates/daily-stats.html")
 		if err != nil {
 			srv.log.WithError(err).Error("error parsing template")
 			srv.RespondError(w, http.StatusInternalServerError, err.Error())

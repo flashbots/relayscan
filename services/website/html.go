@@ -24,10 +24,8 @@ type HTMLData struct {
 	GeneratedAt    time.Time
 	LastUpdateTime string
 
-	TopRelays []*database.TopRelayEntry
-
-	TopBuildersByExtraData []*database.TopBuilderEntry
-	TopBuildersBySummary   []*database.TopBuilderEntry
+	TopRelays   []*database.TopRelayEntry
+	TopBuilders []*database.TopBuilderEntry
 }
 
 type HTMLDataDailyStats struct {
@@ -76,10 +74,10 @@ var funcMap = template.FuncMap{
 	"percent":   percent,
 }
 
-//go:embed website.html
+//go:embed templates/index.html
 var htmlContentIndex string
 
-//go:embed website-daily-stats.html
+//go:embed templates/daily-stats.html
 var htmlContentDailyStats string
 
 func ParseIndexTemplate() (*template.Template, error) {

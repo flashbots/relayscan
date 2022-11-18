@@ -20,7 +20,7 @@ type HTTPErrorResp struct {
 	Message string `json:"message"`
 }
 
-func consolidateBuilders(builders []*database.TopBuilderEntry) []*database.TopBuilderEntry {
+func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database.TopBuilderEntry {
 	// Get total builder payloads, and build consolidated builder list
 	buildersMap := make(map[string]*database.TopBuilderEntry)
 	buildersNumPayloads := uint64(0)
@@ -60,4 +60,16 @@ func consolidateBuilders(builders []*database.TopBuilderEntry) []*database.TopBu
 		return resp[i].NumBlocks > resp[j].NumBlocks
 	})
 	return resp
+}
+
+func prepareRelaysEntries(relays []*database.TopRelayEntry) []*database.TopRelayEntry {
+	topRelaysNumPayloads := uint64(0)
+	for _, entry := range relays {
+		topRelaysNumPayloads += entry.NumPayloads
+	}
+	for i, entry := range relays {
+		p := float64(entry.NumPayloads) / float64(topRelaysNumPayloads) * 100
+		relays[i].Percent = fmt.Sprintf("%.2f", p)
+	}
+	return relays
 }

@@ -11,13 +11,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
 
-    <link rel="stylesheet" href="/static/styles.css?v=2">
+    <link rel="stylesheet" href="/static/styles.css?v=3">
 </head>
 
 <body>
     <div class="header">
         <div class="home-menu pure-menu pure-menu-horizontal">
-            <a class="pure-menu-heading" href="/">relayscan.io</a>
+            <a class="pure-menu-heading" href="">relayscan.io</a>
 
             <ul class="pure-menu-list">
                 <!-- <li class="pure-menu-item"><a href="https://hackmd.io/XfSCHCb7RfOzjub72s54eg" class="pure-menu-link">About</a></li> -->
@@ -28,15 +28,8 @@
 
     <div class="content">
         <center>
-            <h1 style="margin-bottom:0.3em;">Daily stats for {{ .Day }}</h1>
-            <p>{{ .TimeSince }} <i class="bi bi-arrow-right"></i> {{ .TimeUntil }}</p>
-            <p>
-                <a href="/stats/day/{{ .DayPrev }}"><i class="bi bi-arrow-left"></i> prev</a> |
-                {{ if ne .DayNext "" }}<a href="/stats/day/{{ .DayNext }}">next <i class="bi bi-arrow-right"></i></a>{{ else }}next <i class="bi bi-arrow-right"></i>{{ end}}
-            </p>
+            <h1>MEV-Boost Relay Monitoring & Analytics</h1>
         </center>
-        <br>
-        <br>
         <div class="pure-g">
             <div class="pure-u-1 pure-u-md-1-2 stats-table">
                 <div>
@@ -81,7 +74,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {{ range .TopBuildersBySummary }}
+                            {{ range .TopBuilders }}
                             {{ if (ge .NumBlocks 10) }}
                             <tr>
                                 <td>
@@ -110,6 +103,25 @@
 
                 </div>
             </div>
+        </div>
+
+        <div style="text-align: center; margin-top:80px;">
+            <p>
+                Updated: {{ .LastUpdateTime }} UTC</p>
+            </p>
+
+            <p>
+                <a href="/api/stats">API for 24h stats</a>
+            </p>
+
+            <p>
+                <b>More coming soon...</b>
+            </p>
+        </div>
+
+        <div style="text-align: center; margin-top:80px;">
+            <img src="/static/images/cows1.jpg" alt="" width="400">
+
         </div>
 
     </div>

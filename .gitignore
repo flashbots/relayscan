@@ -20,3 +20,4 @@
 /static_dev/
 /relayscan
 /deploy.sh
+/deploy-clearcache.sh
