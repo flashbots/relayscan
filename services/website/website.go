@@ -30,6 +30,15 @@ type HTMLData struct {
 	TopBuildersBySummary   []*database.TopBuilderEntry
 }
 
+type HTMLDataDailyStats struct {
+	Day       string
+	TimeSince string
+	TimeUntil string
+
+	TopRelays            []*database.TopRelayEntry
+	TopBuildersBySummary []*database.TopBuilderEntry
+}
+
 func weiToEth(wei string) string {
 	weiBigInt := new(big.Int)
 	weiBigInt.SetString(wei, 10)
@@ -66,8 +75,11 @@ var funcMap = template.FuncMap{
 }
 
 //go:embed website.html
-var htmlContent string
+var htmlContentIndex string
+
+//go:embed website-daily-stats.html
+var htmlContentDailyStats string
 
 func ParseIndexTemplate() (*template.Template, error) {
-	return template.New("index").Funcs(funcMap).Parse(htmlContent)
+	return template.New("index").Funcs(funcMap).Parse(htmlContentIndex)
 }

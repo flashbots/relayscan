@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>relayscan.io &ndash; Ethereum MEV-Boost Monitoring</title>
+    <meta name="description" content="MEV-Boost Relay Monitoring, Analytics & Data">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
+
+    <link rel="stylesheet" href="/static/styles.css?v=2">
+</head>
+
+<body>
+    <div class="header">
+        <div class="home-menu pure-menu pure-menu-horizontal">
+            <a class="pure-menu-heading" href="/">relayscan.io</a>
+
+            <ul class="pure-menu-list">
+                <!-- <li class="pure-menu-item"><a href="https://hackmd.io/XfSCHCb7RfOzjub72s54eg" class="pure-menu-link">About</a></li> -->
+                <li class="pure-menu-item"><a href="https://twitter.com/relayscan_io" class="pure-menu-link"><i class="bi bi-twitter"></i></a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="content">
+        <center>
+            <h1 style="margin-bottom:0.3em;">Daily stats for {{ .Day }}</h1>
+            {{ .TimeSince }} <i class="bi bi-arrow-right"></i> {{ .TimeUntil }}
+        </center>
+        <br>
+        <br>
+        <div class="pure-g">
+            <div class="pure-u-1 pure-u-md-1-2 stats-table">
+                <div>
+                    <h2>Top Relays</h2>
+                    <p>
+                        by payloads delivered, 24h
+                    </p>
+                    <table class="pure-table pure-table-horizontal">
+                        <thead>
+                            <tr>
+                                <th>Relay</th>
+                                <th>Payloads</th>
+                                <th>Percent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            {{ range .TopRelays }}
+                            <tr>
+                                <td>{{ .Relay }}</td>
+                                <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
+                                <td style="text-align:right">{{ .Percent }} %</td>
+                            </tr>
+                            {{ end }}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="pure-u-1 pure-u-md-1-2 stats-table">
+
+                <div>
+                    <h2>Top Builders</h2>
+                    <p>
+                        by blocks landed on-chain, 24h </p>
+                    <table class="pure-table pure-table-horizontal">
+                        <thead>
+                            <tr>
+                                <th>Builder extra_data (consolidated)</th>
+                                <th>Blocks</th>
+                                <th>Percent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{ range .TopBuildersBySummary }}
+                            {{ if (ge .NumBlocks 10) }}
+                            <tr>
+                                <td>
+                                    {{ .ExtraData }}
+                                    {{ if ne (len .Aliases) 0 }}
+                                    <i id="builder-alias-icon" class="bi bi-info-circle" aria-describedby="tooltip"></i>
+                                    <div id="tooltip" class="builder-aliases" role="tooltip">
+                                        <b>extra_data values:</b>
+                                        <ul>
+                                            {{ range .Aliases }}
+                                            <li>{{ . }}</li>
+                                            {{ end }}
+                                        </ul>
+                                        <div id="arrow" data-popper-arrow></div>
+                                    </div>
+                                    {{ end }}
+
+                                </td>
+                                <td style="text-align:right">{{ .NumBlocks | prettyInt }}</td>
+                                <td style="text-align:right">{{ .Percent }} %</td>
+                            </tr>
+                            {{ end }}
+                            {{ end }}
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script>
+        const button = document.querySelector('#builder-alias-icon');
+        const tooltip = document.querySelector('#tooltip');
+
+        // Pass the button, the tooltip, and some options, and Popper will do the
+        // magic positioning for you:
+        const popperInstance = Popper.createPopper(button, tooltip, {
+            modifiers: [
+                {
+                    name: 'offset',
+                    options: {
+                        offset: [0, 8],
+                    },
+                },
+            ],
+        });
+
+
+        function show() {
+            // Make the tooltip visible
+            tooltip.setAttribute('data-show', '');
+
+            // Enable the event listeners
+            popperInstance.setOptions((options) => ({
+                ...options,
+                modifiers: [
+                    ...options.modifiers,
+                    { name: 'eventListeners', enabled: true },
+                ],
+            }));
+
+            // Update its position
+            popperInstance.update();
+        }
+
+        function hide() {
+            // Hide the tooltip
+            tooltip.removeAttribute('data-show');
+
+            // Disable the event listeners
+            popperInstance.setOptions((options) => ({
+                ...options,
+                modifiers: [
+                    ...options.modifiers,
+                    { name: 'eventListeners', enabled: false },
+                ],
+            }));
+        }
+
+        const showEvents = ['mouseenter', 'focus'];
+        const hideEvents = ['mouseleave', 'blur'];
+
+        showEvents.forEach((event) => {
+            button.addEventListener(event, show);
+        });
+
+        hideEvents.forEach((event) => {
+            button.addEventListener(event, hide);
+        });
+    </script>
+</body>
+
+</html>

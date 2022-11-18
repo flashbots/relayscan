@@ -43,9 +43,11 @@ type Webserver struct {
 	srv        *http.Server
 	srvStarted uberatomic.Bool
 
-	indexTemplate    *template.Template
 	HTMLData         HTMLData
 	rootResponseLock sync.RWMutex
+
+	templateIndex      *template.Template
+	templateDailyStats *template.Template
 
 	statsAPIResp     *[]byte
 	statsAPIRespLock sync.RWMutex
@@ -70,7 +72,12 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 		minifier:    minifier,
 	}
 
-	server.indexTemplate, err = ParseIndexTemplate()
+	server.templateDailyStats, err = template.New("index").Funcs(funcMap).Parse(htmlContentDailyStats)
+	if err != nil {
+		return nil, err
+	}
+
+	server.templateIndex, err = ParseIndexTemplate()
 	if err != nil {
 		return nil, err
 	}
@@ -115,6 +122,7 @@ func (srv *Webserver) getRouter() http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/", srv.handleRoot).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}", srv.handleDailyStats).Methods(http.MethodGet)
 	r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
 
 	if srv.opts.EnablePprof {
@@ -131,14 +139,15 @@ func (srv *Webserver) updateHTML() {
 	// Now generate the HTML
 	htmlDefault := bytes.Buffer{}
 
-	since := time.Now().UTC().Add(-24 * time.Hour)
-	topRelays, err := srv.db.GetTopRelays(since)
+	now := time.Now().UTC()
+	since := now.Add(-24 * time.Hour)
+	topRelays, err := srv.db.GetTopRelays(since, now)
 	if err != nil {
 		srv.log.WithError(err).Error("failed getting top relays from database")
 		return
 	}
 
-	topBuilders, err := srv.db.GetTopBuilders(since)
+	topBuilders, err := srv.db.GetTopBuilders(since, now)
 	if err != nil {
 		srv.log.WithError(err).Error("failed getting top builders from database")
 		return
@@ -200,7 +209,7 @@ func (srv *Webserver) updateHTML() {
 	})
 
 	// Render template
-	if err := srv.indexTemplate.Execute(&htmlDefault, htmlData); err != nil {
+	if err := srv.templateIndex.Execute(&htmlDefault, htmlData); err != nil {
 		srv.log.WithError(err).Error("error rendering template")
 	}
 
@@ -232,6 +241,25 @@ func (srv *Webserver) updateHTML() {
 	srv.statsAPIRespLock.Unlock()
 }
 
+func (srv *Webserver) RespondError(w http.ResponseWriter, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	resp := HTTPErrorResp{code, message}
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		srv.log.WithField("response", resp).WithError(err).Error("Couldn't write error response")
+		http.Error(w, "", http.StatusInternalServerError)
+	}
+}
+
+func (srv *Webserver) RespondOK(w http.ResponseWriter, response any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		srv.log.WithField("response", response).WithError(err).Error("Couldn't write OK response")
+		http.Error(w, "", http.StatusInternalServerError)
+	}
+}
+
 func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	var err error
 
@@ -239,7 +267,6 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	defer srv.rootResponseLock.RUnlock()
 
 	if srv.opts.Dev {
-		// tpl :=
 		tpl, err := template.New("website.html").Funcs(funcMap).ParseFiles("services/website/website.html")
 		if err != nil {
 			srv.log.WithError(err).Error("error parsing template")
@@ -264,4 +291,61 @@ func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {
 	srv.statsAPIRespLock.RLock()
 	defer srv.statsAPIRespLock.RUnlock()
 	_, _ = w.Write(*srv.statsAPIResp)
+}
+
+func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+
+	// 1. ensure date is before today
+	layout := "2006-01-02"
+	t, err := time.Parse(layout, vars["day"])
+	if err != nil {
+		srv.RespondError(w, http.StatusBadRequest, "invalid date")
+		return
+	}
+	// srv.log.Infof("date supplied: %s", t.UTC().String())
+
+	now := time.Now().UTC()
+	minDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Add(-24 * time.Hour).UTC()
+	if t.UTC().After(minDate.UTC()) {
+		srv.RespondError(w, http.StatusBadRequest, "date is too recent")
+		return
+	}
+
+	// 2. lookup daily stats from DB
+	// 3. query stats from DB
+	since := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+	until := time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, time.UTC)
+	relays, builders, err := srv.db.GetStatsForTimerange(since, until)
+	if err != nil {
+		srv.RespondError(w, http.StatusBadRequest, "invalid date")
+		return
+	}
+
+	srv.log.Infof("got %d relays, %d builders", len(relays), len(builders))
+
+	htmlData := &HTMLDataDailyStats{
+		Day:                  t.Format("2006-01-02"),
+		TimeSince:            since.Format("2006-01-02 15:04:05 UTC"),
+		TimeUntil:            until.Format("2006-01-02 15:04:05 UTC"),
+		TopRelays:            relays,
+		TopBuildersBySummary: consolidateBuilders(builders),
+	}
+
+	if srv.opts.Dev {
+		tpl, err := template.New("website-daily-stats.html").Funcs(funcMap).ParseFiles("services/website/website-daily-stats.html")
+		if err != nil {
+			srv.log.WithError(err).Error("error parsing template")
+			return
+		}
+		err = tpl.Execute(w, htmlData)
+		if err != nil {
+			srv.log.WithError(err).Error("error executing template")
+			return
+		}
+
+		srv.log.Info("rendered template")
+	} else {
+		srv.templateDailyStats.Execute(w, htmlData)
+	}
 }

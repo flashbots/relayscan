@@ -22,8 +22,10 @@ type IDatabaseService interface {
 	SaveDataAPIBids(entries []*DataAPIBuilderBidEntry) error
 	SaveBuilder(entry *BlockBuilderEntry) error
 
-	GetTopRelays(since time.Time) (res []*TopRelayEntry, err error)
-	GetTopBuilders(since time.Time) (res []*TopBuilderEntry, err error)
+	GetTopRelays(since, until time.Time) (res []*TopRelayEntry, err error)
+	GetTopBuilders(since, until time.Time) (res []*TopBuilderEntry, err error)
+
+	GetStatsForTimerange(since, until time.Time) (relays []*TopRelayEntry, builders []*TopBuilderEntry, err error)
 }
 
 type DatabaseService struct {
@@ -131,14 +133,26 @@ func (s *DatabaseService) GetDataAPILatestBid(relay string) (*DataAPIBuilderBidE
 	return entry, err
 }
 
-func (s *DatabaseService) GetTopRelays(since time.Time) (res []*TopRelayEntry, err error) {
-	query := `SELECT relay, count(relay) as payloads FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 GROUP BY relay ORDER BY payloads DESC;`
-	err = s.DB.Select(&res, query, since.UTC())
+func (s *DatabaseService) GetTopRelays(since, until time.Time) (res []*TopRelayEntry, err error) {
+	query := `SELECT relay, count(relay) as payloads FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY relay ORDER BY payloads DESC;`
+	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
 	return res, err
 }
 
-func (s *DatabaseService) GetTopBuilders(since time.Time) (res []*TopBuilderEntry, err error) {
-	query := `SELECT extra_data, count(extra_data) as blocks FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 GROUP BY extra_data ORDER BY blocks DESC;`
-	err = s.DB.Select(&res, query, since.UTC())
+func (s *DatabaseService) GetTopBuilders(since, until time.Time) (res []*TopBuilderEntry, err error) {
+	query := `SELECT extra_data, count(extra_data) as blocks FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY extra_data ORDER BY blocks DESC;`
+	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
 	return res, err
+}
+
+func (s *DatabaseService) GetStatsForTimerange(since, until time.Time) (relays []*TopRelayEntry, builders []*TopBuilderEntry, err error) {
+	relays, err = s.GetTopRelays(since, until)
+	if err != nil {
+		return nil, nil, err
+	}
+	builders, err = s.GetTopBuilders(since, until)
+	if err != nil {
+		return nil, nil, err
+	}
+	return relays, builders, nil
 }
