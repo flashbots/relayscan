@@ -140,7 +140,10 @@ func (s *DatabaseService) GetTopRelays(since, until time.Time) (res []*TopRelayE
 }
 
 func (s *DatabaseService) GetTopBuilders(since, until time.Time) (res []*TopBuilderEntry, err error) {
-	query := `SELECT extra_data, count(extra_data) as blocks FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY extra_data ORDER BY blocks DESC;`
+	// query := `SELECT extra_data, count(extra_data) as blocks FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY extra_data ORDER BY blocks DESC;`
+	query := `SELECT extra_data, count(extra_data) as blocks FROM (
+		SELECT distinct(slot), extra_data FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY slot, extra_data
+	) as x GROUP BY extra_data ORDER BY blocks DESC;`
 	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
 	return res, err
 }
