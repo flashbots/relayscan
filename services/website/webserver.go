@@ -320,8 +320,16 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
+	dateNext := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC).Add(24 * time.Hour).UTC()
+	dayNext := dateNext.Format("2006-01-02")
+	if dateNext.After(minDate.UTC()) {
+		dayNext = ""
+	}
+
 	htmlData := &HTMLDataDailyStats{
 		Day:                  t.Format("2006-01-02"),
+		DayPrev:              t.Add(-24 * time.Hour).Format("2006-01-02"),
+		DayNext:              dayNext,
 		TimeSince:            since.Format("2006-01-02 15:04:05 UTC"),
 		TimeUntil:            until.Format("2006-01-02 15:04:05 UTC"),
 		TopRelays:            relays,

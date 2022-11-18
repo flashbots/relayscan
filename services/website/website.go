@@ -32,6 +32,8 @@ type HTMLData struct {
 
 type HTMLDataDailyStats struct {
 	Day       string
+	DayPrev   string
+	DayNext   string
 	TimeSince string
 	TimeUntil string
 

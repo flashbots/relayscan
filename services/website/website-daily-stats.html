@@ -29,7 +29,11 @@
     <div class="content">
         <center>
             <h1 style="margin-bottom:0.3em;">Daily stats for {{ .Day }}</h1>
-            {{ .TimeSince }} <i class="bi bi-arrow-right"></i> {{ .TimeUntil }}
+            <p>{{ .TimeSince }} <i class="bi bi-arrow-right"></i> {{ .TimeUntil }}</p>
+            <p>
+                <a href="/stats/day/{{ .DayPrev }}"><i class="bi bi-arrow-left"></i> prev</a> |
+                {{ if ne .DayNext "" }}<a href="/stats/day/{{ .DayNext }}">next <i class="bi bi-arrow-right"></i></a>{{ else }}next <i class="bi bi-arrow-right"></i>{{ end}}
+            </p>
         </center>
         <br>
         <br>
