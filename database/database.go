@@ -23,9 +23,9 @@ type IDatabaseService interface {
 	SaveBuilder(entry *BlockBuilderEntry) error
 
 	GetTopRelays(since, until time.Time) (res []*TopRelayEntry, err error)
-	GetTopBuilders(since, until time.Time) (res []*TopBuilderEntry, err error)
+	GetTopBuilders(since, until time.Time, relay string) (res []*TopBuilderEntry, err error)
 
-	GetStatsForTimerange(since, until time.Time) (relays []*TopRelayEntry, builders []*TopBuilderEntry, err error)
+	GetStatsForTimerange(since, until time.Time, relay string) (relays []*TopRelayEntry, builders []*TopBuilderEntry, err error)
 }
 
 type DatabaseService struct {
@@ -139,21 +139,25 @@ func (s *DatabaseService) GetTopRelays(since, until time.Time) (res []*TopRelayE
 	return res, err
 }
 
-func (s *DatabaseService) GetTopBuilders(since, until time.Time) (res []*TopBuilderEntry, err error) {
+func (s *DatabaseService) GetTopBuilders(since, until time.Time, relay string) (res []*TopBuilderEntry, err error) {
 	// query := `SELECT extra_data, count(extra_data) as blocks FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY extra_data ORDER BY blocks DESC;`
 	query := `SELECT extra_data, count(extra_data) as blocks FROM (
-		SELECT distinct(slot), extra_data FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY slot, extra_data
+		SELECT distinct(slot), extra_data FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2`
+	if relay != "" {
+		query += ` AND relay = '` + relay + `'`
+	}
+	query += ` GROUP BY slot, extra_data
 	) as x GROUP BY extra_data ORDER BY blocks DESC;`
 	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
 	return res, err
 }
 
-func (s *DatabaseService) GetStatsForTimerange(since, until time.Time) (relays []*TopRelayEntry, builders []*TopBuilderEntry, err error) {
+func (s *DatabaseService) GetStatsForTimerange(since, until time.Time, relay string) (relays []*TopRelayEntry, builders []*TopBuilderEntry, err error) {
 	relays, err = s.GetTopRelays(since, until)
 	if err != nil {
 		return nil, nil, err
 	}
-	builders, err = s.GetTopBuilders(since, until)
+	builders, err = s.GetTopBuilders(since, until, relay)
 	if err != nil {
 		return nil, nil, err
 	}

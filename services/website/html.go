@@ -24,8 +24,9 @@ type HTMLData struct {
 	GeneratedAt    time.Time
 	LastUpdateTime string
 
-	TopRelays   []*database.TopRelayEntry
-	TopBuilders []*database.TopBuilderEntry
+	TopRelays          []*database.TopRelayEntry
+	TopBuilders        []*database.TopBuilderEntry
+	TopBuildersByRelay map[string][]*database.TopBuilderEntry
 }
 
 type HTMLDataDailyStats struct {

@@ -133,6 +133,8 @@ func (srv *Webserver) getRouter() http.Handler {
 }
 
 func (srv *Webserver) updateHTML() {
+	srv.log.Info("Updating HTML data...")
+
 	// Now generate the HTML
 	htmlDefault := bytes.Buffer{}
 
@@ -144,7 +146,7 @@ func (srv *Webserver) updateHTML() {
 		return
 	}
 
-	topBuilders, err := srv.db.GetTopBuilders(since, now)
+	topBuilders, err := srv.db.GetTopBuilders(since, now, "")
 	if err != nil {
 		srv.log.WithError(err).Error("failed getting top builders from database")
 		return
@@ -157,6 +159,18 @@ func (srv *Webserver) updateHTML() {
 	// Prepare top relay stats
 	htmlData.TopRelays = prepareRelaysEntries(topRelays)
 	htmlData.TopBuilders = consolidateBuilderEntries(topBuilders)
+	htmlData.TopBuildersByRelay = make(map[string][]*database.TopBuilderEntry)
+
+	// Query builders for each relay
+	for _, relay := range htmlData.TopRelays {
+		topBuildersForRelay, err := srv.db.GetTopBuilders(since, now, relay.Relay)
+		if err != nil {
+			srv.log.WithError(err).Error("failed getting top builders from database")
+			return
+		}
+
+		htmlData.TopBuildersByRelay[relay.Relay] = consolidateBuilderEntries(topBuildersForRelay)
+	}
 
 	// Render template
 	if err := srv.templateIndex.Execute(&htmlDefault, htmlData); err != nil {
@@ -189,6 +203,7 @@ func (srv *Webserver) updateHTML() {
 		srv.statsAPIResp = &respBytes
 	}
 	srv.statsAPIRespLock.Unlock()
+	srv.log.Info("Updating HTML data complete.")
 }
 
 func (srv *Webserver) RespondError(w http.ResponseWriter, code int, message string) {
@@ -264,7 +279,7 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 	// 3. query stats from DB
 	since := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 	until := time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, time.UTC)
-	relays, builders, err := srv.db.GetStatsForTimerange(since, until)
+	relays, builders, err := srv.db.GetStatsForTimerange(since, until, "")
 	if err != nil {
 		srv.RespondError(w, http.StatusBadRequest, "invalid date")
 		return
