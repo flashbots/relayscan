@@ -2,11 +2,14 @@ package website
 
 import (
 	_ "embed"
+	"fmt"
 	"math/big"
+	"strings"
 	"text/template"
 	"time"
 
 	"github.com/metachris/relayscan/database"
+	"github.com/olekukonko/tablewriter"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -68,11 +71,55 @@ func percent(cnt, total uint64) string {
 	return printer.Sprintf("%.2f", p)
 }
 
+func builderTable(builders []*database.TopBuilderEntry) string {
+	buildersEntries := [][]string{}
+	for _, builder := range builders {
+		buildersEntries = append(buildersEntries, []string{
+			builder.ExtraData,
+			printer.Sprintf("%d", builder.NumBlocks),
+			builder.Percent,
+		})
+	}
+	tableString := &strings.Builder{}
+	table := tablewriter.NewWriter(tableString)
+	table.SetHeader([]string{"Builder extra_data", "Blocks", "%"})
+	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	table.SetAutoWrapText(false)
+	table.SetCenterSeparator("|")
+	table.AppendBulk(buildersEntries)
+	table.Render()
+	// fmt.Println(tableString.String())
+	return tableString.String()
+}
+
+func relayTable(relays []*database.TopRelayEntry) string {
+	relayEntries := [][]string{}
+	for _, relay := range relays {
+		relayEntries = append(relayEntries, []string{
+			relay.Relay,
+			printer.Sprintf("%d", relay.NumPayloads),
+			relay.Percent,
+		})
+	}
+	tableString := &strings.Builder{}
+	table := tablewriter.NewWriter(tableString)
+	table.SetHeader([]string{"Relay", "Payloads", "%"})
+	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	table.SetAutoWrapText(false)
+	table.SetCenterSeparator("|")
+	table.AppendBulk(relayEntries)
+	table.Render()
+	fmt.Println(tableString.String())
+	return tableString.String()
+}
+
 var funcMap = template.FuncMap{
-	"weiToEth":  weiToEth,
-	"prettyInt": prettyInt,
-	"caseIt":    caseIt,
-	"percent":   percent,
+	"weiToEth":     weiToEth,
+	"prettyInt":    prettyInt,
+	"caseIt":       caseIt,
+	"percent":      percent,
+	"builderTable": builderTable,
+	"relayTable":   relayTable,
 }
 
 //go:embed templates/index.html

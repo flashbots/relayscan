@@ -1,3 +1,4 @@
+{{ $lastUpdateTime := .LastUpdateTime }}
 <!doctype html>
 <html lang="en">
 
@@ -57,7 +58,13 @@
         <div class="pure-g">
             <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-relays">
                 <div>
-                    <h2>Top Relays</h2>
+                    <h2 id="header-top-relays">
+                        <div id="copy-relays-to-clipboard" style="float:right;">
+                            <a href="javascript:copyRelays()" title="Copy relays as markdown to clipboard"><i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+                        </div>
+
+                        Top Relays
+                    </h2>
                     <table class="pure-table pure-table-horizontal">
                         <thead>
                             <tr>
@@ -82,7 +89,13 @@
 
             <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-builders">
                 <div>
-                    <h2>Top Builders</h2>
+                    <h2 id="header-top-builders">
+                        <div id="copy-builders-to-clipboard" style="float:right;">
+                            <a href="javascript:copyBuilders()" title="Copy builders as markdown to clipboard"><i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+                        </div>
+                        Top Builders
+                    </h2>
+
                     <table class="pure-table pure-table-horizontal">
                         <thead>
                             <tr>
@@ -150,22 +163,17 @@
 
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script>
+        // Aliases tooltip
         const button = document.querySelector('#builder-alias-icon');
         const tooltip = document.querySelector('#tooltip');
-
-        // Pass the button, the tooltip, and some options, and Popper will do the
-        // magic positioning for you:
         const popperInstance = Popper.createPopper(button, tooltip, {
-            modifiers: [
-                {
-                    name: 'offset',
-                    options: {
-                        offset: [0, 8],
-                    },
+            modifiers: [{
+                name: 'offset',
+                options: {
+                    offset: [0, 8],
                 },
-            ],
+            }],
         });
-
 
         function show() {
             // Make the tooltip visible
@@ -209,8 +217,12 @@
             button.addEventListener(event, hide);
         });
 
+        window.onload = (event) => {
+            currentBuilderMarkdown = document.getElementById("md-top-builders-main").innerHTML;
+        }
+
+        // Relay mouseover -> update buolders
         relayMouseOver = function (relay) {
-            console.log("relayMouseOver", relay);
             // hide all top-builders-tbody class
             var topBuildersTbody = document.getElementsByClassName("top-builders-tbody");
             for (var i = 0; i < topBuildersTbody.length; i++) {
@@ -220,6 +232,7 @@
             // show top-builders-$relay
             var topBuildersRelay = document.getElementById("top-builders-" + relay);
             topBuildersRelay.style.display = "table-row-group";
+            currentBuilderMarkdown = document.getElementById("md-top-builders-" + relay).innerHTML;
         }
 
         relayMouseOut = function (relay) {
@@ -229,8 +242,42 @@
                 topBuildersTbody[i].style.display = "none";
             }
             document.getElementById("top-builders-main").style.display = "table-row-group";
+            currentBuilderMarkdown = document.getElementById("md-top-builders-main").innerHTML;
+        }
+
+        // COPY TABLES AS MARKDOWN TO CLIPBOARD
+        copyBuilders = function () {
+            var md = document.getElementById("md-top-builders-main").innerHTML;
+            navigator.clipboard.writeText(md);
+            document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard");
+            document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard-check");
+            setTimeout(function () {
+                document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard-check");
+                document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard");
+            }, 1000);
+        }
+
+        copyRelays = function () {
+            navigator.clipboard.writeText(currentBuilderMarkdown);
+            document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard");
+            document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard-check");
+            setTimeout(function () {
+                document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard-check");
+                document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard");
+            }, 1000);
         }
     </script>
+
+    <div style="display: none;">
+        <pre id="md-top-relays-main">{{ .TopRelays | relayTable}}
+Top relays, 24h, {{ .LastUpdateTime }}, via [relayscan.io](https://relayscan.io)</pre>
+        <pre id="md-top-builders-main">{{ .TopBuilders | builderTable}}
+Top builders, 24h, {{ .LastUpdateTime }}, via [relayscan.io](https://relayscan.io)</pre>
+
+        {{ range $relay, $builders := .TopBuildersByRelay }}
+        <pre id="md-top-builders-{{ $relay }}">{{ $builders | builderTable}}
+Top builders at {{ $relay }}, 24h, {{ $lastUpdateTime }}, via [relayscan.io](https://relayscan.io)</pre>{{ end }}
+    </div>
 </body>
 
 </html>

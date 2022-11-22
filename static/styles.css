@@ -383,3 +383,28 @@ h1 {
     margin: 0;
     padding-left: 20px;
 }
+
+/* copy builders to clipboard */
+#header-top-builders:hover #copy-builders-to-clipboard {
+    display: block;
+}
+
+#copy-builders-to-clipboard {
+    display: none;
+}
+
+#copy-builders-to-clipboard a {
+    color: #131313;
+}
+
+#header-top-relays:hover #copy-relays-to-clipboard {
+    display: block;
+}
+
+#copy-relays-to-clipboard {
+    display: none;
+}
+
+#copy-relays-to-clipboard a {
+    color: #131313;
+}

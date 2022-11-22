@@ -10,6 +10,10 @@ Monitoring of Eth2 mev-boost relays:
 
 Running on https://relayscan.io
 
+Website uses:
+
+* https://icons.getbootstrap.com/
+
 ---
 
 ## Getting started
