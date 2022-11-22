@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/styles.css?v=3">
+    <link rel="stylesheet" href="/static/styles.css?v=4">
 
     <!-- HTML Meta Tags -->
     <title>relayscan.io – MEV-Boost Relay & Builder Stats</title>
@@ -31,7 +31,7 @@
     <meta name="twitter:image" content="https://relayscan.io/static/images/ogimage.jpg">
 </head>
 
-<body>
+<body onclick="clickBody()">
     <div class=" header">
         <div class="home-menu pure-menu pure-menu-horizontal">
             <a class="pure-menu-heading" href="">relayscan.io</a>
@@ -60,7 +60,7 @@
                 <div>
                     <h2 id="header-top-relays">
                         <div id="copy-relays-to-clipboard" style="float:right;">
-                            <a href="javascript:copyRelays()" title="Copy relays as markdown to clipboard"><i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+                            <a href="javascript:void(0)" onclick="copyRelays(event)" title="Copy relays as markdown to clipboard"><i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
                         </div>
 
                         Top Relays
@@ -76,7 +76,7 @@
                         <tbody>
 
                             {{ range .TopRelays }}
-                            <tr onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')">
+                            <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')" onclick="relayMouseClick(event, '{{.Relay}}', this)">
                                 <td>{{ .Relay }}</td>
                                 <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
                                 <td style="text-align:right">{{ .Percent }} %</td>
@@ -91,7 +91,7 @@
                 <div>
                     <h2 id="header-top-builders">
                         <div id="copy-builders-to-clipboard" style="float:right;">
-                            <a href="javascript:copyBuilders()" title="Copy builders as markdown to clipboard"><i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+                            <a href="javascript:void(0)" onclick="copyBuilders(event)" title="Copy builders as markdown to clipboard"><i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
                         </div>
                         Top Builders
                     </h2>
@@ -222,33 +222,68 @@
         }
 
         // Relay mouseover -> update buolders
-        relayMouseOver = function (relay) {
-            // hide all top-builders-tbody class
-            var topBuildersTbody = document.getElementsByClassName("top-builders-tbody");
-            for (var i = 0; i < topBuildersTbody.length; i++) {
-                topBuildersTbody[i].style.display = "none";
+        activeRelay = ""
+
+        showBuildersForRelay = function (relay) {
+            // hide all
+            for (const topBuildersTbody of document.getElementsByClassName("top-builders-tbody")) {
+                topBuildersTbody.style.display = "none";
             }
 
-            // show top-builders-$relay
-            var topBuildersRelay = document.getElementById("top-builders-" + relay);
-            topBuildersRelay.style.display = "table-row-group";
-            currentBuilderMarkdown = document.getElementById("md-top-builders-" + relay).innerHTML;
+            // show specific builder
+            if (relay == "") {
+                document.getElementById("top-builders-main").style.display = "table-row-group";
+            } else {
+                document.getElementById("top-builders-" + relay).style.display = "table-row-group";
+            }
+        }
+
+        relayMouseOver = function (relay) {
+            if (activeRelay != "") { return }
+            showBuildersForRelay(relay)
         }
 
         relayMouseOut = function (relay) {
-            console.log("relayMouseOut", relay);
-            var topBuildersTbody = document.getElementsByClassName("top-builders-tbody");
-            for (var i = 0; i < topBuildersTbody.length; i++) {
-                topBuildersTbody[i].style.display = "none";
+            if (activeRelay != "") { return }
+            showBuildersForRelay("")
+        }
+
+        clearActiveRelay = function () {
+            for (const tr of document.getElementsByClassName("tr-relay")) {
+                tr.classList.remove("active");
             }
-            document.getElementById("top-builders-main").style.display = "table-row-group";
+            activeRelay = ""
             currentBuilderMarkdown = document.getElementById("md-top-builders-main").innerHTML;
+            showBuildersForRelay("")
+        }
+
+        relayMouseClick = function (e, relay, tr) {
+            e.stopPropagation();
+
+            // Remove active
+            if (relay == activeRelay) {
+                clearActiveRelay();
+                return;
+            }
+
+            // Set active
+            for (const tr of document.getElementsByClassName("tr-relay")) {
+                tr.classList.remove("active");
+            }
+            tr.classList.add("active")
+            activeRelay = relay
+            currentBuilderMarkdown = document.getElementById("md-top-builders-" + relay).innerHTML;
+            showBuildersForRelay(relay)
+        }
+
+        clickBody = function () {
+            clearActiveRelay()
         }
 
         // COPY TABLES AS MARKDOWN TO CLIPBOARD
-        copyBuilders = function () {
-            var md = document.getElementById("md-top-builders-main").innerHTML;
-            navigator.clipboard.writeText(md);
+        copyBuilders = function (e) {
+            e.stopPropagation();
+            navigator.clipboard.writeText(currentBuilderMarkdown);
             document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard");
             document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard-check");
             setTimeout(function () {
@@ -257,8 +292,10 @@
             }, 1000);
         }
 
-        copyRelays = function () {
-            navigator.clipboard.writeText(currentBuilderMarkdown);
+        copyRelays = function (e) {
+            e.stopPropagation();
+            var md = document.getElementById("md-top-relays-main").innerHTML;
+            navigator.clipboard.writeText(md);
             document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard");
             document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard-check");
             setTimeout(function () {

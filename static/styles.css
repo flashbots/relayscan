@@ -8,9 +8,14 @@
  * -- BASE STYLES --
  * Most of these are inherited from Base, but I want to change a few.
  */
+html {
+    height: 100%;
+}
+
 body {
     line-height: 1.7em;
     color: #4e5454;
+    height: 100%;
 }
 
 h1,
@@ -310,6 +315,10 @@ a.pure-button-primary {
 
 .pure-table tr:hover td {
     background: #129fea1f !important;
+}
+
+.pure-table tr.active td {
+    background: #c3e3fe !important;
 }
 
 h1 {

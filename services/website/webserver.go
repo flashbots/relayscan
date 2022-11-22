@@ -59,6 +59,7 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 	minifier := minify.New()
 	minifier.AddFunc("text/css", html.Minify)
 	minifier.AddFunc("text/html", html.Minify)
+	minifier.AddFunc("application/javascript", html.Minify)
 
 	server := &Webserver{
 		opts: opts,
