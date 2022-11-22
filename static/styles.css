@@ -394,6 +394,18 @@ h1 {
 }
 
 /* copy builders to clipboard */
+#header-top-builders,
+#header-top-relays {
+    text-align: center;
+    position: relative;
+}
+
+#copy-relays-to-clipboard,
+#copy-builders-to-clipboard {
+    position: absolute;
+    right: 0;
+}
+
 #header-top-builders:hover #copy-builders-to-clipboard {
     display: block;
 }
