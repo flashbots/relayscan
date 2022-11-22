@@ -20,23 +20,27 @@
             <a class="pure-menu-heading" href="">relayscan.io</a>
 
             <ul class="pure-menu-list">
-                <!-- <li class="pure-menu-item"><a href="https://hackmd.io/XfSCHCb7RfOzjub72s54eg" class="pure-menu-link">About</a></li> -->
+                <li class="pure-menu-item"><a href="https://hackmd.io/XfSCHCb7RfOzjub72s54eg" class="pure-menu-link">About</a></li>
+                <li class="pure-menu-item"><a href="/api/stats" class="pure-menu-link">API</a></li>
                 <li class="pure-menu-item"><a href="https://twitter.com/relayscan_io" class="pure-menu-link"><i class="bi bi-twitter"></i></a></li>
             </ul>
         </div>
     </div>
 
     <div class="content">
-        <center>
-            <h1>MEV-Boost Monitoring & Analytics</h1>
-        </center>
+        <div style="text-align: center; margin-bottom:60px;">
+            <h1 style="margin-bottom:10px;">MEV-Boost Relays & Builders</h1>
+            <!-- <h2 style="margin-bottom:10px;">24h Stats</h2> -->
+
+            <p>24h stats &middot;
+                updated {{ .LastUpdateTime }} UTC</p>
+            </p>
+        </div>
+
         <div class="pure-g">
             <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-relays">
                 <div>
                     <h2>Top Relays</h2>
-                    <p>
-                        by payloads delivered, 24h
-                    </p>
                     <table class="pure-table pure-table-horizontal">
                         <thead>
                             <tr>
@@ -62,22 +66,19 @@
             <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-builders">
                 <div>
                     <h2>Top Builders</h2>
-                    <p>
-                        by blocks landed on-chain, 24h
-                    </p>
                     <table class="pure-table pure-table-horizontal">
                         <thead>
                             <tr>
                                 <th>Builder extra_data (consolidated)</th>
                                 <th>Blocks</th>
-                                <th>Percent</th>
+                                <th style="min-width: 100px;">Percent</th>
                             </tr>
                         </thead>
                         <tbody id="top-builders-main" class="top-builders-tbody">
                             {{ range .TopBuilders }}
                             <tr>
                                 <td>
-                                    {{ .ExtraData }}
+                                    {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
                                     {{ if ne (len .Aliases) 0 }}
                                     <i id="builder-alias-icon" class="bi bi-info-circle" aria-describedby="tooltip"></i>
                                     <div id="tooltip" class="builder-aliases" role="tooltip">
@@ -102,7 +103,7 @@
                             {{ range $builders }}
                             <tr>
                                 <td>
-                                    {{ .ExtraData }}
+                                    {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
                                     {{ if ne (len .Aliases) 0 }}
                                     <i id="builder-alias-icon" class="bi bi-info-circle" aria-describedby="tooltip"></i>
                                     <div id="tooltip" class="builder-aliases" role="tooltip">
@@ -115,7 +116,6 @@
                                         <div id="arrow" data-popper-arrow></div>
                                     </div>
                                     {{ end }}
-
                                 </td>
                                 <td style="text-align:right">{{ .NumBlocks | prettyInt }}</td>
                                 <td style="text-align:right">{{ .Percent }} %</td>
@@ -127,25 +127,6 @@
 
                 </div>
             </div>
-        </div>
-
-        <div style="text-align: center; margin-top:80px;">
-            <p>
-                Updated: {{ .LastUpdateTime }} UTC</p>
-            </p>
-
-            <p>
-                <a href="/api/stats">API for 24h stats</a>
-            </p>
-
-            <p>
-                <b>More coming soon...</b>
-            </p>
-        </div>
-
-        <div style="text-align: center; margin-top:80px;">
-            <img src="/static/images/cows1.jpg" alt="" width="400">
-
         </div>
 
     </div>

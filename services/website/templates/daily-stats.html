@@ -84,7 +84,7 @@
                             {{ range .TopBuildersBySummary }}
                             <tr>
                                 <td>
-                                    {{ .ExtraData }}
+                                    {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
                                     {{ if ne (len .Aliases) 0 }}
                                     <i id="builder-alias-icon" class="bi bi-info-circle" aria-describedby="tooltip"></i>
                                     <div id="tooltip" class="builder-aliases" role="tooltip">
