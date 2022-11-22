@@ -75,7 +75,6 @@
                         </thead>
                         <tbody id="top-builders-main" class="top-builders-tbody">
                             {{ range .TopBuilders }}
-                            {{ if (ge .NumBlocks 10) }}
                             <tr>
                                 <td>
                                     {{ .ExtraData }}
@@ -96,13 +95,11 @@
                                 <td style="text-align:right">{{ .NumBlocks | prettyInt }}</td>
                                 <td style="text-align:right">{{ .Percent }} %</td>
                             </tr>
-                            {{ end }}
                             {{ end }}
                         </tbody>
                         {{ range $relay, $builders := .TopBuildersByRelay }}
                         <tbody id="top-builders-{{ $relay }}" class="top-builders-tbody" style="display:none;">
                             {{ range $builders }}
-                            {{ if (ge .NumBlocks 10) }}
                             <tr>
                                 <td>
                                     {{ .ExtraData }}
@@ -123,7 +120,6 @@
                                 <td style="text-align:right">{{ .NumBlocks | prettyInt }}</td>
                                 <td style="text-align:right">{{ .Percent }} %</td>
                             </tr>
-                            {{ end }}
                             {{ end }}
                         </tbody>
                         {{ end }}

@@ -82,7 +82,6 @@
                         </thead>
                         <tbody>
                             {{ range .TopBuildersBySummary }}
-                            {{ if (ge .NumBlocks 10) }}
                             <tr>
                                 <td>
                                     {{ .ExtraData }}
@@ -103,7 +102,6 @@
                                 <td style="text-align:right">{{ .NumBlocks | prettyInt }}</td>
                                 <td style="text-align:right">{{ .Percent }} %</td>
                             </tr>
-                            {{ end }}
                             {{ end }}
                         </tbody>
                     </table>
