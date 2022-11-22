@@ -20,7 +20,7 @@ h4,
 h5,
 h6,
 label {
-    color: #34495e;
+    color: #131313;
 }
 
 .pure-img-responsive {
@@ -93,10 +93,7 @@ a.pure-button-primary {
     padding: 0.5em;
     text-align: center;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.10);
-}
-
-.home-menu {
-    background: #2d3e50;
+    background: #26578a;
 }
 
 .pure-menu.pure-menu-fixed {
@@ -117,7 +114,7 @@ a.pure-button-primary {
 }
 
 .home-menu a {
-    color: #e1e3e4;
+    color: white;
 }
 
 .home-menu li a:hover,
@@ -302,7 +299,7 @@ a.pure-button-primary {
 }
 
 .pure-table thead {
-    background-color: #264653;
+    background: #2a629d;
     color: white;
 }
 
