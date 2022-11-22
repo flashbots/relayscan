@@ -127,8 +127,15 @@ type TopRelayEntry struct {
 }
 
 type TopBuilderEntry struct {
-	ExtraData string `db:"extra_data" json:"extra_data"`
-	NumBlocks uint64 `db:"blocks" json:"num_blocks"`
-	Percent   string `json:"percent"`
-	Aliases   []string
+	ExtraData string   `db:"extra_data" json:"extra_data"`
+	NumBlocks uint64   `db:"blocks" json:"num_blocks"`
+	Percent   string   `json:"percent"`
+	Aliases   []string `json:"aliases,omitempty"`
+}
+
+type RelayProfitability struct {
+	Relay       string `db:"relay" json:"relay"`
+	TimeSince   time.Time
+	TimeUntil   time.Time
+	NumPayloads uint64 `db:"payloads" json:"num_payloads"`
 }
