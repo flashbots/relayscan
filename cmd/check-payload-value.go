@@ -17,7 +17,7 @@ import (
 var (
 	slot               uint64
 	limit              uint64
-	numThreads         uint64
+	numThreads         uint64 = 10
 	ethNodeURI         string
 	ethNodeBackupURI   string
 	checkIncorrectOnly bool
