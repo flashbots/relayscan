@@ -429,3 +429,18 @@ h1 {
 #copy-relays-to-clipboard a {
     color: #131313;
 }
+
+/* stats time picker */
+#stats-time {
+    color: #6d6d6d;
+}
+
+#stats-time a {
+    color: #6d6d6d;
+    text-decoration: none;
+}
+
+#stats-time .active {
+    font-weight: bold;
+    color: #131313;
+}

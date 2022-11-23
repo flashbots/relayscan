@@ -31,7 +31,7 @@
     <meta name="twitter:image" content="https://relayscan.io/static/images/ogimage.jpg">
 </head>
 
-<body>
+<body onclick="clickBody()">
     <div class=" header">
         <div class="home-menu pure-menu pure-menu-horizontal">
             <a class="pure-menu-heading" href="">relayscan.io</a>
@@ -50,13 +50,8 @@
             <!-- <h2 style="margin-bottom:10px;">24h Stats</h2> -->
 
             <p style="color: #6d6d6d;">
+                24h stats &middot;
                 updated {{ .LastUpdateTime }} UTC
-            </p>
-            <p id="stats-time">
-                <a href="javascript:void(0);" onclick="setStatsTime(event, this, 24)" class="stats-time-pick active">24h</a> &middot;
-                <a href="javascript:void(0);" onclick="setStatsTime(event, this, 12)" class="stats-time-pick ">12h</a> &middot;
-                <a href="javascript:void(0);" onclick="setStatsTime(event, this, 6)" class="stats-time-pick ">6h</a> &middot;
-                <a href="javascript:void(0);" onclick="setStatsTime(event, this, 1)" class="stats-time-pick ">1h</a>
             </p>
         </div>
 
@@ -81,7 +76,7 @@
                         <tbody>
 
                             {{ range .TopRelays }}
-                            <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')">
+                            <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')" onclick="relayMouseClick(event, '{{.Relay}}', this)">
                                 <td>{{ .Relay }}</td>
                                 <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
                                 <td style="text-align:right">{{ .Percent }} %</td>
@@ -222,12 +217,12 @@
             button.addEventListener(event, hide);
         });
 
-        // window.onload = (event) => {
-        //     currentBuilderMarkdown = document.getElementById("md-top-builders-main").innerHTML;
-        // }
+        window.onload = (event) => {
+            currentBuilderMarkdown = document.getElementById("md-top-builders-main").innerHTML;
+        }
 
         // Relay mouseover -> update buolders
-        // activeRelay = ""
+        activeRelay = ""
 
         showBuildersForRelay = function (relay) {
             // hide all
@@ -244,50 +239,51 @@
         }
 
         relayMouseOver = function (relay) {
+            if (activeRelay != "") { return }
             showBuildersForRelay(relay)
         }
 
         relayMouseOut = function (relay) {
+            if (activeRelay != "") { return }
             showBuildersForRelay("")
         }
 
-        // clearActiveRelay = function () {
-        //     for (const tr of document.getElementsByClassName("tr-relay")) {
-        //         tr.classList.remove("active");
-        //     }
-        //     activeRelay = ""
-        //     currentBuilderMarkdown = document.getElementById("md-top-builders-main").innerHTML;
-        //     showBuildersForRelay("")
-        // }
+        clearActiveRelay = function () {
+            for (const tr of document.getElementsByClassName("tr-relay")) {
+                tr.classList.remove("active");
+            }
+            activeRelay = ""
+            currentBuilderMarkdown = document.getElementById("md-top-builders-main").innerHTML;
+            showBuildersForRelay("")
+        }
 
-        // relayMouseClick = function (e, relay, tr) {
-        //     e.stopPropagation();
+        relayMouseClick = function (e, relay, tr) {
+            e.stopPropagation();
 
-        //     // Remove active
-        //     if (relay == activeRelay) {
-        //         clearActiveRelay();
-        //         return;
-        //     }
+            // Remove active
+            if (relay == activeRelay) {
+                clearActiveRelay();
+                return;
+            }
 
-        //     // Set active
-        //     for (const tr of document.getElementsByClassName("tr-relay")) {
-        //         tr.classList.remove("active");
-        //     }
-        //     tr.classList.add("active")
-        //     activeRelay = relay
-        //     currentBuilderMarkdown = document.getElementById("md-top-builders-" + relay).innerHTML;
-        //     showBuildersForRelay(relay)
-        // }
+            // Set active
+            for (const tr of document.getElementsByClassName("tr-relay")) {
+                tr.classList.remove("active");
+            }
+            tr.classList.add("active")
+            activeRelay = relay
+            currentBuilderMarkdown = document.getElementById("md-top-builders-" + relay).innerHTML;
+            showBuildersForRelay(relay)
+        }
 
-        // clickBody = function () {
-        //     clearActiveRelay()
-        // }
+        clickBody = function () {
+            clearActiveRelay()
+        }
 
         // COPY TABLES AS MARKDOWN TO CLIPBOARD
         copyBuilders = function (e) {
             e.stopPropagation();
-            var md = document.getElementById("md-top-builders-main").innerHTML;
-            navigator.clipboard.writeText(md);
+            navigator.clipboard.writeText(currentBuilderMarkdown);
             document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard");
             document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard-check");
             setTimeout(function () {
@@ -307,21 +303,17 @@
                 document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard");
             }, 1000);
         }
-
-        // Setting stats time
-        setStatsTime = function (event, el, time) {
-            for (const statsTimePick of document.getElementsByClassName("stats-time-pick")) {
-                statsTimePick.classList.remove("active");
-            }
-            el.classList.add("active");
-        }
     </script>
 
     <div style="display: none;">
         <pre id="md-top-relays-main">{{ .TopRelays | relayTable}}
-Top relays, 24h, {{ .LastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+Top relays, 24h, {{ .LastUpdateTime }}, via [relayscan.io](https://relayscan.io)</pre>
         <pre id="md-top-builders-main">{{ .TopBuilders | builderTable}}
-Top builders, 24h, {{ .LastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+Top builders, 24h, {{ .LastUpdateTime }}, via [relayscan.io](https://relayscan.io)</pre>
+
+        {{ range $relay, $builders := .TopBuildersByRelay }}
+        <pre id="md-top-builders-{{ $relay }}">{{ $builders | builderTable}}
+Top builders at {{ $relay }}, 24h, {{ $lastUpdateTime }}, via [relayscan.io](https://relayscan.io)</pre>{{ end }}
     </div>
 </body>
 
