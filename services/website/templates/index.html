@@ -1,3 +1,4 @@
+{{ $timeInitial := .StatsTimeInitial }}
 {{ $lastUpdateTime := .LastUpdateTime }}
 <!doctype html>
 <html lang="en">
@@ -9,7 +10,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/styles.css?v=5">
+    <link rel="stylesheet" href="/static/styles.css?v=6">
 
     <!-- HTML Meta Tags -->
     <title>relayscan.io – MEV-Boost Relay & Builder Stats</title>
@@ -53,10 +54,10 @@
                 updated {{ .LastUpdateTime }} UTC
             </p>
             <p id="stats-time">
-                <a href="javascript:void(0);" onclick="setStatsTime(event, this, 24)" class="stats-time-pick active">24h</a> &middot;
-                <a href="javascript:void(0);" onclick="setStatsTime(event, this, 12)" class="stats-time-pick ">12h</a> &middot;
-                <a href="javascript:void(0);" onclick="setStatsTime(event, this, 6)" class="stats-time-pick ">6h</a> &middot;
-                <a href="javascript:void(0);" onclick="setStatsTime(event, this, 1)" class="stats-time-pick ">1h</a>
+                {{ range $index, $timerange := .StatsTimeSpans }}
+                {{ if ne $timerange $timeInitial }} &middot; {{ end }}
+                <a href="javascript:setStatsTime('{{ $timerange }}')" id="stats-time-pick-{{ $timerange }}" class=" stats-time-pick {{ if eq $timerange $timeInitial }}active{{ end }}">{{ $timerange }}</a>
+                {{ end }}
             </p>
         </div>
 
@@ -78,9 +79,9 @@
                                 <th>Percent</th>
                             </tr>
                         </thead>
-                        <tbody>
-
-                            {{ range .TopRelays }}
+                        {{ range $timerange, $stats := .Stats }}
+                        <tbody id="tbody-relays-{{ $timerange }}" class="tbody-relays" {{ if ne $timerange $timeInitial }} style="display: none;" {{ end }}>
+                            {{ range $stats.TopRelays }}
                             <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')">
                                 <td>{{ .Relay }}</td>
                                 <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
@@ -88,6 +89,7 @@
                             </tr>
                             {{ end }}
                         </tbody>
+                        {{ end }}
                     </table>
                 </div>
             </div>
@@ -109,8 +111,9 @@
                                 <th style="min-width: 100px;">Percent</th>
                             </tr>
                         </thead>
-                        <tbody id="top-builders-main" class="top-builders-tbody">
-                            {{ range .TopBuilders }}
+                        {{ range $timerange, $stats := .Stats }}
+                        <tbody id="tbody-builders-{{ $timerange }}-all" class="tbody-builders" {{ if ne $timerange $timeInitial }} style="display: none;" {{ end }}>
+                            {{ range $stats.TopBuilders }}
                             <tr>
                                 <td>
                                     {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
@@ -133,8 +136,9 @@
                             </tr>
                             {{ end }}
                         </tbody>
-                        {{ range $relay, $builders := .TopBuildersByRelay }}
-                        <tbody id="top-builders-{{ $relay }}" class="top-builders-tbody" style="display:none;">
+
+                        {{ range $relay, $builders := $stats.TopBuildersByRelay }}
+                        <tbody id="tbody-builders-{{ $timerange }}-{{ $relay }}" class="tbody-builders" style="display:none;">
                             {{ range $builders }}
                             <tr>
                                 <td>
@@ -157,6 +161,7 @@
                             </tr>
                             {{ end }}
                         </tbody>
+                        {{ end }}
                         {{ end }}
                     </table>
 
@@ -222,24 +227,21 @@
             button.addEventListener(event, hide);
         });
 
-        // window.onload = (event) => {
-        //     currentBuilderMarkdown = document.getElementById("md-top-builders-main").innerHTML;
-        // }
-
         // Relay mouseover -> update buolders
         // activeRelay = ""
+        currentTimeSpan = "{{ $timeInitial }}"
 
         showBuildersForRelay = function (relay) {
-            // hide all
-            for (const topBuildersTbody of document.getElementsByClassName("top-builders-tbody")) {
+            // hide all builders
+            for (const topBuildersTbody of document.getElementsByClassName("tbody-builders")) {
                 topBuildersTbody.style.display = "none";
             }
 
             // show specific builder
             if (relay == "") {
-                document.getElementById("top-builders-main").style.display = "table-row-group";
+                document.getElementById("tbody-builders-" + currentTimeSpan + "-all").style.display = "table-row-group";
             } else {
-                document.getElementById("top-builders-" + relay).style.display = "table-row-group";
+                document.getElementById("tbody-builders-" + currentTimeSpan + "-" + relay).style.display = "table-row-group";
             }
         }
 
@@ -251,42 +253,10 @@
             showBuildersForRelay("")
         }
 
-        // clearActiveRelay = function () {
-        //     for (const tr of document.getElementsByClassName("tr-relay")) {
-        //         tr.classList.remove("active");
-        //     }
-        //     activeRelay = ""
-        //     currentBuilderMarkdown = document.getElementById("md-top-builders-main").innerHTML;
-        //     showBuildersForRelay("")
-        // }
-
-        // relayMouseClick = function (e, relay, tr) {
-        //     e.stopPropagation();
-
-        //     // Remove active
-        //     if (relay == activeRelay) {
-        //         clearActiveRelay();
-        //         return;
-        //     }
-
-        //     // Set active
-        //     for (const tr of document.getElementsByClassName("tr-relay")) {
-        //         tr.classList.remove("active");
-        //     }
-        //     tr.classList.add("active")
-        //     activeRelay = relay
-        //     currentBuilderMarkdown = document.getElementById("md-top-builders-" + relay).innerHTML;
-        //     showBuildersForRelay(relay)
-        // }
-
-        // clickBody = function () {
-        //     clearActiveRelay()
-        // }
-
         // COPY TABLES AS MARKDOWN TO CLIPBOARD
         copyBuilders = function (e) {
             e.stopPropagation();
-            var md = document.getElementById("md-top-builders-main").innerHTML;
+            var md = document.getElementById("md-builders-" + currentTimeSpan).innerHTML;
             navigator.clipboard.writeText(md);
             document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard");
             document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard-check");
@@ -298,7 +268,7 @@
 
         copyRelays = function (e) {
             e.stopPropagation();
-            var md = document.getElementById("md-top-relays-main").innerHTML;
+            var md = document.getElementById("md-relays-" + currentTimeSpan).innerHTML;
             navigator.clipboard.writeText(md);
             document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard");
             document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard-check");
@@ -309,19 +279,44 @@
         }
 
         // Setting stats time
-        setStatsTime = function (event, el, time) {
+        setStatsTime = function (time) {
+            // update time picker
             for (const statsTimePick of document.getElementsByClassName("stats-time-pick")) {
                 statsTimePick.classList.remove("active");
             }
-            el.classList.add("active");
+            document.getElementById("stats-time-pick-" + time).classList.add("active");
+
+            // update relays
+            for (const statsTimePick of document.getElementsByClassName("tbody-relays")) {
+                statsTimePick.style.display = "none"
+            }
+            document.getElementById("tbody-relays-" + time).style.display = "table-row-group"
+
+            // update builders
+            for (const statsTimePick of document.getElementsByClassName("tbody-builders")) {
+                statsTimePick.style.display = "none"
+            }
+            document.getElementById("tbody-builders-" + time + "-all").style.display = "table-row-group"
+            currentTimeSpan = time
+            window.history.replaceState({}, document.title, "?t=" + time);
+        }
+
+        window.onload = function () {
+            // show all builders
+            const queryString = window.location.search;
+            if (queryString.includes("?t=")) {
+                setStatsTime(queryString.split("?t=")[1])
+            }
         }
     </script>
 
     <div style="display: none;">
-        <pre id="md-top-relays-main">{{ .TopRelays | relayTable}}
-Top relays, 24h, {{ .LastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
-        <pre id="md-top-builders-main">{{ .TopBuilders | builderTable}}
-Top builders, 24h, {{ .LastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+        {{ range $timerange, $stats := .Stats }}
+        <pre id="md-relays-{{ $timerange }}">{{ .TopRelays | relayTable}}
+Top relays - {{ $timerange }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+        <pre id="md-builders-{{ $timerange }}">{{ .TopBuilders | builderTable}}
+Top builders - {{ $timerange }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+        {{ end }}
     </div>
 </body>
 

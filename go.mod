@@ -11,6 +11,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.7
+	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onrik/ethrpc v1.1.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
@@ -34,7 +35,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.21.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

@@ -2,7 +2,6 @@ package website
 
 import (
 	_ "embed"
-	"fmt"
 	"math/big"
 	"strings"
 	"text/template"
@@ -23,13 +22,22 @@ var (
 	caser = cases.Title(language.English)
 )
 
-type HTMLData struct {
-	GeneratedAt    time.Time
-	LastUpdateTime string
+type Stats struct {
+	Since time.Time
+	Until time.Time
 
 	TopRelays          []*database.TopRelayEntry
 	TopBuilders        []*database.TopBuilderEntry
 	TopBuildersByRelay map[string][]*database.TopBuilderEntry
+}
+
+type HTMLData struct {
+	GeneratedAt    time.Time
+	LastUpdateTime string
+
+	Stats            map[string]*Stats
+	StatsTimeSpans   []string
+	StatsTimeInitial string
 }
 
 type HTMLDataDailyStats struct {
@@ -109,7 +117,7 @@ func relayTable(relays []*database.TopRelayEntry) string {
 	table.SetCenterSeparator("|")
 	table.AppendBulk(relayEntries)
 	table.Render()
-	fmt.Println(tableString.String())
+	// fmt.Println(tableString.String())
 	return tableString.String()
 }
 

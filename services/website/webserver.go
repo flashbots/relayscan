@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"sync"
 	"text/template"
 	"time"
@@ -21,7 +23,10 @@ import (
 	uberatomic "go.uber.org/atomic"
 )
 
-var ErrServerAlreadyStarted = errors.New("server was already started")
+var (
+	ErrServerAlreadyStarted = errors.New("server was already started")
+	SummaryFilename         = os.Getenv("RELAYSCAN_STATS_FILE")
+)
 
 type WebserverOpts struct {
 	ListenAddress string
@@ -133,44 +138,75 @@ func (srv *Webserver) getRouter() http.Handler {
 	return withGz
 }
 
+func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, err error) {
+	now := time.Now().UTC()
+	since := now.Add(-1 * duration.Abs())
+
+	topRelays, err := srv.db.GetTopRelays(since, now)
+	if err != nil {
+		return nil, err
+	}
+
+	topBuilders, err := srv.db.GetTopBuilders(since, now, "")
+	if err != nil {
+		return nil, err
+	}
+
+	stats = &Stats{
+		Since: since,
+		Until: now,
+
+		TopRelays:          prepareRelaysEntries(topRelays),
+		TopBuilders:        consolidateBuilderEntries(topBuilders),
+		TopBuildersByRelay: make(map[string][]*database.TopBuilderEntry),
+	}
+
+	// Query builders for each relay
+	for _, relay := range topRelays {
+		topBuildersForRelay, err := srv.db.GetTopBuilders(since, now, relay.Relay)
+		if err != nil {
+			return nil, err
+		}
+		stats.TopBuildersByRelay[relay.Relay] = consolidateBuilderEntries(topBuildersForRelay)
+	}
+
+	return stats, nil
+}
+
 func (srv *Webserver) updateHTML() {
+	var err error
 	srv.log.Info("Updating HTML data...")
 
 	// Now generate the HTML
 	htmlDefault := bytes.Buffer{}
 
 	now := time.Now().UTC()
-	since := now.Add(-24 * time.Hour)
-	topRelays, err := srv.db.GetTopRelays(since, now)
-	if err != nil {
-		srv.log.WithError(err).Error("failed getting top relays from database")
-		return
-	}
-
-	topBuilders, err := srv.db.GetTopBuilders(since, now, "")
-	if err != nil {
-		srv.log.WithError(err).Error("failed getting top builders from database")
-		return
-	}
-
 	htmlData := HTMLData{} //nolint:exhaustruct
-	htmlData.GeneratedAt = time.Now().UTC()
-	htmlData.LastUpdateTime = htmlData.GeneratedAt.Format("2006-01-02 15:04")
+	htmlData.GeneratedAt = now
+	htmlData.LastUpdateTime = now.Format("2006-01-02 15:04")
+	htmlData.Stats = make(map[string]*Stats)
+	htmlData.StatsTimeSpans = []string{"24h", "12h", "1h"}
+	htmlData.StatsTimeInitial = "24h"
 
-	// Prepare top relay stats
-	htmlData.TopRelays = prepareRelaysEntries(topRelays)
-	htmlData.TopBuilders = consolidateBuilderEntries(topBuilders)
-	htmlData.TopBuildersByRelay = make(map[string][]*database.TopBuilderEntry)
+	srv.log.Info("updating 24h stats...")
+	htmlData.Stats["24h"], err = srv.getStatsForHours(24 * time.Hour)
+	if err != nil {
+		srv.log.WithError(err).Error("Failed to get stats for 24h")
+		return
+	}
 
-	// Query builders for each relay
-	for _, relay := range htmlData.TopRelays {
-		topBuildersForRelay, err := srv.db.GetTopBuilders(since, now, relay.Relay)
-		if err != nil {
-			srv.log.WithError(err).Error("failed getting top builders from database")
-			return
-		}
+	srv.log.Info("updating 12h stats...")
+	htmlData.Stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
+	if err != nil {
+		srv.log.WithError(err).Error("Failed to get stats for 12h")
+		return
+	}
 
-		htmlData.TopBuildersByRelay[relay.Relay] = consolidateBuilderEntries(topBuildersForRelay)
+	srv.log.Info("updating 1h stats...")
+	htmlData.Stats["1h"], err = srv.getStatsForHours(1 * time.Hour)
+	if err != nil {
+		srv.log.WithError(err).Error("Failed to get stats for 1h")
+		return
 	}
 
 	// Render template
@@ -190,12 +226,13 @@ func (srv *Webserver) updateHTML() {
 	srv.htmlDefault = &htmlDefaultBytes
 	srv.rootResponseLock.Unlock()
 
+	stats24h := htmlData.Stats["24h"]
 	srv.statsAPIRespLock.Lock()
 	resp := statsResp{
 		GeneratedAt: uint64(srv.HTMLData.GeneratedAt.Unix()),
-		DataStartAt: uint64(since.Unix()),
-		TopRelays:   srv.HTMLData.TopRelays,
-		TopBuilders: srv.HTMLData.TopBuilders,
+		DataStartAt: uint64(stats24h.Since.Unix()),
+		TopRelays:   stats24h.TopRelays,
+		TopBuilders: stats24h.TopBuilders,
 	}
 	respBytes, err := json.Marshal(resp)
 	if err != nil {
@@ -205,6 +242,21 @@ func (srv *Webserver) updateHTML() {
 	}
 	srv.statsAPIRespLock.Unlock()
 	srv.log.Info("Updating HTML data complete.")
+
+	if SummaryFilename != "" {
+		summary := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```", now.Format("2006-01-02 15:04"))
+		summary += relayTable(stats24h.TopRelays)
+		summary += fmt.Sprintf("```\n\nTop builders - 24h, %s UTC, via relayscan.io \n\n```", now.Format("2006-01-02 15:04"))
+		summary += builderTable(stats24h.TopBuilders)
+		summary += "```"
+		fmt.Println(summary)
+		err := os.WriteFile(SummaryFilename, []byte(summary), 0644)
+		if err != nil {
+			srv.log.WithError(err).Errorf("failed writing summary to %s", SummaryFilename)
+		} else {
+			srv.log.Infof("wrote summary to %s", SummaryFilename)
+		}
+	}
 }
 
 func (srv *Webserver) RespondError(w http.ResponseWriter, code int, message string) {
