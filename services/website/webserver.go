@@ -56,6 +56,9 @@ type Webserver struct {
 
 	htmlDefault *[]byte
 	minifier    *minify.M
+
+	markdownSummaryResp     *[]byte
+	markdownSummaryRespLock sync.RWMutex
 }
 
 func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
@@ -127,6 +130,7 @@ func (srv *Webserver) getRouter() http.Handler {
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}", srv.handleDailyStats).Methods(http.MethodGet)
 	r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
+	r.HandleFunc("/api/stats/md", srv.handleStatsMarkdownAPI).Methods(http.MethodGet)
 
 	if srv.opts.EnablePprof {
 		srv.log.Info("pprof API enabled")
@@ -226,7 +230,21 @@ func (srv *Webserver) updateHTML() {
 	srv.htmlDefault = &htmlDefaultBytes
 	srv.rootResponseLock.Unlock()
 
+	// helper
 	stats24h := htmlData.Stats["24h"]
+
+	// create summary markdown
+	summary := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
+	summary += relayTable(stats24h.TopRelays)
+	summary += fmt.Sprintf("```\n\nTop builders - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
+	summary += builderTable(stats24h.TopBuilders)
+	summary += "```"
+	fmt.Println(summary)
+	b := []byte(summary)
+	srv.markdownSummaryRespLock.Lock()
+	srv.markdownSummaryResp = &b
+	srv.markdownSummaryRespLock.Unlock()
+
 	srv.statsAPIRespLock.Lock()
 	resp := statsResp{
 		GeneratedAt: uint64(srv.HTMLData.GeneratedAt.Unix()),
@@ -244,12 +262,6 @@ func (srv *Webserver) updateHTML() {
 	srv.log.Info("Updating HTML data complete.")
 
 	if SummaryFilename != "" {
-		summary := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```", now.Format("2006-01-02 15:04"))
-		summary += relayTable(stats24h.TopRelays)
-		summary += fmt.Sprintf("```\n\nTop builders - 24h, %s UTC, via relayscan.io \n\n```", now.Format("2006-01-02 15:04"))
-		summary += builderTable(stats24h.TopBuilders)
-		summary += "```"
-		fmt.Println(summary)
 		err := os.WriteFile(SummaryFilename, []byte(summary), 0644)
 		if err != nil {
 			srv.log.WithError(err).Errorf("failed writing summary to %s", SummaryFilename)
@@ -309,6 +321,12 @@ func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {
 	srv.statsAPIRespLock.RLock()
 	defer srv.statsAPIRespLock.RUnlock()
 	_, _ = w.Write(*srv.statsAPIResp)
+}
+
+func (srv *Webserver) handleStatsMarkdownAPI(w http.ResponseWriter, req *http.Request) {
+	srv.markdownSummaryRespLock.RLock()
+	defer srv.markdownSummaryRespLock.RUnlock()
+	_, _ = w.Write(*srv.markdownSummaryResp)
 }
 
 func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request) {
