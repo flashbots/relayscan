@@ -16,6 +16,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/static/favicon/site.webmanifest">
 
     <!-- HTML Meta Tags -->
     <title>relayscan.io – MEV-Boost Relay & Builder Stats</title>
@@ -26,7 +27,7 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="relayscan.io – MEV-Boost Relay & Builder Stats">
     <meta property="og:description" content="Monitoring, analytics & data for MEV-Boost Builders and Relays on Ethereum">
-    <meta property="og:image" content="https://relayscan.io/static/images/ogimage.jpg">
+    <meta property="og:image" content="https://relayscan.io/static/images/ogimage.png">
 
     <!-- Twitter Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
@@ -34,13 +35,13 @@
     <meta property="twitter:url" content="https://www.relayscan.io">
     <meta name="twitter:title" content="relayscan.io – MEV-Boost Relay & Builder Stats">
     <meta name="twitter:description" content="Monitoring, analytics & data for MEV-Boost Builders and Relays on Ethereum">
-    <meta name="twitter:image" content="https://relayscan.io/static/images/ogimage.jpg">
+    <meta name="twitter:image" content="https://relayscan.io/static/images/ogimage.png">
 </head>
 
 <body>
     <div class="header">
         <div class="home-menu pure-menu pure-menu-horizontal">
-            <a class="pure-menu-heading" href="">relayscan.io</a>
+            <a class="pure-menu-heading" href=""><img src="/static/favicon/apple-touch-icon.png" height="16" /> relayscan.io</a>
 
             <ul class="pure-menu-list">
                 <li class="pure-menu-item"><a href="https://hackmd.io/XfSCHCb7RfOzjub72s54eg" class="pure-menu-link">About</a></li>
@@ -169,7 +170,7 @@
 
         <div id="content-profitability" {{ if eq $viewInitial "overview" }}style="display: none;" {{ end }}>
             {{ range $timerange, $stats := .Stats }}
-            <table id="table-builderprofit-{{ $timerange }}" class="table-builderprofit sortable pure-table pure-table-horizontal pure-table-striped" {{ if ne $timerange $timeInitial }} style="display: none;" {{ end }}>
+            <table id="table-builderprofit-{{ $timerange }}" class="table-builderprofit sortable pure-table pure-table-horizontal" {{ if ne $timerange $timeInitial }} style="display: none;" {{ end }}>
                 <thead>
                     <tr>
                         <th>Builder extra_data</th>
