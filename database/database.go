@@ -147,7 +147,7 @@ func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*Buil
 		SELECT distinct(slot), extra_data, coinbase_diff_eth FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2
 	) AS x
 	GROUP BY extra_data
-	ORDER BY blocks DESC;`
+	ORDER BY total_profit DESC;`
 	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
 	return res, err
 }

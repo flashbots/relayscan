@@ -103,7 +103,7 @@ func consolidateBuilderProfitEntries(entries []*database.BuilderProfitEntry) []*
 	}
 
 	sort.Slice(resp, func(i, j int) bool {
-		return resp[i].NumBlocks > resp[j].NumBlocks
+		return strToBigFloat(resp[i].ProfitTotal).Cmp(strToBigFloat(resp[j].ProfitTotal)) > 0
 	})
 	return resp
 }

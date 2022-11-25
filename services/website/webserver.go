@@ -44,18 +44,17 @@ type Webserver struct {
 
 	srv        *http.Server
 	srvStarted uberatomic.Bool
-
-	HTMLData         HTMLData
-	rootResponseLock sync.RWMutex
+	minifier   *minify.M
 
 	templateIndex      *template.Template
 	templateDailyStats *template.Template
 
+	htmlDefault *HTMLData
+	stats       map[string]*Stats
+	statsLock   sync.RWMutex
+
 	statsAPIResp     *[]byte
 	statsAPIRespLock sync.RWMutex
-
-	htmlDefault *[]byte
-	minifier    *minify.M
 
 	markdownSummaryResp     *[]byte
 	markdownSummaryRespLock sync.RWMutex
@@ -74,8 +73,9 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 		log:  opts.Log,
 		db:   opts.DB,
 
-		htmlDefault: &[]byte{},
-		minifier:    minifier,
+		stats:               make(map[string]*Stats),
+		minifier:            minifier,
+		markdownSummaryResp: &[]byte{},
 	}
 
 	server.templateDailyStats, err = ParseDailyStatsTemplate()
@@ -88,7 +88,7 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 		return nil, err
 	}
 
-	server.HTMLData = HTMLData{} //nolint:exhaustruct
+	server.htmlDefault = &HTMLData{} //nolint:exhaustruct
 
 	return server, nil
 }
@@ -188,65 +188,53 @@ func (srv *Webserver) updateHTML() {
 	srv.log.Info("Updating HTML data...")
 
 	// Now generate the HTML
-	htmlDefault := bytes.Buffer{}
+	// htmlDefault := bytes.Buffer{}
 
 	now := time.Now().UTC()
 	htmlData := HTMLData{} //nolint:exhaustruct
 	htmlData.GeneratedAt = now
 	htmlData.LastUpdateTime = now.Format("2006-01-02 15:04")
-	htmlData.Stats = make(map[string]*Stats)
-	// htmlData.StatsTimeSpans = []string{"7d", "24h", "12h", "1h"}
-	htmlData.StatsTimeSpans = []string{"24h"}
-	htmlData.StatsTimeInitial = "24h"
-	htmlData.InitialView = "overview"
+	htmlData.TimeSpans = []string{"7d", "24h", "12h", "1h"}
+	// htmlData.TimeSpans = []string{"24h", "12h"}
 
-	// srv.log.Info("updating 7d stats...")
-	// htmlData.Stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
-	// if err != nil {
-	// 	srv.log.WithError(err).Error("Failed to get stats for 24h")
-	// 	return
-	// }
+	stats := make(map[string]*Stats)
 
-	srv.log.Info("updating 24h stats...")
-	htmlData.Stats["24h"], err = srv.getStatsForHours(24 * time.Hour)
+	srv.log.Info("updating 7d stats...")
+	stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
 	if err != nil {
 		srv.log.WithError(err).Error("Failed to get stats for 24h")
 		return
 	}
 
-	// srv.log.Info("updating 12h stats...")
-	// htmlData.Stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
-	// if err != nil {
-	// 	srv.log.WithError(err).Error("Failed to get stats for 12h")
-	// 	return
-	// }
-
-	// srv.log.Info("updating 1h stats...")
-	// htmlData.Stats["1h"], err = srv.getStatsForHours(1 * time.Hour)
-	// if err != nil {
-	// 	srv.log.WithError(err).Error("Failed to get stats for 1h")
-	// 	return
-	// }
-
-	// Render template
-	if err := srv.templateIndex.ExecuteTemplate(&htmlDefault, "base", htmlData); err != nil {
-		srv.log.WithError(err).Error("error rendering template")
-	}
-
-	// Minify
-	htmlDefaultBytes, err := srv.minifier.Bytes("text/html", htmlDefault.Bytes())
+	srv.log.Info("updating 24h stats...")
+	stats["24h"], err = srv.getStatsForHours(24 * time.Hour)
 	if err != nil {
-		srv.log.WithError(err).Error("error minifying htmlDefault")
+		srv.log.WithError(err).Error("Failed to get stats for 24h")
+		return
 	}
 
-	// Swap the html pointers
-	srv.rootResponseLock.Lock()
-	srv.HTMLData = htmlData
-	srv.htmlDefault = &htmlDefaultBytes
-	srv.rootResponseLock.Unlock()
+	srv.log.Info("updating 12h stats...")
+	stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
+	if err != nil {
+		srv.log.WithError(err).Error("Failed to get stats for 12h")
+		return
+	}
+
+	srv.log.Info("updating 1h stats...")
+	stats["1h"], err = srv.getStatsForHours(1 * time.Hour)
+	if err != nil {
+		srv.log.WithError(err).Error("Failed to get stats for 1h")
+		return
+	}
+
+	// Save the html data
+	srv.statsLock.Lock()
+	srv.htmlDefault = &htmlData
+	srv.stats = stats
+	srv.statsLock.Unlock()
 
 	// helper
-	stats24h := htmlData.Stats["24h"]
+	stats24h := stats["24h"]
 
 	// create summary markdown
 	summary := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
@@ -260,20 +248,20 @@ func (srv *Webserver) updateHTML() {
 	srv.markdownSummaryResp = &b
 	srv.markdownSummaryRespLock.Unlock()
 
-	srv.statsAPIRespLock.Lock()
-	resp := statsResp{
-		GeneratedAt: uint64(srv.HTMLData.GeneratedAt.Unix()),
-		DataStartAt: uint64(stats24h.Since.Unix()),
-		TopRelays:   stats24h.TopRelays,
-		TopBuilders: stats24h.TopBuilders,
-	}
-	respBytes, err := json.Marshal(resp)
-	if err != nil {
-		srv.log.WithError(err).Error("error marshalling statsAPIResp")
-	} else {
-		srv.statsAPIResp = &respBytes
-	}
-	srv.statsAPIRespLock.Unlock()
+	// srv.statsAPIRespLock.Lock()
+	// resp := statsResp{
+	// 	GeneratedAt: uint64(srv.HTMLData.GeneratedAt.Unix()),
+	// 	DataStartAt: uint64(stats24h.Since.Unix()),
+	// 	TopRelays:   stats24h.TopRelays,
+	// 	TopBuilders: stats24h.TopBuilders,
+	// }
+	// respBytes, err := json.Marshal(resp)
+	// if err != nil {
+	// 	srv.log.WithError(err).Error("error marshalling statsAPIResp")
+	// } else {
+	// 	srv.statsAPIResp = &respBytes
+	// }
+	// srv.statsAPIRespLock.Unlock()
 	srv.log.Info("Updating HTML data complete.")
 
 	if SummaryFilename != "" {
@@ -306,10 +294,22 @@ func (srv *Webserver) RespondOK(w http.ResponseWriter, response any) {
 }
 
 func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
-	var err error
+	timespan := req.URL.Query().Get("t")
+	if timespan == "" {
+		timespan = "24h"
+	}
+	view := req.URL.Query().Get("v")
+	if view == "" {
+		view = "overview"
+	}
 
-	srv.rootResponseLock.RLock()
-	defer srv.rootResponseLock.RUnlock()
+	srv.statsLock.RLock()
+	htmlData := *srv.htmlDefault
+	htmlData.Stats = srv.stats[timespan]
+	srv.statsLock.RUnlock()
+
+	htmlData.TimeSpan = timespan
+	htmlData.View = view
 
 	if srv.opts.Dev {
 		tpl, err := ParseIndexTemplate()
@@ -317,19 +317,33 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 			srv.log.WithError(err).Error("root: error parsing template")
 			return
 		}
-		err = tpl.ExecuteTemplate(w, "base", srv.HTMLData)
+		err = tpl.ExecuteTemplate(w, "base", htmlData)
 		if err != nil {
 			srv.log.WithError(err).Error("root: error executing template")
 			return
 		}
+		return
+	}
 
-		srv.log.Info("rendered template")
-	} else {
-		_, err = w.Write(*srv.htmlDefault)
+	// production flow...
+	htmlBuf := bytes.Buffer{}
+
+	// Render template
+	if err := srv.templateIndex.ExecuteTemplate(&htmlBuf, "base", htmlData); err != nil {
+		srv.log.WithError(err).Error("error rendering template")
+		srv.RespondError(w, http.StatusInternalServerError, "error rendering template")
+		return
 	}
+
+	// Minify
+	htmlBytes, err := srv.minifier.Bytes("text/html", htmlBuf.Bytes())
 	if err != nil {
-		srv.log.WithError(err).Error("error writing template")
+		srv.log.WithError(err).Error("error minifying html")
+		srv.RespondError(w, http.StatusInternalServerError, "error minifying html")
+		return
 	}
+
+	_, _ = w.Write(htmlBytes)
 }
 
 func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {

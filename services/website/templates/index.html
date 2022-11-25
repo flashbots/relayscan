@@ -1,7 +1,7 @@
 {{ define "content" }}
 {{ $lastUpdateTime := .LastUpdateTime }}
-{{ $timeInitial := .StatsTimeInitial }}
-{{ $viewInitial := .InitialView }}
+{{ $time := .TimeSpan }}
+{{ $view := .View }}
 
 <div class="content">
     <div style="text-align: center; margin-bottom:60px;">
@@ -12,21 +12,21 @@
             <small>updated {{ .LastUpdateTime }} UTC</small>
         </p>
         <p id="view-type">
-            <a href="javascript:showOverview(true)" id="a-view-type-overview" class="active">Overview</a>
+            <a href="/?v=overview&t={{ $time }}" id="a-view-type-overview" {{ if eq $view "overview" }}class="active" {{ end }}>Overview</a>
             &middot;
-            <a href="javascript:showProfitability(true)" id="a-view-type-profitability">Builder Profitability</a>
+            <a href="/?v=builderprofit&t={{ $time }}" id="a-view-type-profitability" {{ if eq $view "builderprofit" }}class="active" {{ end }}>Builder Profitability</a>
         </p>
         <p id="stats-time">
-            {{ range $index, $timerange := .StatsTimeSpans }}
+            {{ range $index, $timerange := .TimeSpans }}
             {{ if ne $index 0 }} &middot; {{ end }}
-            <a href="javascript:setStatsTime('{{ $timerange }}', true)" id="stats-time-pick-{{ $timerange }}" class="stats-time-pick {{ if eq $timerange $timeInitial }}active{{ end }}">{{ $timerange }}</a>
+            <a href="/?v={{ $view }}&t={{ $timerange }}" id="stats-time-pick-{{ $timerange }}" class="stats-time-pick {{ if eq $timerange $time }}active{{ end }}">{{ $timerange }}</a>
             {{ end }}
         </p>
     </div>
 
-    <div class="pure-g" id="content-overview">
+    <div class="pure-g" id="content-overview" {{ if ne $view "overview" }}style="display: none;" {{ end }}>
         <div class=" pure-u-1 pure-u-md-1-2 stats-table" id="stats-relays">
-            <div>
+            <div style="width: 100%; padding: 0px 30px;">
                 <h2 id="header-top-relays">
                     <div id="copy-relays-to-clipboard">
                         <a href="javascript:void(0)" onclick="copyRelays(event)" title="Copy relays as markdown to clipboard"><i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
@@ -34,7 +34,8 @@
 
                     Top Relays
                 </h2>
-                <table class="pure-table pure-table-horizontal">
+
+                <table class="pure-table pure-table-horizontal" style="width: 100%;">
                     <thead>
                         <tr>
                             <th>Relay</th>
@@ -42,15 +43,13 @@
                             <th>Percent</th>
                         </tr>
                     </thead>
-                    {{ range $timerange, $stats := .Stats }}
-                    <tbody id="tbody-relays-{{ $timerange }}" class="tbody-relays" {{ if ne $timerange $timeInitial }} style="display: none;" {{ end }}>
-                        {{ range $stats.TopRelays }}
+                    {{ range .Stats.TopRelays }}
+                    <tbody id="tbody-relays" class="tbody-relays">
                         <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')">
                             <td>{{ .Relay }}</td>
                             <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
                             <td style="text-align:right">{{ .Percent }} %</td>
                         </tr>
-                        {{ end }}
                     </tbody>
                     {{ end }}
                 </table>
@@ -58,7 +57,7 @@
         </div>
 
         <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-builders">
-            <div>
+            <div style="width: 100%; padding: 0px 30px;">
                 <h2 id="header-top-builders">
                     <div id="copy-builders-to-clipboard">
                         <a href="javascript:void(0)" onclick="copyBuilders(event)" title="Copy builders as markdown to clipboard"><i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
@@ -66,7 +65,7 @@
                     Top Builders
                 </h2>
 
-                <table class="pure-table pure-table-horizontal">
+                <table class="pure-table pure-table-horizontal" style="width: 100%;">
                     <thead>
                         <tr>
                             <th>Builder extra_data</th>
@@ -74,15 +73,14 @@
                             <th style="min-width: 100px;">Percent</th>
                         </tr>
                     </thead>
-                    {{ range $timerange, $stats := .Stats }}
-                    <tbody id="tbody-builders-{{ $timerange }}-all" class="tbody-builders" {{ if ne $timerange $timeInitial }} style="display: none;" {{ end }}>
-                        {{ range $stats.TopBuilders }}
+                    <tbody id="tbody-builders-all" class="tbody-builders">
+                        {{ range .Stats.TopBuilders }}
                         <tr>
-                            <td>
+                            <td class="td-builder-extradata">
                                 {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
                                 {{ if ne (len .Aliases) 0 }}
-                                <i id="icon-tooltip-builder-alias-{{ $timerange }}" class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias-{{ $timerange }}"></i>
-                                <div id="tooltip-builder-alias-{{ $timerange }}" class="tooltip builder-aliases" role="tooltip">
+                                <i id="icon-tooltip-builder-alias" class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
+                                <div id="tooltip-builder-alias" class="tooltip builder-aliases" role="tooltip">
                                     <b>extra_data values:</b>
                                     <ul>
                                         {{ range .Aliases }}
@@ -94,25 +92,27 @@
                                 {{ end }}
 
                             </td>
-                            <td style="text-align:right">{{ .NumBlocks | prettyInt }}</td>
-                            <td style="text-align:right">{{ .Percent }} %</td>
+                            <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
+                            <td class="td-builder-percent">{{ .Percent }} %</td>
                         </tr>
                         {{ end }}
                     </tbody>
 
-                    {{ range $relay, $builders := $stats.TopBuildersByRelay }}
-                    <tbody id="tbody-builders-{{ $timerange }}-{{ $relay }}" class="tbody-builders" style="display:none;">
+                    {{ range $relay, $builders := .Stats.TopBuildersByRelay }}
+                    <tbody id="tbody-builders-{{ $relay }}" class="tbody-builders" style="display:none;">
                         {{ range $builders }}
                         <tr>
-                            <td>
+                            <td class="td-builder-extradata">
                                 {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
+                                {{ if ne (len .Aliases) 0 }}
+                                <i id="icon-tooltip-builder-alias" class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
+                                {{ end}}
                             </td>
-                            <td style="text-align:right">{{ .NumBlocks | prettyInt }}</td>
-                            <td style="text-align:right">{{ .Percent }} %</td>
+                            <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
+                            <td class="td-builder-percent">{{ .Percent }} %</td>
                         </tr>
                         {{ end }}
                     </tbody>
-                    {{ end }}
                     {{ end }}
                 </table>
 
@@ -120,9 +120,8 @@
         </div>
     </div>
 
-    <div id="content-profitability" {{ if eq $viewInitial "overview" }}style="display: none;" {{ end }}>
-        {{ range $timerange, $stats := .Stats }}
-        <table id="table-builderprofit-{{ $timerange }}" class="table-builderprofit sortable pure-table pure-table-horizontal" {{ if ne $timerange $timeInitial }} style="display: none;" {{ end }}>
+    <div id="content-profitability" {{ if eq $view "overview" }}style="display: none;" {{ end }}>
+        <table id="table-builderprofit" class="table-builderprofit sortable pure-table pure-table-horizontal">
             <thead>
                 <tr>
                     <th>Builder extra_data</th>
@@ -135,13 +134,13 @@
                 </tr>
             </thead>
             <tbody>
-                {{ range $stats.BuilderProfits }}
+                {{ range .Stats.BuilderProfits }}
                 <tr>
                     <td class="builder-extradata">
                         {{ if .ExtraData }}<span style="white-space: pre;">{{ .ExtraData }}</span>{{ else }}&nbsp;{{ end }}
                         {{ if ne (len .Aliases) 0 }}
-                        <i id="icon-tooltip-builderprofit-alias-{{ $timerange }}" class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builderprofit-alias-{{ $timerange }}"></i>
-                        <div id="tooltip-builderprofit-alias-{{ $timerange }}" class="tooltip builder-aliases" role="tooltip">
+                        <i id="icon-tooltip-builderprofit-alias" class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builderprofit-alias"></i>
+                        <div id="tooltip-builderprofit-alias" class="tooltip builder-aliases" role="tooltip">
                             <b>extra_data values:</b>
                             <ul>
                                 {{ range .Aliases }}
@@ -162,7 +161,6 @@
                 {{ end }}
             </tbody>
         </table>
-        {{ end }}
     </div>
 
 
@@ -171,11 +169,9 @@
 <script src="https://unpkg.com/@popperjs/core@2"></script>
 <script>
     const tooltips = [
-        {{ range $timerange, $stats:= .Stats }}
-    ['#icon-tooltip-builder-alias-{{ $timerange }}', '#tooltip-builder-alias-{{ $timerange }}'],
-        ['#icon-tooltip-builderprofit-alias-{{ $timerange }}', '#tooltip-builderprofit-alias-{{ $timerange }}'],
-        {{ end }}
-        ]
+        ['#icon-tooltip-builder-alias', '#tooltip-builder-alias'],
+        ['#icon-tooltip-builderprofit-alias', '#tooltip-builderprofit-alias'],
+    ]
 
     const showEvents = ['mouseenter', 'focus'];
     const hideEvents = ['mouseleave', 'blur'];
@@ -204,11 +200,6 @@
     })
 
 
-    // Relay mouseover -> update buolders
-    // activeRelay = ""
-    currentTimeSpan = "{{ $timeInitial }}"
-    currentView = "{{ $viewInitial }}"
-
     showBuildersForRelay = function (relay) {
         // hide all builders
         for (const topBuildersTbody of document.getElementsByClassName("tbody-builders")) {
@@ -217,9 +208,9 @@
 
         // show specific builder
         if (relay == "") {
-            document.getElementById("tbody-builders-" + currentTimeSpan + "-all").style.display = "table-row-group";
+            document.getElementById("tbody-builders-all").style.display = "table-row-group";
         } else {
-            document.getElementById("tbody-builders-" + currentTimeSpan + "-" + relay).style.display = "table-row-group";
+            document.getElementById("tbody-builders-" + relay).style.display = "table-row-group";
         }
     }
 
@@ -234,7 +225,7 @@
     // COPY TABLES AS MARKDOWN TO CLIPBOARD
     copyBuilders = function (e) {
         e.stopPropagation();
-        var md = document.getElementById("md-builders-" + currentTimeSpan).innerHTML;
+        var md = document.getElementById("md-builders").innerHTML;
         navigator.clipboard.writeText(md);
         document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard");
         document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard-check");
@@ -246,7 +237,7 @@
 
     copyRelays = function (e) {
         e.stopPropagation();
-        var md = document.getElementById("md-relays-" + currentTimeSpan).innerHTML;
+        var md = document.getElementById("md-relays").innerHTML;
         navigator.clipboard.writeText(md);
         document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard");
         document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard-check");
@@ -255,99 +246,13 @@
             document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard");
         }, 1000);
     }
-
-    // Setting stats time
-    setStatsTime = function (time, doUpdateLocation) {
-        // update time picker
-        for (const statsTimePick of document.getElementsByClassName("stats-time-pick")) {
-            statsTimePick.classList.remove("active");
-        }
-        document.getElementById("stats-time-pick-" + time).classList.add("active");
-
-        // update relays
-        for (const statsTimePick of document.getElementsByClassName("tbody-relays")) {
-            statsTimePick.style.display = "none"
-        }
-        document.getElementById("tbody-relays-" + time).style.display = "table-row-group"
-
-        // update builders
-        for (const statsTimePick of document.getElementsByClassName("tbody-builders")) {
-            statsTimePick.style.display = "none"
-        }
-        document.getElementById("tbody-builders-" + time + "-all").style.display = "table-row-group"
-
-        // update builderprofits
-        for (const statsTimePick of document.getElementsByClassName("table-builderprofit")) {
-            statsTimePick.style.display = "none"
-        }
-        document.getElementById("table-builderprofit-" + time).style.display = "table-row-group"
-
-        currentTimeSpan = time
-        if (doUpdateLocation) {
-            updateLocation()
-        }
-    }
-
-    updateLocation = function () {
-        window.history.replaceState({}, document.title, "?t=" + currentTimeSpan + "&v=" + currentView);
-    }
-
-    window.onload = function () {
-        // show all builders
-        timeSpan = getQueryVariable("t")
-        if (timeSpan != null) {
-            setStatsTime(timeSpan, false)
-        }
-
-        const view = getQueryVariable("v")
-        console.log("view", view)
-        if (view == "profitability") {
-            showProfitability(false)
-        }
-    }
-
-    showOverview = function (doUpdateLocation) {
-        document.getElementById("content-profitability").style.display = "none";
-        document.getElementById("content-overview").style.display = "flex";
-        document.getElementById("a-view-type-overview").classList.add("active");
-        document.getElementById("a-view-type-profitability").classList.remove("active");
-        currentView = "overview"
-        if (doUpdateLocation) {
-            updateLocation()
-        }
-    }
-
-    showProfitability = function (doUpdateLocation) {
-        document.getElementById("content-profitability").style.display = "block";
-        document.getElementById("content-overview").style.display = "none";
-        document.getElementById("a-view-type-overview").classList.remove("active");
-        document.getElementById("a-view-type-profitability").classList.add("active");
-        currentView = "profitability"
-        if (doUpdateLocation) {
-            updateLocation()
-        }
-    }
-
-    getQueryVariable = function (variable) {
-        var query = window.location.search.substring(1);
-        var vars = query.split('&');
-        for (var i = 0; i < vars.length; i++) {
-            var pair = vars[i].split('=');
-            if (decodeURIComponent(pair[0]) == variable) {
-                return decodeURIComponent(pair[1]);
-            }
-        }
-        return null
-    }
 </script>
 
 <div style="display: none;">
-    {{ range $timerange, $stats := .Stats }}
-    <pre id="md-relays-{{ $timerange }}">{{ .TopRelays | relayTable}}
-Top relays - {{ $timerange }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
-    <pre id="md-builders-{{ $timerange }}">{{ .TopBuilders | builderTable}}
-Top builders - {{ $timerange }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
-    {{ end }}
+    <pre id="md-relays">{{ .Stats.TopRelays | relayTable}}
+Top relays - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+    <pre id="md-builders">{{ .Stats.TopBuilders | builderTable}}
+Top builders - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
 </div>
 
 <!-- <link href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable/sortable.min.css" rel="stylesheet" /> -->

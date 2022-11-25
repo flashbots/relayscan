@@ -532,3 +532,16 @@ h1 {
     color: inherit;
     content: "▴";
 }
+
+.td-builder-num-blocks,
+.td-builder-percent {
+    text-align: right;
+}
+
+.td-builder-extradata {
+    width: 99%;
+}
+
+.td-builder-percent {
+    min-width: 106px;
+}

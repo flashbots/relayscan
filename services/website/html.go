@@ -21,11 +21,11 @@ type Stats struct {
 type HTMLData struct {
 	GeneratedAt    time.Time
 	LastUpdateTime string
+	TimeSpans      []string
 
-	Stats            map[string]*Stats
-	StatsTimeSpans   []string
-	StatsTimeInitial string
-	InitialView      string
+	TimeSpan string
+	View     string
+	Stats    *Stats
 }
 
 type HTMLDataDailyStats struct {
