@@ -78,7 +78,7 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 		minifier:    minifier,
 	}
 
-	server.templateDailyStats, err = template.New("index").Funcs(funcMap).Parse(htmlContentDailyStats)
+	server.templateDailyStats, err = ParseDailyStatsTemplate()
 	if err != nil {
 		return nil, err
 	}
@@ -195,16 +195,17 @@ func (srv *Webserver) updateHTML() {
 	htmlData.GeneratedAt = now
 	htmlData.LastUpdateTime = now.Format("2006-01-02 15:04")
 	htmlData.Stats = make(map[string]*Stats)
-	htmlData.StatsTimeSpans = []string{"7d", "24h", "12h", "1h"}
+	// htmlData.StatsTimeSpans = []string{"7d", "24h", "12h", "1h"}
+	htmlData.StatsTimeSpans = []string{"24h"}
 	htmlData.StatsTimeInitial = "24h"
 	htmlData.InitialView = "overview"
 
-	srv.log.Info("updating 7d stats...")
-	htmlData.Stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
-	if err != nil {
-		srv.log.WithError(err).Error("Failed to get stats for 24h")
-		return
-	}
+	// srv.log.Info("updating 7d stats...")
+	// htmlData.Stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
+	// if err != nil {
+	// 	srv.log.WithError(err).Error("Failed to get stats for 24h")
+	// 	return
+	// }
 
 	srv.log.Info("updating 24h stats...")
 	htmlData.Stats["24h"], err = srv.getStatsForHours(24 * time.Hour)
@@ -213,22 +214,22 @@ func (srv *Webserver) updateHTML() {
 		return
 	}
 
-	srv.log.Info("updating 12h stats...")
-	htmlData.Stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
-	if err != nil {
-		srv.log.WithError(err).Error("Failed to get stats for 12h")
-		return
-	}
+	// srv.log.Info("updating 12h stats...")
+	// htmlData.Stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
+	// if err != nil {
+	// 	srv.log.WithError(err).Error("Failed to get stats for 12h")
+	// 	return
+	// }
 
-	srv.log.Info("updating 1h stats...")
-	htmlData.Stats["1h"], err = srv.getStatsForHours(1 * time.Hour)
-	if err != nil {
-		srv.log.WithError(err).Error("Failed to get stats for 1h")
-		return
-	}
+	// srv.log.Info("updating 1h stats...")
+	// htmlData.Stats["1h"], err = srv.getStatsForHours(1 * time.Hour)
+	// if err != nil {
+	// 	srv.log.WithError(err).Error("Failed to get stats for 1h")
+	// 	return
+	// }
 
 	// Render template
-	if err := srv.templateIndex.Execute(&htmlDefault, htmlData); err != nil {
+	if err := srv.templateIndex.ExecuteTemplate(&htmlDefault, "base", htmlData); err != nil {
 		srv.log.WithError(err).Error("error rendering template")
 	}
 
@@ -311,14 +312,14 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	defer srv.rootResponseLock.RUnlock()
 
 	if srv.opts.Dev {
-		tpl, err := template.New("index.html").Funcs(funcMap).ParseFiles("services/website/templates/index.html")
+		tpl, err := ParseIndexTemplate()
 		if err != nil {
-			srv.log.WithError(err).Error("error parsing template")
+			srv.log.WithError(err).Error("root: error parsing template")
 			return
 		}
-		err = tpl.Execute(w, srv.HTMLData)
+		err = tpl.ExecuteTemplate(w, "base", srv.HTMLData)
 		if err != nil {
-			srv.log.WithError(err).Error("error executing template")
+			srv.log.WithError(err).Error("root: error executing template")
 			return
 		}
 

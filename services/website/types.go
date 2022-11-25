@@ -20,7 +20,7 @@ type HTTPErrorResp struct {
 	Message string `json:"message"`
 }
 
-var builderConsolidationStrings = []string{"builder0x69"}
+// var builderConsolidationStrings = []string{"builder0x69"}
 
 func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database.TopBuilderEntry {
 	// Get total builder payloads, and build consolidated builder list

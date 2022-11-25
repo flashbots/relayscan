@@ -48,12 +48,21 @@ var funcMap = template.FuncMap{
 	"relayTable":   relayTable,
 }
 
-//go:embed templates/index.html
-var htmlContentIndex string
+// //go:embed templates/index.html
+// var htmlContentIndex string
 
-//go:embed templates/daily-stats.html
-var htmlContentDailyStats string
+// //go:embed templates/daily-stats.html
+// var htmlContentDailyStats string
+
+// func ParseIndexTemplate() (*template.Template, error) {
+// 	return template.New("index").Funcs(funcMap).Parse(htmlContentIndex)
+// }
 
 func ParseIndexTemplate() (*template.Template, error) {
-	return template.New("index").Funcs(funcMap).Parse(htmlContentIndex)
+	return template.New("index.html").Funcs(funcMap).ParseFiles("services/website/templates/index.html", "services/website/templates/base.html")
+
+}
+
+func ParseDailyStatsTemplate() (*template.Template, error) {
+	return template.New("daily-stats.html").Funcs(funcMap).ParseFiles("services/website/templates/daily-stats.html")
 }
