@@ -20,10 +20,10 @@ type RelayCollector struct {
 	log    *logrus.Entry
 	relays []common.RelayEntry
 	bn     *beaconclient.ProdBeaconInstance
-	db     database.IDatabaseService
+	db     *database.DatabaseService
 }
 
-func NewRelayCollector(log *logrus.Entry, relays []common.RelayEntry, beaconURL string, db database.IDatabaseService) *RelayCollector {
+func NewRelayCollector(log *logrus.Entry, relays []common.RelayEntry, beaconURL string, db *database.DatabaseService) *RelayCollector {
 	srv := &RelayCollector{
 		log:    log,
 		relays: relays,

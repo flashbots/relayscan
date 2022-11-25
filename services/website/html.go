@@ -28,6 +28,7 @@ type Stats struct {
 
 	TopRelays          []*database.TopRelayEntry
 	TopBuilders        []*database.TopBuilderEntry
+	BuilderProfits     []*database.BuilderProfitEntry
 	TopBuildersByRelay map[string][]*database.TopBuilderEntry
 }
 

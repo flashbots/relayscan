@@ -95,6 +95,7 @@ CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_block_number_idx
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_value_wei_idx ON ` + TableDataAPIPayloadDelivered + `("value_claimed_wei");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_valuecheck_ok_idx ON ` + TableDataAPIPayloadDelivered + `("value_check_ok");
 CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_slotmissed_idx ON ` + TableDataAPIPayloadDelivered + `("slot_missed");
+CREATE INDEX IF NOT EXISTS ` + TableDataAPIPayloadDelivered + `_cb_diff_eth_idx ON ` + TableDataAPIPayloadDelivered + `("coinbase_diff_eth");
 
 
 CREATE TABLE IF NOT EXISTS ` + TableDataAPIBuilderBid + ` (

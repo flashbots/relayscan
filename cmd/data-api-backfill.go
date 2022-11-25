@@ -81,11 +81,11 @@ var backfillDataAPICmd = &cobra.Command{
 
 type backfiller struct {
 	relay      common.RelayEntry
-	db         database.IDatabaseService
+	db         *database.DatabaseService
 	cursorSlot uint64
 }
 
-func newBackfiller(db database.IDatabaseService, relay common.RelayEntry, cursorSlot uint64) *backfiller {
+func newBackfiller(db *database.DatabaseService, relay common.RelayEntry, cursorSlot uint64) *backfiller {
 	return &backfiller{
 		relay:      relay,
 		db:         db,

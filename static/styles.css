@@ -16,6 +16,7 @@ body {
     line-height: 1.7em;
     color: #4e5454;
     height: 100%;
+    overflow-y: scroll;
 }
 
 h1,
@@ -323,7 +324,7 @@ a.pure-button-primary {
 
 h1 {
     font-size: 3em;
-    margin: 1.5em 0;
+    margin: 1em 0;
     line-height: 1.5em;
 }
 

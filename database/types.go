@@ -133,9 +133,22 @@ type TopBuilderEntry struct {
 	Aliases   []string `json:"aliases,omitempty"`
 }
 
-type RelayProfitability struct {
-	Relay       string `db:"relay" json:"relay"`
-	TimeSince   time.Time
-	TimeUntil   time.Time
-	NumPayloads uint64 `db:"payloads" json:"num_payloads"`
+// type RelayProfitability struct {
+// 	Relay       string `db:"relay" json:"relay"`
+// 	TimeSince   time.Time
+// 	TimeUntil   time.Time
+// 	NumPayloads uint64 `db:"payloads" json:"num_payloads"`
+// }
+
+type BuilderProfitEntry struct {
+	ExtraData           string `db:"extra_data" json:"extra_data"`
+	NumBlocks           uint64 `db:"blocks" json:"num_blocks"`
+	NumBlocksProfit     uint64 `db:"blocks_profit" json:"num_blocks_profit"`
+	NumBlocksSubsidised uint64 `db:"blocks_sub" json:"num_blocks_sub"`
+
+	ProfitPerBlockAvg    string `db:"avg_profit_per_block" json:"avg_profit_per_block"`
+	ProfitPerBlockMedian string `db:"median_profit_per_block" json:"median_profit_per_block"`
+
+	ProfitTotal    string `db:"total_profit" json:"profit_total"`
+	SubsidiesTotal string `db:"total_subsidies" json:"subsidies_total"`
 }

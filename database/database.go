@@ -10,24 +10,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type IDatabaseService interface {
-	SaveSignedBuilderBid(entry SignedBuilderBidEntry) error
-
-	GetDataAPILatestPayloadDelivered(relay string) (*DataAPIPayloadDeliveredEntry, error)
-	SaveDataAPIPayloadDelivered(entry *DataAPIPayloadDeliveredEntry) error
-	SaveDataAPIPayloadDeliveredBatch(entries []*DataAPIPayloadDeliveredEntry) error
-
-	GetDataAPILatestBid(relay string) (*DataAPIBuilderBidEntry, error)
-	SaveDataAPIBid(entry *DataAPIBuilderBidEntry) error
-	SaveDataAPIBids(entries []*DataAPIBuilderBidEntry) error
-	SaveBuilder(entry *BlockBuilderEntry) error
-
-	GetTopRelays(since, until time.Time) (res []*TopRelayEntry, err error)
-	GetTopBuilders(since, until time.Time, relay string) (res []*TopBuilderEntry, err error)
-
-	GetStatsForTimerange(since, until time.Time, relay string) (relays []*TopRelayEntry, builders []*TopBuilderEntry, err error)
-}
-
 type DatabaseService struct {
 	DB *sqlx.DB
 }
@@ -140,7 +122,6 @@ func (s *DatabaseService) GetTopRelays(since, until time.Time) (res []*TopRelayE
 }
 
 func (s *DatabaseService) GetTopBuilders(since, until time.Time, relay string) (res []*TopBuilderEntry, err error) {
-	// query := `SELECT extra_data, count(extra_data) as blocks FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY extra_data ORDER BY blocks DESC;`
 	query := `SELECT extra_data, count(extra_data) as blocks FROM (
 		SELECT distinct(slot), extra_data FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2`
 	if relay != "" {
@@ -148,6 +129,24 @@ func (s *DatabaseService) GetTopBuilders(since, until time.Time, relay string) (
 	}
 	query += ` GROUP BY slot, extra_data
 	) as x GROUP BY extra_data ORDER BY blocks DESC;`
+	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
+	return res, err
+}
+
+func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*BuilderProfitEntry, err error) {
+	query := `SELECT
+		extra_data,
+		count(extra_data) as blocks,
+		count(extra_data) filter (where coinbase_diff_eth > 0) as blocks_profit,
+		count(extra_data) filter (where coinbase_diff_eth < 0) as blocks_sub,
+		round(avg(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 6) as avg_profit_per_block,
+		round(PERCENTILE_DISC(0.5) WITHIN GROUP(ORDER BY CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 6) as median_profit_per_block,
+		round(sum(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 6) as total_profit,
+		round(abs(sum(CASE WHEN coinbase_diff_eth < 0 THEN coinbase_diff_eth ELSE 0 END)), 6) as total_subsidies
+	FROM "public"."mainnet_data_api_payload_delivered"
+	WHERE inserted_at > $1 AND inserted_at < $2
+	GROUP BY extra_data
+	ORDER BY total_profit DESC;`
 	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
 	return res, err
 }

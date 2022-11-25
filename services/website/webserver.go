@@ -156,12 +156,18 @@ func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, er
 		return nil, err
 	}
 
+	builderProfits, err := srv.db.GetBuilderProfits(since, now)
+	if err != nil {
+		return nil, err
+	}
+
 	stats = &Stats{
 		Since: since,
 		Until: now,
 
 		TopRelays:          prepareRelaysEntries(topRelays),
 		TopBuilders:        consolidateBuilderEntries(topBuilders),
+		BuilderProfits:     builderProfits,
 		TopBuildersByRelay: make(map[string][]*database.TopBuilderEntry),
 	}
 
