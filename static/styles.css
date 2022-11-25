@@ -197,9 +197,9 @@ a.pure-button-primary {
 /* We want to give the content area some more padding */
 .content {
     padding: 1em 1em 3em;
-    margin-top: 20px;
     max-width: 1200px;
     margin: auto;
+    padding-bottom: 120px;
 }
 
 /* This is the class used for the main content headers (<h2>) */
@@ -301,7 +301,6 @@ a.pure-button-primary {
     display: flex;
     justify-content: center;
     margin-bottom: 20px;
-    margin-top: 20px;
 }
 
 .pure-table thead {
@@ -332,7 +331,7 @@ h1 {
  * Tooltips, using popper.js
  * https: //popper.js.org/docs/v2/tutorial/
  */
-#tooltip {
+.tooltip {
     background: #333;
     color: white;
     /* font-weight: bold; */
@@ -342,54 +341,54 @@ h1 {
     display: none;
 }
 
-#tooltip[data-show] {
+.tooltip[data-show] {
     display: block;
 }
 
-#arrow,
-#arrow::before {
+.arrow,
+.arrow::before {
     position: absolute;
     width: 8px;
     height: 8px;
     background: inherit;
 }
 
-#arrow {
+.arrow {
     visibility: hidden;
 }
 
-#arrow::before {
+.arrow::before {
     visibility: visible;
     content: '';
     transform: rotate(45deg);
 }
 
-#tooltip[data-popper-placement^='top']>#arrow {
+.tooltip[data-popper-placement^='top']>.arrow {
     bottom: -4px;
 }
 
-#tooltip[data-popper-placement^='bottom']>#arrow {
+.tooltip[data-popper-placement^='bottom']>.arrow {
     top: -4px;
 }
 
-#tooltip[data-popper-placement^='left']>#arrow {
+.tooltip[data-popper-placement^='left']>.arrow {
     right: -4px;
 }
 
-#tooltip[data-popper-placement^='right']>#arrow {
+.tooltip[data-popper-placement^='right']>.arrow {
     left: -4px;
 }
 
 /* Tooltip for builder aliases */
-#builder-alias-icon {
+.tooltip-icon {
     padding-left: 4px;
 }
 
-#tooltip.builder-aliases {
+.tooltip.builder-aliases {
     padding: 10px;
 }
 
-#tooltip.builder-aliases ul {
+.tooltip.builder-aliases ul {
     margin: 0;
     padding-left: 20px;
 }
@@ -431,6 +430,21 @@ h1 {
     color: #131313;
 }
 
+/* view picker */
+#view-type {
+    color: #6d6d6d;
+}
+
+#view-type a {
+    color: #6d6d6d;
+    text-decoration: none;
+}
+
+#view-type .active {
+    font-weight: bold;
+    color: #131313;
+}
+
 /* stats time picker */
 #stats-time {
     color: #6d6d6d;
@@ -444,4 +458,77 @@ h1 {
 #stats-time .active {
     font-weight: bold;
     color: #131313;
+}
+
+/* content: profitability */
+#content-profitability table {
+    /* table-layout: fixed; */
+    width: 100%;
+}
+
+#content-profitability table th {
+    vertical-align: top;
+}
+
+#content-profitability table td.td-num-blocks,
+#content-profitability table td.td-num-blocks-profit,
+#content-profitability table td.td-num-blocks-subs {
+    width: 11%;
+}
+
+.sortable th {
+    cursor: pointer;
+}
+
+.sortable th.no-sort {
+    pointer-events: none;
+}
+
+.sortable th::after,
+.sortable th::before {
+    transition: color 0.1s ease-in-out;
+    color: transparent;
+}
+
+.sortable th::after {
+    margin-left: 8px;
+    content: "▸";
+}
+
+.sortable th:hover::after {
+    color: inherit;
+}
+
+.sortable th.dir-d::after {
+    color: inherit;
+    content: "▾";
+}
+
+.sortable th.dir-u::after {
+    color: inherit;
+    content: "▴";
+}
+
+.sortable th.indicator-left::after {
+    content: "";
+}
+
+.sortable th.indicator-left::before {
+    margin-left: 5px;
+    margin-right: 3px;
+    content: "▸";
+}
+
+.sortable th.indicator-left:hover::before {
+    color: inherit;
+}
+
+.sortable th.indicator-left.dir-d::before {
+    color: inherit;
+    content: "▾";
+}
+
+.sortable th.indicator-left.dir-u::before {
+    color: inherit;
+    content: "▴";
 }

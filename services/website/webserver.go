@@ -167,7 +167,7 @@ func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, er
 
 		TopRelays:          prepareRelaysEntries(topRelays),
 		TopBuilders:        consolidateBuilderEntries(topBuilders),
-		BuilderProfits:     builderProfits,
+		BuilderProfits:     consolidateBuilderProfitEntries(builderProfits),
 		TopBuildersByRelay: make(map[string][]*database.TopBuilderEntry),
 	}
 
@@ -195,8 +195,16 @@ func (srv *Webserver) updateHTML() {
 	htmlData.GeneratedAt = now
 	htmlData.LastUpdateTime = now.Format("2006-01-02 15:04")
 	htmlData.Stats = make(map[string]*Stats)
-	htmlData.StatsTimeSpans = []string{"24h", "12h", "1h"}
+	htmlData.StatsTimeSpans = []string{"7d", "24h", "12h", "1h"}
 	htmlData.StatsTimeInitial = "24h"
+	htmlData.InitialView = "overview"
+
+	srv.log.Info("updating 7d stats...")
+	htmlData.Stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
+	if err != nil {
+		srv.log.WithError(err).Error("Failed to get stats for 24h")
+		return
+	}
 
 	srv.log.Info("updating 24h stats...")
 	htmlData.Stats["24h"], err = srv.getStatsForHours(24 * time.Hour)

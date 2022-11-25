@@ -141,7 +141,9 @@ type TopBuilderEntry struct {
 // }
 
 type BuilderProfitEntry struct {
-	ExtraData           string `db:"extra_data" json:"extra_data"`
+	ExtraData string   `db:"extra_data" json:"extra_data"`
+	Aliases   []string `json:"aliases,omitempty"`
+
 	NumBlocks           uint64 `db:"blocks" json:"num_blocks"`
 	NumBlocksProfit     uint64 `db:"blocks_profit" json:"num_blocks_profit"`
 	NumBlocksSubsidised uint64 `db:"blocks_sub" json:"num_blocks_sub"`
