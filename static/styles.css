@@ -545,3 +545,22 @@ h1 {
 .td-builder-percent {
     min-width: 106px;
 }
+
+.copy-table-to-clipboard {
+    text-align: center;
+    padding: 20px;
+    visibility: hidden;
+}
+
+#content-profitability:hover .copy-table-to-clipboard {
+    visibility: visible;
+}
+
+.copy-table-to-clipboard a {
+    text-decoration: none;
+    color: #999;
+}
+
+.copy-table-to-clipboard a:hover {
+    color: #131313;
+}

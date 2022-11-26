@@ -69,6 +69,31 @@ func builderTable(builders []*database.TopBuilderEntry) string {
 	return tableString.String()
 }
 
+func builderProfitTable(entries []*database.BuilderProfitEntry) string {
+	tableEntries := [][]string{}
+	for _, builder := range entries {
+		tableEntries = append(tableEntries, []string{
+			builder.ExtraData,
+			printer.Sprintf("%d", builder.NumBlocks),
+			printer.Sprintf("%d", builder.NumBlocksProfit),
+			printer.Sprintf("%d", builder.NumBlocksSubsidised),
+			builder.ProfitPerBlockAvg,
+			builder.ProfitTotal,
+			builder.SubsidiesTotal,
+		})
+	}
+	tableString := &strings.Builder{}
+	table := tablewriter.NewWriter(tableString)
+	table.SetHeader([]string{"Builder extra_data", "Blocks", "Blocks with profit", "Blocks with subsidy", "Avg. profit / block", "Profit total", "Subsidies total"})
+	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	table.SetAutoWrapText(false)
+	table.SetCenterSeparator("|")
+	table.AppendBulk(tableEntries)
+	table.Render()
+	// fmt.Println(tableString.String())
+	return tableString.String()
+}
+
 func relayTable(relays []*database.TopRelayEntry) string {
 	relayEntries := [][]string{}
 	for _, relay := range relays {

@@ -40,27 +40,17 @@ type HTMLDataDailyStats struct {
 }
 
 var funcMap = template.FuncMap{
-	"weiToEth":     weiToEth,
-	"prettyInt":    prettyInt,
-	"caseIt":       caseIt,
-	"percent":      percent,
-	"builderTable": builderTable,
-	"relayTable":   relayTable,
+	"weiToEth":           weiToEth,
+	"prettyInt":          prettyInt,
+	"caseIt":             caseIt,
+	"percent":            percent,
+	"relayTable":         relayTable,
+	"builderTable":       builderTable,
+	"builderProfitTable": builderProfitTable,
 }
-
-// //go:embed templates/index.html
-// var htmlContentIndex string
-
-// //go:embed templates/daily-stats.html
-// var htmlContentDailyStats string
-
-// func ParseIndexTemplate() (*template.Template, error) {
-// 	return template.New("index").Funcs(funcMap).Parse(htmlContentIndex)
-// }
 
 func ParseIndexTemplate() (*template.Template, error) {
 	return template.New("index.html").Funcs(funcMap).ParseFiles("services/website/templates/index.html", "services/website/templates/base.html")
-
 }
 
 func ParseDailyStatsTemplate() (*template.Template, error) {

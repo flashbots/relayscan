@@ -130,6 +130,7 @@ func (srv *Webserver) getRouter() http.Handler {
 	r.HandleFunc("/", srv.handleRoot).Methods(http.MethodGet)
 	r.HandleFunc("/overview", srv.handleRoot).Methods(http.MethodGet)
 	r.HandleFunc("/builder-profit", srv.handleRoot).Methods(http.MethodGet)
+	// r.HandleFunc("/builder-profit/md", srv.handleBuilderProfitMarkdown).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}", srv.handleDailyStats).Methods(http.MethodGet)
 	r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
@@ -303,14 +304,9 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	}
 
 	view := "overview"
-	srv.log.Infof("path", req.URL.Path)
 	if strings.HasSuffix(req.URL.Path, "builder-profit") {
 		view = "builder-profit"
 	}
-	// view := req.URL.Query().Get("v")
-	// if view == "" {
-
-	// }
 
 	srv.statsLock.RLock()
 	htmlData := *srv.htmlDefault

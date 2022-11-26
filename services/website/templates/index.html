@@ -161,6 +161,9 @@
                 {{ end }}
             </tbody>
         </table>
+        <div class="copy-table-to-clipboard">
+            <a href="javascript:void(0)" onclick="copyBuilderProfit(event); return false;">copy markdown <i id="copy-builderprofit-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+        </div>
     </div>
 
 
@@ -234,6 +237,17 @@
         }, 1000);
     }
 
+    copyBuilderProfit = function (e) {
+        var md = document.getElementById("md-builderprofit").innerHTML;
+        navigator.clipboard.writeText(md);
+        document.getElementById("copy-builderprofit-to-clipboard-icon").classList.remove("bi-clipboard");
+        document.getElementById("copy-builderprofit-to-clipboard-icon").classList.add("bi-clipboard-check");
+        setTimeout(function () {
+            document.getElementById("copy-builderprofit-to-clipboard-icon").classList.remove("bi-clipboard-check");
+            document.getElementById("copy-builderprofit-to-clipboard-icon").classList.add("bi-clipboard");
+        }, 1000);
+    }
+
     copyRelays = function (e) {
         e.stopPropagation();
         var md = document.getElementById("md-relays").innerHTML;
@@ -257,6 +271,8 @@
 Top relays - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
     <pre id="md-builders">{{ .Stats.TopBuilders | builderTable}}
 Top builders - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+    <pre id="md-builderprofit">{{ .Stats.BuilderProfits | builderProfitTable}}
+Builder profit - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
 </div>
 
 <!-- <link href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable/sortable.min.css" rel="stylesheet" /> -->
