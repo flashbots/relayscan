@@ -43,15 +43,15 @@
                             <th>Percent</th>
                         </tr>
                     </thead>
-                    {{ range .Stats.TopRelays }}
                     <tbody id="tbody-relays" class="tbody-relays">
+                        {{ range .Stats.TopRelays }}
                         <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')">
-                            <td>{{ .Relay }}</td>
+                            <td class="td-relay-name">{{ .Relay }}</td>
                             <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
                             <td style="text-align:right">{{ .Percent }} %</td>
                         </tr>
+                        {{ end }}
                     </tbody>
-                    {{ end }}
                 </table>
             </div>
         </div>
