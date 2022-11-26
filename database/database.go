@@ -139,10 +139,10 @@ func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*Buil
 		count(extra_data) as blocks,
 		count(extra_data) filter (where coinbase_diff_eth > 0) as blocks_profit,
 		count(extra_data) filter (where coinbase_diff_eth < 0) as blocks_sub,
-		round(avg(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 6) as avg_profit_per_block,
-		round(PERCENTILE_DISC(0.5) WITHIN GROUP(ORDER BY CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 6) as median_profit_per_block,
-		round(sum(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 6) as total_profit,
-		round(abs(sum(CASE WHEN coinbase_diff_eth < 0 THEN coinbase_diff_eth ELSE 0 END)), 6) as total_subsidies
+		round(avg(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 4) as avg_profit_per_block,
+		round(PERCENTILE_DISC(0.5) WITHIN GROUP(ORDER BY CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 4) as median_profit_per_block,
+		round(sum(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 4) as total_profit,
+		round(abs(sum(CASE WHEN coinbase_diff_eth < 0 THEN coinbase_diff_eth ELSE 0 END)), 4) as total_subsidies
 	FROM (
 		SELECT distinct(slot), extra_data, coinbase_diff_eth FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2
 	) AS x

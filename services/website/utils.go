@@ -189,9 +189,9 @@ func consolidateBuilderProfitEntries(entries []*database.BuilderProfitEntry) []*
 				entryConsolidated.NumBlocks += entry.NumBlocks
 				entryConsolidated.NumBlocksProfit += entry.NumBlocksProfit
 				entryConsolidated.NumBlocksSubsidised += entry.NumBlocksSubsidised
-				entryConsolidated.ProfitTotal = addFloatStrings(entryConsolidated.ProfitTotal, entry.ProfitTotal, 6)
-				entryConsolidated.SubsidiesTotal = addFloatStrings(entryConsolidated.SubsidiesTotal, entry.SubsidiesTotal, 6)
-				entryConsolidated.ProfitPerBlockAvg = divFloatStrings(entryConsolidated.ProfitTotal, fmt.Sprint(entryConsolidated.NumBlocks), 6)
+				entryConsolidated.ProfitTotal = addFloatStrings(entryConsolidated.ProfitTotal, entry.ProfitTotal, 4)
+				entryConsolidated.SubsidiesTotal = addFloatStrings(entryConsolidated.SubsidiesTotal, entry.SubsidiesTotal, 4)
+				entryConsolidated.ProfitPerBlockAvg = divFloatStrings(entryConsolidated.ProfitTotal, fmt.Sprint(entryConsolidated.NumBlocks), 4)
 
 			} else {
 				buildersMap["builder0x69"] = &database.BuilderProfitEntry{

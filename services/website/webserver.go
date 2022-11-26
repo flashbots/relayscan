@@ -57,7 +57,8 @@ type Webserver struct {
 	statsAPIResp     *[]byte
 	statsAPIRespLock sync.RWMutex
 
-	markdownSummaryResp     *[]byte
+	markdownOverview        *[]byte
+	markdownBuilderProfit   *[]byte
 	markdownSummaryRespLock sync.RWMutex
 }
 
@@ -74,9 +75,10 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 		log:  opts.Log,
 		db:   opts.DB,
 
-		stats:               make(map[string]*Stats),
-		minifier:            minifier,
-		markdownSummaryResp: &[]byte{},
+		stats:                 make(map[string]*Stats),
+		minifier:              minifier,
+		markdownOverview:      &[]byte{},
+		markdownBuilderProfit: &[]byte{},
 	}
 
 	server.templateDailyStats, err = ParseDailyStatsTemplate()
@@ -130,11 +132,14 @@ func (srv *Webserver) getRouter() http.Handler {
 	r.HandleFunc("/", srv.handleRoot).Methods(http.MethodGet)
 	r.HandleFunc("/overview", srv.handleRoot).Methods(http.MethodGet)
 	r.HandleFunc("/builder-profit", srv.handleRoot).Methods(http.MethodGet)
+
+	r.HandleFunc("/overview/md", srv.handleOverviewMarkdown).Methods(http.MethodGet)
+	r.HandleFunc("/builder-profit/md", srv.handleBuilderProfitMarkdown).Methods(http.MethodGet)
+
 	// r.HandleFunc("/builder-profit/md", srv.handleBuilderProfitMarkdown).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}", srv.handleDailyStats).Methods(http.MethodGet)
 	r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
-	r.HandleFunc("/api/stats/md", srv.handleStatsMarkdownAPI).Methods(http.MethodGet)
 
 	if srv.opts.EnablePprof {
 		srv.log.Info("pprof API enabled")
@@ -240,16 +245,22 @@ func (srv *Webserver) updateHTML() {
 	// helper
 	stats24h := stats["24h"]
 
-	// create summary markdown
-	summary := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
-	summary += relayTable(stats24h.TopRelays)
-	summary += fmt.Sprintf("```\n\nTop builders - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
-	summary += builderTable(stats24h.TopBuilders)
-	summary += "```"
-	fmt.Println(summary)
-	b := []byte(summary)
+	// create overviewMd markdown
+	overviewMd := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
+	overviewMd += relayTable(stats24h.TopRelays)
+	overviewMd += fmt.Sprintf("```\n\nTop builders - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
+	overviewMd += builderTable(stats24h.TopBuilders)
+	overviewMd += "```"
+	overviewMdBytes := []byte(overviewMd)
+
+	builderProfitMd := fmt.Sprintf("Builder profits - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
+	builderProfitMd += builderProfitTable(stats24h.BuilderProfits)
+	builderProfitMd += "```"
+	builderProfitMdBytes := []byte(builderProfitMd)
+
 	srv.markdownSummaryRespLock.Lock()
-	srv.markdownSummaryResp = &b
+	srv.markdownOverview = &overviewMdBytes
+	srv.markdownBuilderProfit = &builderProfitMdBytes
 	srv.markdownSummaryRespLock.Unlock()
 
 	// srv.statsAPIRespLock.Lock()
@@ -269,7 +280,7 @@ func (srv *Webserver) updateHTML() {
 	srv.log.Info("Updating HTML data complete.")
 
 	if SummaryFilename != "" {
-		err := os.WriteFile(SummaryFilename, []byte(summary), 0644)
+		err := os.WriteFile(SummaryFilename, []byte(overviewMd), 0644)
 		if err != nil {
 			srv.log.WithError(err).Errorf("failed writing summary to %s", SummaryFilename)
 		} else {
@@ -357,10 +368,16 @@ func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {
 	_, _ = w.Write(*srv.statsAPIResp)
 }
 
-func (srv *Webserver) handleStatsMarkdownAPI(w http.ResponseWriter, req *http.Request) {
+func (srv *Webserver) handleOverviewMarkdown(w http.ResponseWriter, req *http.Request) {
 	srv.markdownSummaryRespLock.RLock()
 	defer srv.markdownSummaryRespLock.RUnlock()
-	_, _ = w.Write(*srv.markdownSummaryResp)
+	_, _ = w.Write(*srv.markdownOverview)
+}
+
+func (srv *Webserver) handleBuilderProfitMarkdown(w http.ResponseWriter, req *http.Request) {
+	srv.markdownSummaryRespLock.RLock()
+	defer srv.markdownSummaryRespLock.RUnlock()
+	_, _ = w.Write(*srv.markdownBuilderProfit)
 }
 
 func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request) {

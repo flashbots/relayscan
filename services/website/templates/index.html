@@ -128,9 +128,9 @@
                     <th>Blocks</th>
                     <th>Blocks with profit</th>
                     <th>Blocks with subsidy</th>
-                    <th>Avg. profit / block</th>
-                    <th id="th-builderprofit-profittotal" class="dir-d">Profit total</th>
-                    <th>Subsidies total</th>
+                    <th>Avg. profit / block (ETH)</th>
+                    <th id="th-builderprofit-profittotal" class="dir-d">Profit total (ETH)</th>
+                    <th>Subsidies total (ETH)</th>
                 </tr>
             </thead>
             <tbody>
@@ -162,7 +162,7 @@
             </tbody>
         </table>
         <div class="copy-table-to-clipboard">
-            <a href="javascript:void(0)" onclick="copyBuilderProfit(event); return false;">copy markdown <i id="copy-builderprofit-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+            <a href="/builder-profit/md" onclick="copyBuilderProfit(event); return false;">copy markdown <i id="copy-builderprofit-to-clipboard-icon" class="bi bi-clipboard"></i></a>
         </div>
     </div>
 
@@ -272,7 +272,7 @@ Top relays - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](http
     <pre id="md-builders">{{ .Stats.TopBuilders | builderTable}}
 Top builders - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
     <pre id="md-builderprofit">{{ .Stats.BuilderProfits | builderProfitTable}}
-Builder profit - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+Builder profits - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
 </div>
 
 <!-- <link href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable/sortable.min.css" rel="stylesheet" /> -->
