@@ -5,21 +5,21 @@
 
 <div class="content">
     <div style="text-align: center; margin-bottom:60px;">
-        <h1 style="margin-bottom:10px;">Relay & Builder Stats</h1>
+        <h1 style="margin-bottom:10px;">MEV-Boost Analytics</h1>
         <!-- <h2 style="margin-bottom:10px;">24h Stats</h2> -->
 
         <p style="color: #6d6d6d;">
             <small>updated {{ .LastUpdateTime }} UTC</small>
         </p>
         <p id="view-type">
-            <a href="/?v=overview&t={{ $time }}" id="a-view-type-overview" {{ if eq $view "overview" }}class="active" {{ end }}>Overview</a>
+            <a href="/overview?t={{ $time }}" id="a-view-type-overview" {{ if eq $view "overview" }}class="active" {{ end }}>Overview</a>
             &middot;
-            <a href="/?v=builderprofit&t={{ $time }}" id="a-view-type-profitability" {{ if eq $view "builderprofit" }}class="active" {{ end }}>Builder Profitability</a>
+            <a href="/builder-profit?t={{ $time }}" id="a-view-type-profitability" {{ if eq $view "builder-profit" }}class="active" {{ end }}>Builder Profitability</a>
         </p>
         <p id="stats-time">
             {{ range $index, $timerange := .TimeSpans }}
             {{ if ne $index 0 }} &middot; {{ end }}
-            <a href="/?v={{ $view }}&t={{ $timerange }}" id="stats-time-pick-{{ $timerange }}" class="stats-time-pick {{ if eq $timerange $time }}active{{ end }}">{{ $timerange }}</a>
+            <a href="/{{ $view }}?t={{ $timerange }}" id="stats-time-pick-{{ $timerange }}" class="stats-time-pick {{ if eq $timerange $time }}active{{ end }}">{{ $timerange }}</a>
             {{ end }}
         </p>
     </div>
@@ -129,7 +129,7 @@
                     <th>Blocks with profit</th>
                     <th>Blocks with subsidy</th>
                     <th>Avg. profit / block</th>
-                    <th>Profit total</th>
+                    <th id="th-builderprofit-profittotal" class="dir-d">Profit total</th>
                     <th>Subsidies total</th>
                 </tr>
             </thead>
@@ -199,7 +199,6 @@
 
     })
 
-
     showBuildersForRelay = function (relay) {
         // hide all builders
         for (const topBuildersTbody of document.getElementsByClassName("tbody-builders")) {
@@ -245,6 +244,11 @@
             document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard-check");
             document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard");
         }, 1000);
+    }
+
+    window.onload = (event) => {
+        // fix for table sorting (it's already sorted, and this click makes the sortable plugin think it has done it)
+        document.getElementById("th-builderprofit-profittotal").click()
     }
 </script>
 

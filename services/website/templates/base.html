@@ -1,4 +1,9 @@
 {{ define "base" }}
+{{- $title := "MEV-Boost Relay & Builder Stats" }}
+{{- if ne .View "overview" -}}
+{{- $title = "MEV-Boost Builder Profitability" }}
+{{- end -}}
+
 <!doctype html>
 <html lang="en">
 
@@ -17,22 +22,22 @@
     <link rel="manifest" href="/static/favicon/site.webmanifest">
 
     <!-- HTML Meta Tags -->
-    <title>relayscan.io – MEV-Boost Relay & Builder Stats</title>
-    <meta name="description" content="Monitoring, analytics & data for MEV-Boost Builders and Relays on Ethereum">
+    <title>{{ $title }} | relayscan.io</title>
+    <meta name="description" content="Monitoring, analytics & data for Ethereum MEV-Boost builders and relays">
 
     <!-- Facebook Meta Tags -->
     <meta property="og:url" content="https://www.relayscan.io">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="relayscan.io – MEV-Boost Relay & Builder Stats">
-    <meta property="og:description" content="Monitoring, analytics & data for MEV-Boost Builders and Relays on Ethereum">
+    <meta property="og:title" content="{{ $title }} | relayscan.io">
+    <meta property="og:description" content="Monitoring, analytics & data for Ethereum MEV-Boost builders and relays">
     <meta property="og:image" content="https://relayscan.io/static/images/ogimage.png">
 
     <!-- Twitter Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta property="twitter:domain" content="relayscan.io">
     <meta property="twitter:url" content="https://www.relayscan.io">
-    <meta name="twitter:title" content="relayscan.io – MEV-Boost Relay & Builder Stats">
-    <meta name="twitter:description" content="Monitoring, analytics & data for MEV-Boost Builders and Relays on Ethereum">
+    <meta name="twitter:title" content="{{ $title }} | relayscan.io">
+    <meta name="twitter:description" content="Monitoring, analytics & data for Ethereum MEV-Boost builders and relays">
     <meta name="twitter:image" content="https://relayscan.io/static/images/ogimage.png">
 </head>
 

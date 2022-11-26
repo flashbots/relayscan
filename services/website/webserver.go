@@ -9,6 +9,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strings"
 	"sync"
 	"text/template"
 	"time"
@@ -127,6 +128,8 @@ func (srv *Webserver) StartServer() (err error) {
 func (srv *Webserver) getRouter() http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/", srv.handleRoot).Methods(http.MethodGet)
+	r.HandleFunc("/overview", srv.handleRoot).Methods(http.MethodGet)
+	r.HandleFunc("/builder-profit", srv.handleRoot).Methods(http.MethodGet)
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}", srv.handleDailyStats).Methods(http.MethodGet)
 	r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
@@ -298,10 +301,16 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	if timespan == "" {
 		timespan = "24h"
 	}
-	view := req.URL.Query().Get("v")
-	if view == "" {
-		view = "overview"
+
+	view := "overview"
+	srv.log.Infof("path", req.URL.Path)
+	if strings.HasSuffix(req.URL.Path, "builder-profit") {
+		view = "builder-profit"
 	}
+	// view := req.URL.Query().Get("v")
+	// if view == "" {
+
+	// }
 
 	srv.statsLock.RLock()
 	htmlData := *srv.htmlDefault
