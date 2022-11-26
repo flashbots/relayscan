@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
-	"os"
 	"strings"
 	"sync"
 	"text/template"
@@ -26,7 +25,6 @@ import (
 
 var (
 	ErrServerAlreadyStarted = errors.New("server was already started")
-	SummaryFilename         = os.Getenv("RELAYSCAN_STATS_FILE")
 )
 
 type WebserverOpts struct {
@@ -278,15 +276,6 @@ func (srv *Webserver) updateHTML() {
 	// }
 	// srv.statsAPIRespLock.Unlock()
 	srv.log.Info("Updating HTML data complete.")
-
-	if SummaryFilename != "" {
-		err := os.WriteFile(SummaryFilename, []byte(overviewMd), 0644)
-		if err != nil {
-			srv.log.WithError(err).Errorf("failed writing summary to %s", SummaryFilename)
-		} else {
-			srv.log.Infof("wrote summary to %s", SummaryFilename)
-		}
-	}
 }
 
 func (srv *Webserver) RespondError(w http.ResponseWriter, code int, message string) {
