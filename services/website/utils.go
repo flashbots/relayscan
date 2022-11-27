@@ -222,13 +222,18 @@ func consolidateBuilderProfitEntries(entries []*database.BuilderProfitEntry) []*
 }
 
 func prepareRelaysEntries(relays []*database.TopRelayEntry) []*database.TopRelayEntry {
-	topRelaysNumPayloads := uint64(0)
+	numPayloads := uint64(0)
+	resp := []*database.TopRelayEntry{}
 	for _, entry := range relays {
-		topRelaysNumPayloads += entry.NumPayloads
+		if entry.Relay == "relay.ultrasound.money" || entry.Relay == "agnostic-relay.net" {
+			continue
+		}
+		resp = append(resp, entry)
+		numPayloads += entry.NumPayloads
 	}
-	for i, entry := range relays {
-		p := float64(entry.NumPayloads) / float64(topRelaysNumPayloads) * 100
-		relays[i].Percent = fmt.Sprintf("%.2f", p)
+	for i, entry := range resp {
+		p := float64(entry.NumPayloads) / float64(numPayloads) * 100
+		resp[i].Percent = fmt.Sprintf("%.2f", p)
 	}
-	return relays
+	return resp
 }
