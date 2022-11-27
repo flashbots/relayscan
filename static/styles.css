@@ -295,6 +295,14 @@ a.pure-button-primary {
     .splash-head {
         font-size: 300%;
     }
+
+    #stats-relays-inner {
+        margin-right: 20px;
+    }
+
+    #stats-builders-inner {
+        margin-left: 20px;
+    }
 }
 
 .stats-table {
@@ -568,4 +576,12 @@ td.td-relay-name {
 
 .copy-table-to-clipboard a:hover {
     color: #131313;
+}
+
+#stats-relays-inner {
+    width: 100%;
+}
+
+#stats-builders-inner {
+    width: 100%;
 }

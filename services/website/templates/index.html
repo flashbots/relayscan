@@ -25,8 +25,8 @@
     </div>
 
     <div class="pure-g" id="content-overview" {{ if ne $view "overview" }}style="display: none;" {{ end }}>
-        <div class=" pure-u-1 pure-u-md-1-2 stats-table" id="stats-relays">
-            <div style="width: 100%; padding: 0px 30px;">
+        <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-relays">
+            <div id="stats-relays-inner">
                 <h2 id="header-top-relays">
                     <div id="copy-relays-to-clipboard">
                         <a href="javascript:void(0)" onclick="copyRelays(event)" title="Copy relays as markdown to clipboard"><i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
@@ -57,7 +57,7 @@
         </div>
 
         <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-builders">
-            <div style="width: 100%; padding: 0px 30px;">
+            <div id="stats-builders-inner">
                 <h2 id="header-top-builders">
                     <div id="copy-builders-to-clipboard">
                         <a href="javascript:void(0)" onclick="copyBuilders(event)" title="Copy builders as markdown to clipboard"><i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
