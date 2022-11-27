@@ -96,6 +96,13 @@ func WeiToEth(wei *big.Int) (ethValue *big.Float) {
 	return
 }
 
+func WeiStrToEthStr(wei string, decimals int) string {
+	weiBigInt := new(big.Int)
+	weiBigInt.SetString(wei, 10)
+	ethValue := WeiToEth(weiBigInt)
+	return ethValue.Text('f', decimals)
+}
+
 func StringSliceContains(haystack []string, needle string) bool {
 	for _, entry := range haystack {
 		if entry == needle {

@@ -1,4 +1,3 @@
-// helper to backfill extra_data
 package cmd
 
 import (
