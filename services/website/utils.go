@@ -79,14 +79,13 @@ func builderProfitTable(entries []*database.BuilderProfitEntry) string {
 			printer.Sprintf("%d", builder.NumBlocks),
 			printer.Sprintf("%d", builder.NumBlocksProfit),
 			printer.Sprintf("%d", builder.NumBlocksSubsidised),
-			builder.ProfitPerBlockAvg,
 			builder.ProfitTotal,
 			builder.SubsidiesTotal,
 		})
 	}
 	tableString := &strings.Builder{}
 	table := tablewriter.NewWriter(tableString)
-	table.SetHeader([]string{"Builder extra_data", "Blocks", "Blocks with profit", "Blocks with subsidy", "Avg. profit / block", "Profit total", "Subsidies total"})
+	table.SetHeader([]string{"Builder extra_data", "Blocks", "Blocks profit", "Blocks subsidy", "Profit total", "Subsidies total"})
 	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 	table.SetAutoWrapText(false)
 	table.SetCenterSeparator("|")

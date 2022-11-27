@@ -238,7 +238,7 @@
     }
 
     copyBuilderProfit = function (e) {
-        var md = document.getElementById("md-builderprofit").innerHTML;
+        var md = document.getElementById("md-builderprofit").innerHTML.replace(/&amp;/g, '&');;
         navigator.clipboard.writeText(md);
         document.getElementById("copy-builderprofit-to-clipboard-icon").classList.remove("bi-clipboard");
         document.getElementById("copy-builderprofit-to-clipboard-icon").classList.add("bi-clipboard-check");
@@ -268,11 +268,11 @@
 
 <div style="display: none;">
     <pre id="md-relays">{{ .Stats.TopRelays | relayTable}}
-Top relays - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+Top relays - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://www.relayscan.io)</pre>
     <pre id="md-builders">{{ .Stats.TopBuilders | builderTable}}
-Top builders - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+Top builders - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://www.relayscan.io)</pre>
     <pre id="md-builderprofit">{{ .Stats.BuilderProfits | builderProfitTable}}
-Builder profits - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://relayscan.io)</pre>
+Builder profits - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io/builder-profit](https://www.relayscan.io/builder-profit)</pre>
 </div>
 
 <!-- <link href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable/sortable.min.css" rel="stylesheet" /> -->
