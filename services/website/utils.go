@@ -227,6 +227,9 @@ func prepareRelaysEntries(relays []*database.TopRelayEntry) []*database.TopRelay
 		if entry.Relay == "relay.ultrasound.money" || entry.Relay == "agnostic-relay.net" {
 			continue
 		}
+		if entry.NumPayloads == 0 {
+			continue
+		}
 		resp = append(resp, entry)
 		numPayloads += entry.NumPayloads
 	}
