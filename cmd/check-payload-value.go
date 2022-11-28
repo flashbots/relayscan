@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/metachris/flashbotsrpc"
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
-	"github.com/onrik/ethrpc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -52,11 +52,11 @@ var checkPayloadValueCmd = &cobra.Command{
 		// }
 
 		log.Infof("Using eth node: %s", ethNodeURI)
-		client := ethrpc.New(ethNodeURI)
-		var client2 *ethrpc.EthRPC
+		client := flashbotsrpc.New(ethNodeURI)
+		var client2 *flashbotsrpc.FlashbotsRPC
 		if ethNodeBackupURI != "" {
 			log.Infof("Using eth backup node: %s", ethNodeBackupURI)
-			client2 = ethrpc.New(ethNodeBackupURI)
+			client2 = flashbotsrpc.New(ethNodeBackupURI)
 		}
 
 		// Connect to Postgres
@@ -120,7 +120,7 @@ var checkPayloadValueCmd = &cobra.Command{
 	},
 }
 
-func _getBalanceDiff(ethClient *ethrpc.EthRPC, address string, blockNumber int) (*big.Int, error) {
+func _getBalanceDiff(ethClient *flashbotsrpc.FlashbotsRPC, address string, blockNumber int) (*big.Int, error) {
 	balanceBefore, err := ethClient.EthGetBalance(address, fmt.Sprintf("0x%x", blockNumber-1))
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get balance for %s @ %d", address, blockNumber-1) //nolint
@@ -133,7 +133,7 @@ func _getBalanceDiff(ethClient *ethrpc.EthRPC, address string, blockNumber int) 
 	return balanceDiff, nil
 }
 
-func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
+func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *flashbotsrpc.FlashbotsRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
 	defer wg.Done()
 
 	getBalanceDiff := func(address string, blockNumber int) (*big.Int, error) {
@@ -144,7 +144,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		return r, err
 	}
 
-	getBlockByHash := func(blockHash string, withTransactions bool) (*ethrpc.Block, error) {
+	getBlockByHash := func(blockHash string, withTransactions bool) (*flashbotsrpc.Block, error) {
 		block, err := client.EthGetBlockByHash(blockHash, withTransactions)
 		if err != nil || block == nil {
 			block, err = client2.EthGetBlockByHash(blockHash, withTransactions)
@@ -152,7 +152,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		return block, err
 	}
 
-	getBlockByNumber := func(blockNumber int, withTransactions bool) (*ethrpc.Block, error) {
+	getBlockByNumber := func(blockNumber int, withTransactions bool) (*flashbotsrpc.Block, error) {
 		block, err := client.EthGetBlockByNumber(blockNumber, withTransactions)
 		if err != nil || block == nil {
 			block, err = client2.EthGetBlockByNumber(blockNumber, withTransactions)
@@ -184,7 +184,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 	}
 
 	var err error
-	var block *ethrpc.Block
+	var block *flashbotsrpc.Block
 	for entry := range entryC {
 		_log := log.WithFields(logrus.Fields{
 			"slot":        entry.Slot,

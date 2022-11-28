@@ -11,8 +11,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.7
+	github.com/metachris/flashbotsrpc v0.5.0
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/onrik/ethrpc v1.1.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
 	github.com/tdewolff/minify v2.3.6+incompatible
@@ -31,6 +31,7 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/jarcoal/httpmock v1.2.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.1.0 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
@@ -45,6 +46,7 @@ require (
 	github.com/supranational/blst v0.3.8-0.20220526154634-513d2456b344 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
+	github.com/tidwall/gjson v1.14.2 // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	go.uber.org/multierr v1.6.0 // indirect

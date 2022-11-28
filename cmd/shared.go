@@ -8,9 +8,9 @@ import (
 	"os"
 
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
+	"github.com/metachris/flashbotsrpc"
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
-	"github.com/onrik/ethrpc"
 )
 
 var (
@@ -28,10 +28,10 @@ var (
 	defaultEthBackupNodeURI = relaycommon.GetEnv("ETH_NODE_BACKUP_URI", "")
 )
 
-func connectEthNodes(uri1, uri2 string) (client1, client2 *ethrpc.EthRPC) {
-	client1 = ethrpc.New(uri1)
+func connectEthNodes(uri1, uri2 string) (client1, client2 *flashbotsrpc.FlashbotsRPC) {
+	client1 = flashbotsrpc.New(uri1)
 	if uri2 != "" {
-		client2 = ethrpc.New(uri2)
+		client2 = flashbotsrpc.New(uri2)
 	}
 	return client1, client2
 }
@@ -46,7 +46,7 @@ func connectPostgres(dsn string) (*database.DatabaseService, error) {
 }
 
 type EthNode struct {
-	clients []*ethrpc.EthRPC
+	clients []*flashbotsrpc.FlashbotsRPC
 }
 
 func NewEthNode(uris ...string) (*EthNode, error) {
@@ -55,12 +55,12 @@ func NewEthNode(uris ...string) (*EthNode, error) {
 	}
 	node := &EthNode{}
 	for _, uri := range uris {
-		node.clients = append(node.clients, ethrpc.New(uri))
+		node.clients = append(node.clients, flashbotsrpc.New(uri))
 	}
 	return node, nil
 }
 
-func (n *EthNode) GetBlockByNumber(blockNumber int, withTransactions bool) (block *ethrpc.Block, err error) {
+func (n *EthNode) GetBlockByNumber(blockNumber int, withTransactions bool) (block *flashbotsrpc.Block, err error) {
 	for _, client := range n.clients {
 		block, err = client.EthGetBlockByNumber(blockNumber, withTransactions)
 		if err == nil {
@@ -70,7 +70,7 @@ func (n *EthNode) GetBlockByNumber(blockNumber int, withTransactions bool) (bloc
 	return nil, err
 }
 
-func (n *EthNode) GetBlockByHash(blockHash string, withTransactions bool) (block *ethrpc.Block, err error) {
+func (n *EthNode) GetBlockByHash(blockHash string, withTransactions bool) (block *flashbotsrpc.Block, err error) {
 	for _, client := range n.clients {
 		block, err = client.EthGetBlockByHash(blockHash, withTransactions)
 		if err == nil {

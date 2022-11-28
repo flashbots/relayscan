@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -102,7 +103,7 @@ func inspectBlockBySlot(slot uint64, node *EthNode, db *database.DatabaseService
 	if err != nil {
 		log.WithError(err).Fatalf("couldn't get balance diff")
 	}
-	log.Infof("- balance diff: %s", common.WeiToEth(balanceDiff).Text('f', 6))
+	log.Infof("- balance diff: %s ETH", common.WeiToEth(balanceDiff).Text('f', 6))
 	if balanceDiff.String() == payload.ValueClaimedWei {
 		log.Infof("- balance diff ✅")
 	} else {
@@ -120,17 +121,43 @@ func inspectBlockByHash(blockHash string, proposerFeeRecipient string, node *Eth
 		log.WithError(err).Fatalf("couldn't get block")
 	}
 
-	log.Infof("- Block %d %s", block.Number, block.Hash)
+	log.Infof("- Block: %d %s", block.Number, block.Hash)
 	log.Infof("- Coinbase: %s", block.Miner)
 	balanceDiff, err := node.GetBalanceDiff(block.Miner, block.Number)
 	if err != nil {
 		log.WithError(err).Fatalf("couldn't get balance diff")
 	}
 	if proposerFeeRecipient == block.Miner {
-		log.Infof("- Coinbase balance diff (proposer feeRec): %s", common.WeiToEth(balanceDiff).Text('f', 6))
+		log.Infof("- Coinbase balance diff (proposer feeRec): %s ETH", common.WeiToEth(balanceDiff).Text('f', 6))
 	} else {
-		log.Infof("- Coinbase balance diff (builder): %s", common.WeiToEth(balanceDiff).Text('f', 6))
+		log.Infof("- Coinbase balance diff (builder): %s ETH", common.WeiToEth(balanceDiff).Text('f', 6))
 	}
 	log.Infof("- Gas used: %s / %s", printer.Sprint(block.GasUsed), printer.Sprint(block.GasLimit))
 	log.Infof("- Transactions: %d", len(block.Transactions))
+
+	totalTxValue := big.NewInt(0)
+	totalTxValueToCoinbase := big.NewInt(0)
+	totalTxValueToProposer := big.NewInt(0)
+	numTxToCoinbase := 0
+	numTxToProposer := 0
+	gasFee := big.NewInt(0)
+	for _, tx := range block.Transactions {
+		totalTxValue.Add(totalTxValue, &tx.Value)
+		gasFee = new(big.Int).Add(gasFee, new(big.Int).Mul(&tx.GasPrice, big.NewInt(int64(tx.Gas))))
+		if tx.To == block.Miner {
+			numTxToCoinbase += 1
+			totalTxValueToCoinbase.Add(totalTxValueToCoinbase, &tx.Value)
+			log.Infof("- tx to coinbase: %s / %s ETH, from %s", tx.Hash, common.WeiToEth(&tx.Value).Text('f', 6), tx.From)
+		}
+		if tx.To == proposerFeeRecipient {
+			numTxToProposer += 1
+			totalTxValueToProposer.Add(totalTxValueToProposer, &tx.Value)
+			log.Infof("- tx to proposer: %s / %s ETH, from %s", tx.Hash, common.WeiToEth(&tx.Value).Text('f', 6), tx.From)
+		}
+	}
+
+	log.Infof("- Total tx gas: %s", common.WeiToEth(gasFee).Text('f', 6))
+	log.Infof("- Total tx value: %s ETH", common.WeiToEth(totalTxValue).Text('f', 6))
+	log.Infof("- %d tx to coinbase - value: %s ETH", numTxToCoinbase, common.WeiToEth(totalTxValueToCoinbase).Text('f', 6))
+	log.Infof("- %d tx to proposer - value: %s ETH", numTxToProposer, common.WeiToEth(totalTxValueToProposer).Text('f', 6))
 }

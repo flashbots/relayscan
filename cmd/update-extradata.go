@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/metachris/flashbotsrpc"
 	"github.com/metachris/relayscan/database"
-	"github.com/onrik/ethrpc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -24,11 +24,11 @@ var backfillExtradataCmd = &cobra.Command{
 		var err error
 
 		log.Infof("Using eth node: %s", ethNodeURI)
-		client := ethrpc.New(ethNodeURI)
-		var client2 *ethrpc.EthRPC
+		client := flashbotsrpc.New(ethNodeURI)
+		var client2 *flashbotsrpc.FlashbotsRPC
 		if ethNodeBackupURI != "" {
 			log.Infof("Using eth backup node: %s", ethNodeBackupURI)
-			client2 = ethrpc.New(ethNodeBackupURI)
+			client2 = flashbotsrpc.New(ethNodeBackupURI)
 		}
 		_, _ = client, client2
 
@@ -75,10 +75,10 @@ var backfillExtradataCmd = &cobra.Command{
 	},
 }
 
-func startBackfillWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *ethrpc.EthRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
+func startBackfillWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *flashbotsrpc.FlashbotsRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
 	defer wg.Done()
 
-	getBlockByHash := func(blockHash string, withTransactions bool) (*ethrpc.Block, error) {
+	getBlockByHash := func(blockHash string, withTransactions bool) (*flashbotsrpc.Block, error) {
 		block, err := client.EthGetBlockByHash(blockHash, withTransactions)
 		if err != nil || block == nil {
 			block, err = client2.EthGetBlockByHash(blockHash, withTransactions)
@@ -87,7 +87,7 @@ func startBackfillWorker(wg *sync.WaitGroup, db *database.DatabaseService, clien
 	}
 
 	var err error
-	var block *ethrpc.Block
+	var block *flashbotsrpc.Block
 	for entry := range entryC {
 		_log := log.WithFields(logrus.Fields{
 			"slot":        entry.Slot,
