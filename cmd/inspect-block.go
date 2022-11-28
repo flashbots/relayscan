@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/metachris/go-ethutils/smartcontracts"
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
 	"github.com/spf13/cobra"
-	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
@@ -18,9 +18,6 @@ var (
 	slotStr string
 	// Printer for pretty printing numbers
 	printer = message.NewPrinter(language.English)
-
-	// Caser is used for casing strings
-	caser = cases.Title(language.English)
 )
 
 func init() {
@@ -46,9 +43,18 @@ var inspectBlockCmd = &cobra.Command{
 			log.WithError(err).Fatalf("failed converting slot to uint")
 		}
 
-		node, err := NewEthNode(ethNodeURI, ethNodeBackupURI)
+		if ethNodeURI == "" {
+			log.Fatalf("Please provide an eth node URI")
+		}
+		ethUris := []string{ethNodeURI}
+		if ethNodeBackupURI != "" {
+			ethUris = append(ethUris, ethNodeBackupURI)
+		}
+
+		log.Infof("Connecting to eth nodes %v ...", ethUris)
+		node, err := NewEthNode(ethUris...)
 		if err != nil {
-			log.WithError(err).Fatalf("failed connecting to postgres")
+			log.WithError(err).Fatalf("failed connecting to eth nodes")
 		}
 
 		db, err := connectPostgres(defaultPostgresDSN)
@@ -133,7 +139,6 @@ func inspectBlockByHash(blockHash string, proposerFeeRecipient string, node *Eth
 		log.Infof("- Coinbase balance diff (builder): %s ETH", common.WeiToEth(balanceDiff).Text('f', 6))
 	}
 	log.Infof("- Gas used: %s / %s", printer.Sprint(block.GasUsed), printer.Sprint(block.GasLimit))
-	log.Infof("- Transactions: %d", len(block.Transactions))
 
 	totalTxValue := big.NewInt(0)
 	totalTxValueToCoinbase := big.NewInt(0)
@@ -141,6 +146,9 @@ func inspectBlockByHash(blockHash string, proposerFeeRecipient string, node *Eth
 	numTxToCoinbase := 0
 	numTxToProposer := 0
 	gasFee := big.NewInt(0)
+	toAddresses := make(map[string]int)
+	topToAddress := ""
+	topToAddressCount := 0
 	for _, tx := range block.Transactions {
 		totalTxValue.Add(totalTxValue, &tx.Value)
 		gasFee = new(big.Int).Add(gasFee, new(big.Int).Mul(&tx.GasPrice, big.NewInt(int64(tx.Gas))))
@@ -154,10 +162,19 @@ func inspectBlockByHash(blockHash string, proposerFeeRecipient string, node *Eth
 			totalTxValueToProposer.Add(totalTxValueToProposer, &tx.Value)
 			log.Infof("- tx to proposer: %s / %s ETH, from %s", tx.Hash, common.WeiToEth(&tx.Value).Text('f', 6), tx.From)
 		}
+		toAddresses[tx.To] += 1
+		if toAddresses[tx.To] > topToAddressCount {
+			topToAddress = tx.To
+			topToAddressCount = toAddresses[tx.To]
+		}
 	}
 
 	log.Infof("- Total tx gas: %s", common.WeiToEth(gasFee).Text('f', 6))
 	log.Infof("- Total tx value: %s ETH", common.WeiToEth(totalTxValue).Text('f', 6))
 	log.Infof("- %d tx to coinbase - value: %s ETH", numTxToCoinbase, common.WeiToEth(totalTxValueToCoinbase).Text('f', 6))
 	log.Infof("- %d tx to proposer - value: %s ETH", numTxToProposer, common.WeiToEth(totalTxValueToProposer).Text('f', 6))
+	log.Infof("- Transactions: %d - to %d addresses", len(block.Transactions), len(toAddresses))
+
+	a, _ := smartcontracts.GetAddressDetailFromBlockchain(topToAddress, node.gethClients[0])
+	log.Infof("- Top address with %d tx: %s (%s [%s])", topToAddressCount, topToAddress, a.Name, a.Type)
 }

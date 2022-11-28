@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/ethereum/go-ethereum/ethclient"
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
 	"github.com/metachris/flashbotsrpc"
 	"github.com/metachris/relayscan/common"
@@ -46,7 +47,8 @@ func connectPostgres(dsn string) (*database.DatabaseService, error) {
 }
 
 type EthNode struct {
-	clients []*flashbotsrpc.FlashbotsRPC
+	clients     []*flashbotsrpc.FlashbotsRPC
+	gethClients []*ethclient.Client
 }
 
 func NewEthNode(uris ...string) (*EthNode, error) {
@@ -56,6 +58,12 @@ func NewEthNode(uris ...string) (*EthNode, error) {
 	node := &EthNode{}
 	for _, uri := range uris {
 		node.clients = append(node.clients, flashbotsrpc.New(uri))
+		gethClient, err := ethclient.Dial(uri)
+		if err != nil {
+			fmt.Println("Error connecting to eth node", uri, err)
+			return nil, err
+		}
+		node.gethClients = append(node.gethClients, gethClient)
 	}
 	return node, nil
 }
