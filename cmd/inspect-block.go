@@ -3,15 +3,16 @@ package cmd
 import (
 	"fmt"
 	"math/big"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
 
+	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/metachris/flashbotsrpc"
 	"github.com/metachris/go-ethutils/addresslookup"
-	"github.com/metachris/go-ethutils/utils"
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
 	"github.com/spf13/cobra"
@@ -20,19 +21,23 @@ import (
 )
 
 var (
-	slotStr string
 	// Printer for pretty printing numbers
 	printer = message.NewPrinter(language.English)
 
-	mevGethURI string
+	slotStr       string
+	blockHash     string
+	mevGethURI    string
+	loadAddresses bool
 )
 
 func init() {
 	rootCmd.AddCommand(inspectBlockCmd)
 	inspectBlockCmd.Flags().StringVar(&ethNodeURI, "eth-node", defaultEthNodeURI, "eth node URI (i.e. Infura)")
 	inspectBlockCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", defaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
-	inspectBlockCmd.Flags().StringVar(&mevGethURI, "mev-geth", "", "mev-geth node URI (to find coinbase payments via block simulation)")
+	inspectBlockCmd.Flags().StringVar(&mevGethURI, "mev-geth", os.Getenv("MEV_GETH"), "mev-geth node URI (to find coinbase payments via block simulation)")
 	inspectBlockCmd.Flags().StringVar(&slotStr, "slot", "", "a specific slot")
+	inspectBlockCmd.Flags().StringVar(&blockHash, "hash", "", "a specific block hash")
+	inspectBlockCmd.Flags().BoolVar(&loadAddresses, "load-addr", false, "whether to preload known addresses for address-lookup")
 }
 
 var inspectBlockCmd = &cobra.Command{
@@ -41,14 +46,17 @@ var inspectBlockCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 
-		if slotStr == "" {
-			log.Fatalf("Please provide a slot")
+		if slotStr == "" && blockHash == "" {
+			log.Fatalf("Please provide --slot or --hash")
 		}
 
-		slotStr = strings.ReplaceAll(slotStr, ",", "")
-		slot, err = strconv.ParseUint(slotStr, 10, 64)
-		if err != nil {
-			log.WithError(err).Fatalf("failed converting slot to uint")
+		var slot uint64
+		if slotStr != "" {
+			slotStr = strings.ReplaceAll(slotStr, ",", "")
+			slot, err = strconv.ParseUint(slotStr, 10, 64)
+			if err != nil {
+				log.WithError(err).Fatalf("failed converting slot to uint")
+			}
 		}
 
 		if ethNodeURI == "" {
@@ -78,7 +86,15 @@ var inspectBlockCmd = &cobra.Command{
 		}
 
 		inspector := NewBlockInspector(node, mevGethRPC, db)
-		inspector.inspectSlot(slot)
+		if loadAddresses {
+			inspector.loadAddresses()
+		}
+
+		if blockHash != "" {
+			inspector.inspectBlockByHash(blockHash, "")
+		} else {
+			inspector.inspectSlot(slot)
+		}
 	},
 }
 
@@ -98,8 +114,15 @@ func NewBlockInspector(ethNode *EthNode, mevGeth *flashbotsrpc.FlashbotsRPC, db 
 	}
 }
 
+func (b *BlockInspector) loadAddresses() {
+	err := b.addrLkup.AddAllAddresses()
+	if err != nil {
+		log.WithError(err).Error("failed adding addresses to addresslookup")
+	}
+}
+
 func (b *BlockInspector) inspectSlot(slot uint64) {
-	fmt.Println("Getting bids...")
+	fmt.Println("Bids:")
 	bids, err := b.db.GetSignedBuilderBidsForSlot(slot)
 	if err != nil {
 		log.WithError(err).Fatalf("couldn't get bids")
@@ -108,11 +131,20 @@ func (b *BlockInspector) inspectSlot(slot uint64) {
 		fmt.Printf("no bids found for slot %d\n", slot)
 		return
 	}
+
+	// sort bids by value
+	sort.Slice(bids, func(i, j int) bool {
+		a := common.StrToBigInt(bids[i].Value)
+		b := common.StrToBigInt(bids[j].Value)
+		return a.Cmp(b) == 1
+	})
+
 	for _, bid := range bids {
-		fmt.Printf("- %40s: %12s / %s\n", bid.Relay, common.WeiStrToEthStr(bid.Value, 6), bid.BlockHash)
+		fmt.Printf("%12s - %s from %s\n", common.WeiStrToEthStr(bid.Value, 6), bid.BlockHash, bid.Relay)
 	}
 
-	fmt.Println("Getting delivered payload entries...")
+	fmt.Println("")
+	fmt.Println("Delivered payload entries:")
 	payloadDeliveredEntries, err := b.db.GetDeliveredPayloadsForSlot(slot)
 	if err != nil {
 		log.WithError(err).Fatalf("couldn't get payloads")
@@ -123,7 +155,7 @@ func (b *BlockInspector) inspectSlot(slot uint64) {
 	}
 	payload := payloadDeliveredEntries[0]
 	for _, entry := range payloadDeliveredEntries {
-		fmt.Printf("- %40s: %12s / %s\n", entry.Relay, common.WeiStrToEthStr(entry.ValueClaimedWei, 6), entry.BlockHash)
+		fmt.Printf("%12s - %s from %s\n", common.WeiStrToEthStr(entry.ValueClaimedWei, 6), entry.BlockHash, entry.Relay)
 		if entry.BlockHash != payload.BlockHash {
 			log.Fatalf("error: different blockhash: %s\n", entry.BlockHash)
 		}
@@ -134,7 +166,7 @@ func (b *BlockInspector) inspectSlot(slot uint64) {
 
 	fmt.Println("")
 	feeRec := payload.ProposerFeeRecipient
-	fmt.Println("Proposer")
+	fmt.Println("Proposer:")
 	fmt.Printf("- pubkey: %s\n", payload.ProposerPubkey)
 	fmt.Printf("- feeRecipient: %s\n", feeRec)
 	balanceDiff, err := b.ethNode.GetBalanceDiff(feeRec, payload.BlockNumber.Int64)
@@ -143,7 +175,7 @@ func (b *BlockInspector) inspectSlot(slot uint64) {
 	}
 	fmt.Printf("- balance diff: %s ETH\n", common.WeiToEthStr(balanceDiff))
 	if balanceDiff.String() == payload.ValueClaimedWei {
-		fmt.Println("- balance diff ✅")
+		fmt.Println("- builder payment ✅")
 	} else {
 		log.Fatalf("error: balance diff does not match value claimed")
 	}
@@ -151,7 +183,8 @@ func (b *BlockInspector) inspectSlot(slot uint64) {
 	b.inspectBlockByHash(payload.BlockHash, feeRec)
 }
 
-func (b *BlockInspector) inspectBlockByHash(blockHash string, proposerFeeRecipient string) {
+func (b *BlockInspector) inspectBlockByHash(blockHash string, proposerFeeRecipientHex string) {
+	proposerFeeRecipient := ethcommon.HexToAddress(proposerFeeRecipientHex)
 	fmt.Println("")
 	fmt.Println("Getting block...")
 	block, err := b.ethNode.BlockByHash(blockHash)
@@ -165,13 +198,14 @@ func (b *BlockInspector) inspectBlockByHash(blockHash string, proposerFeeRecipie
 	if err != nil {
 		log.WithError(err).Fatalf("couldn't get balance diff")
 	}
-	if proposerFeeRecipient == block.Coinbase().Hex() {
+	if proposerFeeRecipient == block.Coinbase() {
 		fmt.Printf("- Coinbase balance diff (proposer feeRec): %s ETH \n", common.WeiToEthStr(balanceDiff))
 	} else {
 		fmt.Printf("- Coinbase balance diff (builder): %s ETH \n", common.WeiToEthStr(balanceDiff))
 	}
 	fmt.Printf("- Gas used: %s / %s \n", printer.Sprint(block.GasUsed()), printer.Sprint(block.GasLimit()))
 
+	fmt.Println("- Transactions:")
 	totalTxValue := big.NewInt(0)
 	totalTxValueToCoinbase := big.NewInt(0)
 	totalTxValueToProposer := big.NewInt(0)
@@ -183,18 +217,23 @@ func (b *BlockInspector) inspectBlockByHash(blockHash string, proposerFeeRecipie
 	topToAddressCount := 0
 
 	for _, tx := range block.Transactions() {
+		to := tx.To()
 		txFrom, _ := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 		totalTxValue.Add(totalTxValue, tx.Value())
+
+		if to == nil {
+			continue
+		}
 		// gasFee = new(big.Int).Add(gasFee, new(big.Int).Mul(&tx.GasPrice, big.NewInt(int64(tx.Gas))))
-		if tx.To() != nil && *tx.To() == block.Coinbase() {
+		if *to == block.Coinbase() {
 			numTxToCoinbase += 1
 			totalTxValueToCoinbase.Add(totalTxValueToCoinbase, tx.Value())
-			fmt.Printf("- tx to coinbase: %s / %s ETH, from %s\n", tx.Hash(), common.WeiToEthStr(tx.Value()), txFrom)
+			fmt.Printf("  - tx to coinbase: %s / %s ETH, from %s\n", tx.Hash(), common.WeiToEthStr(tx.Value()), txFrom)
 		}
-		if tx.To() != nil && tx.To().Hex() == proposerFeeRecipient {
+		if *to == proposerFeeRecipient {
 			numTxToProposer += 1
 			totalTxValueToProposer.Add(totalTxValueToProposer, tx.Value())
-			fmt.Printf("- tx to proposer: %s / %s ETH, from %s\n", tx.Hash(), common.WeiToEth(tx.Value()).Text('f', 6), txFrom)
+			fmt.Printf("  - tx to proposer: %s / %s ETH, from %s\n", tx.Hash(), common.WeiToEth(tx.Value()).Text('f', 6), txFrom)
 		}
 
 		toAddresses[tx.To().Hex()] += 1
@@ -206,17 +245,16 @@ func (b *BlockInspector) inspectBlockByHash(blockHash string, proposerFeeRecipie
 
 	topToAddressWeiReceived := big.NewInt(0)
 	for _, tx := range block.Transactions() {
-		if tx.To().Hex() != topToAddress {
+		if tx.To() == nil || tx.To().Hex() != topToAddress {
 			continue
 		}
 		topToAddressWeiReceived.Add(topToAddressWeiReceived, tx.Value())
 	}
 
 	// fmt.Printf("- Total tx gas: %s", common.WeiToEthStr(gasFee))
-	fmt.Printf("- Total tx value: %s ETH \n", common.WeiToEthStr(totalTxValue))
-	fmt.Printf("- %d tx to coinbase - value: %s ETH \n", numTxToCoinbase, common.WeiToEthStr(totalTxValueToCoinbase))
-	fmt.Printf("- %d tx to proposer - value: %s ETH \n", numTxToProposer, common.WeiToEthStr(totalTxValueToProposer))
-	fmt.Printf("- Transactions: %d (to %d addresses) \n", len(block.Transactions()), len(toAddresses))
+	fmt.Printf("  - %d tx to %d addresses / total value: %s ETH \n", len(block.Transactions()), len(toAddresses), common.WeiToEthStr(totalTxValue))
+	fmt.Printf("  - %d tx to coinbase - value: %s ETH \n", numTxToCoinbase, common.WeiToEthStr(totalTxValueToCoinbase))
+	fmt.Printf("  - %d tx to proposer - value: %s ETH \n", numTxToProposer, common.WeiToEthStr(totalTxValueToProposer))
 
 	a, _ := b.addrLkup.GetAddressDetail(topToAddress)
 	fmt.Printf("- Top address (%d tx, %s ETH): %s (%s [%s]) \n", topToAddressCount, common.WeiToEthStr(topToAddressWeiReceived), topToAddress, a.Name, a.Type)
@@ -224,11 +262,11 @@ func (b *BlockInspector) inspectBlockByHash(blockHash string, proposerFeeRecipie
 	if mevGethURI != "" {
 		fmt.Println("")
 		fmt.Println("Simulating block to find coinbase payments...")
-		b.simBlock(block)
+		b.simBlock(block, 0)
 	}
 }
 
-func (b *BlockInspector) simBlock(block *types.Block) {
+func (b *BlockInspector) simBlock(block *types.Block, maxTx int) {
 	txs := make([]string, 0)
 	for _, tx := range block.Transactions() {
 		// fmt.Println("tx", i, tx.Hash(), "type", tx.Type())
@@ -263,9 +301,9 @@ func (b *BlockInspector) simBlock(block *types.Block) {
 		rlp = "0x" + rlp
 		txs = append(txs, rlp)
 
-		// if maxTx > 0 && len(txs) == maxTx {
-		// 	break
-		// }
+		if maxTx > 0 && len(txs) == maxTx {
+			break
+		}
 	}
 
 	params := flashbotsrpc.FlashbotsCallBundleParam{
@@ -279,7 +317,14 @@ func (b *BlockInspector) simBlock(block *types.Block) {
 
 	privateKey, _ := crypto.GenerateKey()
 	result, err := b.mevGeth.FlashbotsCallBundle(privateKey, params)
-	utils.Perror(err)
+	if err != nil {
+		// retry without last tx
+		params.Txs = params.Txs[:len(params.Txs)-1]
+		result, err = b.mevGeth.FlashbotsCallBundle(privateKey, params)
+		if err != nil {
+			log.WithError(err).Fatal("simulating block failed")
+		}
+	}
 
 	fmt.Println("Simulation result:")
 	fmt.Printf("- CoinbaseDiff:      %10s ETH\n", common.WeiStrToEthStr(result.CoinbaseDiff, 4))
@@ -299,6 +344,11 @@ func (b *BlockInspector) simBlock(block *types.Block) {
 	numTxNeededFor80PercentValue := 0
 	currentValue := big.NewFloat(0)
 
+	// Only print top tx if >= 1 ETH
+	if len(result.CoinbaseDiff) < 18 {
+		return
+	}
+
 	fmt.Println("\nTransactions by value, accounting for 80%% of coinbase value:")
 	for i, entry := range result.Results {
 		_to := entry.ToAddress
@@ -306,7 +356,7 @@ func (b *BlockInspector) simBlock(block *types.Block) {
 		if found {
 			_to = fmt.Sprintf("%s (%s [%s])", _to, detail.Name, detail.Type)
 		}
-		fmt.Printf("%4d %s - cbD=%8s, gasFee=%8s \t to=%-64s \n", i+1, entry.TxHash, common.WeiStrToEthStr(entry.CoinbaseDiff, 4), common.WeiStrToEthStr(entry.GasFees, 4), _to)
+		fmt.Printf("%4d %s - cbD=%8s, gasFee=%8s, ethSentToCb=%8s \t to=%-64s \n", i+1, entry.TxHash, common.WeiStrToEthStr(entry.CoinbaseDiff, 4), common.WeiStrToEthStr(entry.GasFees, 4), common.WeiStrToEthStr(entry.EthSentToCoinbase, 4), _to)
 
 		cbDiffWei := new(big.Float)
 		cbDiffWei, _ = cbDiffWei.SetString(entry.CoinbaseDiff)
@@ -318,5 +368,5 @@ func (b *BlockInspector) simBlock(block *types.Block) {
 		}
 	}
 
-	fmt.Printf("\n%d/%d tx needed for 80%% of miner value.\n", numTxNeededFor80PercentValue, len(result.Results))
+	fmt.Printf("\n%d/%d tx needed for 80%% of coinbase value.\n", numTxNeededFor80PercentValue, len(result.Results))
 }
