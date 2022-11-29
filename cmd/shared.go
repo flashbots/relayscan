@@ -1,15 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
 	"net/url"
 	"os"
 
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
-	"github.com/metachris/flashbotsrpc"
 	"github.com/metachris/relayscan/common"
 	"github.com/metachris/relayscan/database"
 )
@@ -29,14 +31,6 @@ var (
 	defaultEthBackupNodeURI = relaycommon.GetEnv("ETH_NODE_BACKUP_URI", "")
 )
 
-func connectEthNodes(uri1, uri2 string) (client1, client2 *flashbotsrpc.FlashbotsRPC) {
-	client1 = flashbotsrpc.New(uri1)
-	if uri2 != "" {
-		client2 = flashbotsrpc.New(uri2)
-	}
-	return client1, client2
-}
-
 func connectPostgres(dsn string) (*database.DatabaseService, error) {
 	dbURL, err := url.Parse(dsn)
 	if err != nil {
@@ -47,8 +41,7 @@ func connectPostgres(dsn string) (*database.DatabaseService, error) {
 }
 
 type EthNode struct {
-	clients     []*flashbotsrpc.FlashbotsRPC
-	gethClients []*ethclient.Client
+	clients []*ethclient.Client
 }
 
 func NewEthNode(uris ...string) (*EthNode, error) {
@@ -57,20 +50,19 @@ func NewEthNode(uris ...string) (*EthNode, error) {
 	}
 	node := &EthNode{}
 	for _, uri := range uris {
-		node.clients = append(node.clients, flashbotsrpc.New(uri))
-		gethClient, err := ethclient.Dial(uri)
+		client, err := ethclient.Dial(uri)
 		if err != nil {
 			fmt.Println("Error connecting to eth node", uri, err)
 			return nil, err
 		}
-		node.gethClients = append(node.gethClients, gethClient)
+		node.clients = append(node.clients, client)
 	}
 	return node, nil
 }
 
-func (n *EthNode) GetBlockByNumber(blockNumber int, withTransactions bool) (block *flashbotsrpc.Block, err error) {
+func (n *EthNode) BlockByNumber(blockNumber int64) (block *types.Block, err error) {
 	for _, client := range n.clients {
-		block, err = client.EthGetBlockByNumber(blockNumber, withTransactions)
+		block, err = client.BlockByNumber(context.Background(), big.NewInt(blockNumber))
 		if err == nil {
 			return block, nil
 		}
@@ -78,9 +70,9 @@ func (n *EthNode) GetBlockByNumber(blockNumber int, withTransactions bool) (bloc
 	return nil, err
 }
 
-func (n *EthNode) GetBlockByHash(blockHash string, withTransactions bool) (block *flashbotsrpc.Block, err error) {
+func (n *EthNode) BlockByHash(blockHash string) (block *types.Block, err error) {
 	for _, client := range n.clients {
-		block, err = client.EthGetBlockByHash(blockHash, withTransactions)
+		block, err = client.BlockByHash(context.Background(), ethcommon.HexToHash(blockHash))
 		if err == nil {
 			return block, nil
 		}
@@ -88,22 +80,30 @@ func (n *EthNode) GetBlockByHash(blockHash string, withTransactions bool) (block
 	return nil, err
 }
 
-func (n *EthNode) GetBalanceDiff(address string, blockNumber int) (diff *big.Int, err error) {
-	balanceBefore := *big.NewInt(0)
-	balanceAfter := *big.NewInt(0)
+func (n *EthNode) GetBalanceDiff(address string, blockNumber int64) (diff *big.Int, err error) {
 	for _, client := range n.clients {
-		balanceBefore, err = client.EthGetBalance(address, fmt.Sprintf("0x%x", blockNumber-1))
+		balanceBefore, err := client.BalanceAt(context.Background(), ethcommon.HexToAddress(address), big.NewInt(blockNumber-1))
 		if err != nil {
 			continue
 		}
 
-		balanceAfter, err = client.EthGetBalance(address, fmt.Sprintf("0x%x", blockNumber))
+		balanceAfter, err := client.BalanceAt(context.Background(), ethcommon.HexToAddress(address), big.NewInt(blockNumber))
 		if err != nil {
 			continue
 		}
 
-		balanceDiff := new(big.Int).Sub(&balanceAfter, &balanceBefore)
+		balanceDiff := new(big.Int).Sub(balanceAfter, balanceBefore)
 		return balanceDiff, nil
 	}
 	return nil, err
 }
+
+// func (n *EthNode) GethGetBlockByNumber(blockNumber int, withTransactions bool) (block *types.Block, err error) {
+// 	for _, client := range n.gethClients {
+// 		block, err = client.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
+// 		if err == nil {
+// 			return block, nil
+// 		}
+// 	}
+// 	return nil, err
+// }
