@@ -224,9 +224,6 @@ func prepareRelaysEntries(relays []*database.TopRelayEntry) []*database.TopRelay
 	numPayloads := uint64(0)
 	resp := []*database.TopRelayEntry{}
 	for _, entry := range relays {
-		if entry.Relay == "relay.ultrasound.money" || entry.Relay == "agnostic-relay.net" {
-			continue
-		}
 		if entry.NumPayloads == 0 {
 			continue
 		}

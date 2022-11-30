@@ -27,14 +27,6 @@
     <div class="pure-g" id="content-overview" {{ if ne $view "overview" }}style="display: none;" {{ end }}>
         <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-relays">
             <div id="stats-relays-inner">
-                <h2 id="header-top-relays">
-                    <div id="copy-relays-to-clipboard">
-                        <a href="javascript:void(0)" onclick="copyRelays(event)" title="Copy relays as markdown to clipboard"><i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
-                    </div>
-
-                    Top Relays
-                </h2>
-
                 <table class="pure-table pure-table-horizontal" style="width: 100%;">
                     <thead>
                         <tr>
@@ -46,29 +38,25 @@
                     <tbody id="tbody-relays" class="tbody-relays">
                         {{ range .Stats.TopRelays }}
                         <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')">
-                            <td class="td-relay-name">{{ .Relay }}</td>
+                            <td class="td-relay-name"><a href="https://{{ .Relay }}" target="_blank">{{ .Relay }}</a></td>
                             <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
                             <td style="text-align:right">{{ .Percent }} %</td>
                         </tr>
                         {{ end }}
                     </tbody>
                 </table>
+                <div class="copy-table-to-clipboard">
+                    <a href="/overview/md" onclick="copyRelays(event); return false;">copy markdown <i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+                </div>
             </div>
         </div>
 
         <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-builders">
             <div id="stats-builders-inner">
-                <h2 id="header-top-builders">
-                    <div id="copy-builders-to-clipboard">
-                        <a href="javascript:void(0)" onclick="copyBuilders(event)" title="Copy builders as markdown to clipboard"><i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
-                    </div>
-                    Top Builders
-                </h2>
-
                 <table class="pure-table pure-table-horizontal" style="width: 100%;">
                     <thead>
                         <tr>
-                            <th>Builder extra_data</th>
+                            <th>Builder (extra_data)</th>
                             <th>Blocks</th>
                             <th style="min-width: 100px;">Percent</th>
                         </tr>
@@ -115,7 +103,9 @@
                     </tbody>
                     {{ end }}
                 </table>
-
+                <div class="copy-table-to-clipboard">
+                    <a href="/overview/md" onclick="copyBuilders(event); return false;">copy markdown <i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+                </div>
             </div>
         </div>
     </div>
@@ -128,9 +118,8 @@
                     <th>Blocks</th>
                     <th>Blocks with profit</th>
                     <th>Blocks with subsidy</th>
-                    <th>Avg. profit / block (ETH)</th>
-                    <th id="th-builderprofit-profittotal">Profit total (ETH)</th>
-                    <th>Subsidies total (ETH)</th>
+                    <th id="th-builderprofit-profittotal">Overall profit (ETH)</th>
+                    <th>Subsidies (ETH)</th>
                 </tr>
             </thead>
             <tbody>
@@ -154,7 +143,6 @@
                     <td class="td-num-blocks" data-sort="{{ .NumBlocks }}">{{ .NumBlocks | prettyInt }}</td>
                     <td class="td-num-blocks-profit" data-sort="{{ .NumBlocksProfit }}">{{ .NumBlocksProfit | prettyInt }}</td>
                     <td class="td-num-blocks-subs" data-sort="{{ .NumBlocksSubsidised }}">{{ .NumBlocksSubsidised | prettyInt }}</td>
-                    <td>{{ .ProfitPerBlockAvg }}</td>
                     <td>{{ .ProfitTotal }}</td>
                     <td>{{ .SubsidiesTotal }}</td>
                 </tr>

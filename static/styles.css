@@ -14,7 +14,7 @@ html {
 
 body {
     line-height: 1.7em;
-    color: #4e5454;
+    color: #434343;
     height: 100%;
     overflow-y: scroll;
 }
@@ -297,11 +297,11 @@ a.pure-button-primary {
     }
 
     #stats-relays-inner {
-        margin-right: 20px;
+        margin-right: 40px;
     }
 
     #stats-builders-inner {
-        margin-left: 20px;
+        margin-left: 40px;
     }
 }
 
@@ -565,6 +565,8 @@ td.td-relay-name {
     visibility: hidden;
 }
 
+#stats-relays:hover .copy-table-to-clipboard,
+#stats-builders:hover .copy-table-to-clipboard,
 #content-profitability:hover .copy-table-to-clipboard {
     visibility: visible;
 }
@@ -584,4 +586,9 @@ td.td-relay-name {
 
 #stats-builders-inner {
     width: 100%;
+}
+
+#tbody-relays a {
+    text-decoration: none;
+    color: #434343;
 }
