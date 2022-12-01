@@ -28,6 +28,8 @@ var (
 	blockHash     string
 	mevGethURI    string
 	loadAddresses bool
+	scLookup      bool // whether to lookup smart contract details
+	printAllSimTx bool
 )
 
 func init() {
@@ -38,6 +40,8 @@ func init() {
 	inspectBlockCmd.Flags().StringVar(&slotStr, "slot", "", "a specific slot")
 	inspectBlockCmd.Flags().StringVar(&blockHash, "hash", "", "a specific block hash")
 	inspectBlockCmd.Flags().BoolVar(&loadAddresses, "load-addr", false, "whether to preload known addresses for address-lookup")
+	inspectBlockCmd.Flags().BoolVar(&scLookup, "sc-details", false, "look up smart contract details")
+	inspectBlockCmd.Flags().BoolVar(&printAllSimTx, "print-all-sim-tx", false, "print all simulated tx")
 }
 
 var inspectBlockCmd = &cobra.Command{
@@ -82,6 +86,7 @@ var inspectBlockCmd = &cobra.Command{
 		if mevGethURI == "" {
 			log.Warn("No mev-geth uri provided, cannot simulate block to find coinbase payments")
 		} else {
+			fmt.Printf("Using mev-geth at %s \n", mevGethURI)
 			mevGethRPC = flashbotsrpc.New(mevGethURI)
 		}
 
@@ -193,6 +198,7 @@ func (b *BlockInspector) inspectBlockByHash(blockHash string, proposerFeeRecipie
 	}
 
 	fmt.Printf("- Block: %d %s \n", block.Number().Int64(), block.Hash().String())
+	fmt.Printf("- Extra_data: %s \n", database.ExtraDataToUtf8Str(block.Extra()))
 	fmt.Printf("- Coinbase: %s \n", block.Coinbase().Hex())
 	balanceDiff, err := b.ethNode.GetBalanceDiff(block.Coinbase().Hex(), block.Number().Int64())
 	if err != nil {
@@ -268,25 +274,9 @@ func (b *BlockInspector) inspectBlockByHash(blockHash string, proposerFeeRecipie
 
 func (b *BlockInspector) simBlock(block *types.Block, maxTx int) {
 	txs := make([]string, 0)
-	for _, tx := range block.Transactions() {
-		// fmt.Println("tx", i, tx.Hash(), "type", tx.Type())
-		// from, fromErr := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
-		// txIsFromCoinbase := fromErr == nil && from == block.Coinbase()
-		// if txIsFromCoinbase {
-		// 	if rpc.Debug {
-		// 		fmt.Printf("- skip tx from coinbase: %s\n", tx.Hash())
-		// 	}
-		// 	continue
-		// }
-
-		// to := tx.To()
-		// txIsToCoinbase := to != nil && *to == block.Coinbase()
-		// if txIsToCoinbase {
-		// 	if rpc.Debug {
-		// 		fmt.Printf("- skip tx to coinbase: %s\n", tx.Hash())
-		// 	}
-		// 	continue
-		// }
+	txIndexByHash := make(map[string]int)
+	for i, tx := range block.Transactions() {
+		txIndexByHash[tx.Hash().Hex()] = i
 
 		rlp := flashbotsrpc.TxToRlp(tx)
 
@@ -341,32 +331,36 @@ func (b *BlockInspector) simBlock(block *types.Block, maxTx int) {
 		return a.Cmp(b) == 1
 	})
 
-	numTxNeededFor80PercentValue := 0
+	numTxNeededForPercentThreshold := 0
 	currentValue := big.NewFloat(0)
 
 	// Only print top tx if >= 1 ETH
-	if len(result.CoinbaseDiff) < 18 {
+	if !printAllSimTx && len(result.CoinbaseDiff) < 18 {
 		return
 	}
 
-	fmt.Println("\nTransactions by value, accounting for 80%% of coinbase value:")
+	fmt.Println("\nTransactions by value, accounting for 70%% of coinbase value:")
 	for i, entry := range result.Results {
 		_to := entry.ToAddress
-		detail, found := b.addrLkup.GetAddressDetail(entry.ToAddress)
-		if found {
-			_to = fmt.Sprintf("%s (%s [%s])", _to, detail.Name, detail.Type)
+		if scLookup {
+			detail, found := b.addrLkup.GetAddressDetail(entry.ToAddress)
+			if found {
+				_to = fmt.Sprintf("%s (%s [%s])", _to, detail.Name, detail.Type)
+			}
 		}
-		fmt.Printf("%4d %s - cbD=%8s, gasFee=%8s, ethSentToCb=%8s \t to=%-64s \n", i+1, entry.TxHash, common.WeiStrToEthStr(entry.CoinbaseDiff, 4), common.WeiStrToEthStr(entry.GasFees, 4), common.WeiStrToEthStr(entry.EthSentToCoinbase, 4), _to)
+		fmt.Printf("%4d %s - #%3d - cb: %8s, gasFee: %8s, ethSentToCb: %8s \t to: %-64s \n", i+1, entry.TxHash, txIndexByHash[entry.TxHash]+1, common.WeiStrToEthStr(entry.CoinbaseDiff, 6), common.WeiStrToEthStr(entry.GasFees, 6), common.WeiStrToEthStr(entry.EthSentToCoinbase, 6), _to)
 
 		cbDiffWei := new(big.Float)
 		cbDiffWei, _ = cbDiffWei.SetString(entry.CoinbaseDiff)
 		currentValue = new(big.Float).Add(currentValue, cbDiffWei)
 		percentValueReached := new(big.Float).Quo(currentValue, blockCbDiffWei)
-		if numTxNeededFor80PercentValue == 0 && percentValueReached.Cmp(big.NewFloat(0.8)) > -1 {
-			numTxNeededFor80PercentValue = i + 1
-			break
+		if numTxNeededForPercentThreshold == 0 && percentValueReached.Cmp(big.NewFloat(0.7)) > -1 {
+			numTxNeededForPercentThreshold = i + 1
+			fmt.Printf("\n%d/%d tx needed for 70%% of coinbase value.\n\n", numTxNeededForPercentThreshold, len(result.Results))
+			if !printAllSimTx {
+				break
+			}
 		}
 	}
 
-	fmt.Printf("\n%d/%d tx needed for 80%% of coinbase value.\n", numTxNeededFor80PercentValue, len(result.Results))
 }
