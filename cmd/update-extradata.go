@@ -120,7 +120,6 @@ func startBackfillWorker(wg *sync.WaitGroup, db *database.DatabaseService, clien
 			if err != nil {
 				_log.WithError(err).Fatalf("failed to save entry")
 			}
-
 		}
 	}
 }

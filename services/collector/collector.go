@@ -102,17 +102,18 @@ func (s *RelayCollector) Start() {
 		if nextProposerPubkey == "" {
 			s.log.WithField("duties", duties).Error("no proposerPubkey for next slot")
 		} else {
-			s.CallGetHeader(nextSlot, block.Data.Message.Body.ExecutionPayload.BlockHash.String(), duties[nextSlot])
+			go s.CallGetHeader(10*time.Second, nextSlot, block.Data.Message.Body.ExecutionPayload.BlockHash.String(), duties[nextSlot])
+			go s.CallGetHeader(12*time.Second, nextSlot, block.Data.Message.Body.ExecutionPayload.BlockHash.String(), duties[nextSlot])
 		}
 		fmt.Println("")
 	}
 }
 
-func (s *RelayCollector) CallGetHeader(slot uint64, parentHash, proposerPubkey string) {
-	s.log.Infof("querying relays for bid in 12 sec...")
+func (s *RelayCollector) CallGetHeader(timeout time.Duration, slot uint64, parentHash, proposerPubkey string) {
+	s.log.Infof("querying relays for bid in %.0f sec...", timeout.Seconds())
 
 	// Wait 12 seconds, allowing the builder to prepare bids
-	time.Sleep(12 * time.Second)
+	time.Sleep(timeout)
 
 	for _, relay := range s.relays {
 		go s.CallGetHeaderOnRelay(relay, slot, parentHash, proposerPubkey)

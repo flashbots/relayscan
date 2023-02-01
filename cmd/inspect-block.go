@@ -188,7 +188,7 @@ func (b *BlockInspector) inspectSlot(slot uint64) {
 	b.inspectBlockByHash(payload.BlockHash, feeRec)
 }
 
-func (b *BlockInspector) inspectBlockByHash(blockHash string, proposerFeeRecipientHex string) {
+func (b *BlockInspector) inspectBlockByHash(blockHash, proposerFeeRecipientHex string) {
 	proposerFeeRecipient := ethcommon.HexToAddress(proposerFeeRecipientHex)
 	fmt.Println("")
 	fmt.Println("Getting block...")
@@ -296,7 +296,7 @@ func (b *BlockInspector) simBlock(block *types.Block, maxTx int) {
 		}
 	}
 
-	params := flashbotsrpc.FlashbotsCallBundleParam{
+	params := flashbotsrpc.FlashbotsCallBundleParam{ //nolint:exhaustruct
 		Txs:              txs,
 		BlockNumber:      fmt.Sprintf("0x%x", block.Number()),
 		StateBlockNumber: block.ParentHash().Hex(),
@@ -362,5 +362,4 @@ func (b *BlockInspector) simBlock(block *types.Block, maxTx int) {
 			}
 		}
 	}
-
 }

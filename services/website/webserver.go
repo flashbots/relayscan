@@ -23,9 +23,7 @@ import (
 	uberatomic "go.uber.org/atomic"
 )
 
-var (
-	ErrServerAlreadyStarted = errors.New("server was already started")
-)
+var ErrServerAlreadyStarted = errors.New("server was already started")
 
 type WebserverOpts struct {
 	ListenAddress string
