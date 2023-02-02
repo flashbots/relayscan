@@ -9,8 +9,8 @@ import (
 	"net/url"
 
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
-	"github.com/metachris/relayscan/common"
-	"github.com/metachris/relayscan/database"
+	"github.com/flashbots/relayscan/common"
+	"github.com/flashbots/relayscan/database"
 	"github.com/spf13/cobra"
 )
 

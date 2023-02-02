@@ -15,8 +15,8 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/flashbots/go-utils/httplogger"
+	"github.com/flashbots/relayscan/database"
 	"github.com/gorilla/mux"
-	"github.com/metachris/relayscan/database"
 	"github.com/sirupsen/logrus"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/html"

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/metachris/relayscan/database"
+	"github.com/flashbots/relayscan/database"
 	"github.com/olekukonko/tablewriter"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"

@@ -1,4 +1,4 @@
-module github.com/metachris/relayscan
+module github.com/flashbots/relayscan
 
 go 1.19
 

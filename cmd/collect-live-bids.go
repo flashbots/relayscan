@@ -3,9 +3,9 @@ package cmd
 import (
 	"net/url"
 
-	"github.com/metachris/relayscan/common"
-	"github.com/metachris/relayscan/database"
-	"github.com/metachris/relayscan/services/collector"
+	"github.com/flashbots/relayscan/common"
+	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/services/collector"
 	"github.com/spf13/cobra"
 )
 

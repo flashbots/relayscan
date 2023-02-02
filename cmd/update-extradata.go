@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/flashbots/relayscan/database"
 	"github.com/metachris/flashbotsrpc"
-	"github.com/metachris/relayscan/database"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

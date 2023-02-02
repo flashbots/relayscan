@@ -1,6 +1,6 @@
 # relayscan
 
-[![Test status](https://github.com/metachris/relayscan/workflows/Checks/badge.svg)](https://github.com/metachris/relayscan/actions?query=workflow%3A%22Checks%22)
+[![Test status](https://github.com/flashbots/relayscan/workflows/Checks/badge.svg)](https://github.com/flashbots/relayscan/actions?query=workflow%3A%22Checks%22)
 
 Disclaimer: This code is work-in-progress and quick'n dirty in a lot of places. Use at your own risk.
 
@@ -32,7 +32,7 @@ Monitoring of Ethereum mev-boost relays:
 
 ```bash
 $ go run . --help
-https://github.com/metachris/relayscan
+https://github.com/flashbots/relayscan
 
 Usage:
   relay [flags]

@@ -11,7 +11,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "relay",
 	Short: "relayscan",
-	Long:  `https://github.com/metachris/relayscan`,
+	Long:  `https://github.com/flashbots/relayscan`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("relayscan %s\n", Version)
 		_ = cmd.Help()

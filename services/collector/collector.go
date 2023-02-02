@@ -11,8 +11,8 @@ import (
 	"github.com/flashbots/go-boost-utils/types"
 	"github.com/flashbots/mev-boost-relay/beaconclient"
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
-	"github.com/metachris/relayscan/common"
-	"github.com/metachris/relayscan/database"
+	"github.com/flashbots/relayscan/common"
+	"github.com/flashbots/relayscan/database"
 	"github.com/sirupsen/logrus"
 )
 

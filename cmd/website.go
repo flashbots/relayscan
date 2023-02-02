@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/flashbots/mev-boost-relay/common"
-	"github.com/metachris/relayscan/database"
-	"github.com/metachris/relayscan/services/website"
+	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/services/website"
 	"github.com/spf13/cobra"
 )
 

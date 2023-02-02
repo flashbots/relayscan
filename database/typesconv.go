@@ -7,7 +7,7 @@ import (
 
 	"github.com/flashbots/go-boost-utils/types"
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
-	"github.com/metachris/relayscan/common"
+	"github.com/flashbots/relayscan/common"
 )
 
 func BidTraceV2JSONToPayloadDeliveredEntry(relay string, entry relaycommon.BidTraceV2JSON) DataAPIPayloadDeliveredEntry {

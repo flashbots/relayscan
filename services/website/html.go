@@ -5,7 +5,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/metachris/relayscan/database"
+	"github.com/flashbots/relayscan/database"
 )
 
 type Stats struct {

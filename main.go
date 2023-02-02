@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/metachris/relayscan/cmd"
+	"github.com/flashbots/relayscan/cmd"
 )
 
 var Version = "dev" // is set during build process
