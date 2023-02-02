@@ -2,7 +2,14 @@
 FROM golang:1.18 as builder
 ARG VERSION
 WORKDIR /build
-ADD . /build/
+
+# Cache for the modules
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
+
+# Now adding all the code and start building
+ADD . .
 RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -X main.version=${VERSION}" -v -o relayscan main.go
 
 FROM alpine:latest
