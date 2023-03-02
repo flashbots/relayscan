@@ -140,27 +140,23 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 	buildersNumPayloads := uint64(0)
 	for _, entry := range builders {
 		buildersNumPayloads += entry.NumBlocks
-		if strings.Contains(entry.ExtraData, "builder0x69") {
-			topBuilderEntry, isKnown := buildersMap["builder0x69"]
+		if len(entry.Aliases) != 0 {
+			// Aliases[0] must be the same among all aliases.
+			mainAlias := entry.Aliases[0]
+			topBuilderEntry, isKnown := buildersMap[mainAlias]
 			if isKnown {
 				topBuilderEntry.NumBlocks += entry.NumBlocks
 				topBuilderEntry.Aliases = append(topBuilderEntry.Aliases, entry.ExtraData)
-			} else {
-				buildersMap["builder0x69"] = &database.TopBuilderEntry{
-					ExtraData: "builder0x69",
-					NumBlocks: entry.NumBlocks,
-					Aliases:   []string{entry.ExtraData},
-				}
+				continue
+			}
+			buildersMap[mainAlias] = &database.TopBuilderEntry{
+				ExtraData: mainAlias,
+				NumBlocks: entry.NumBlocks,
+				Aliases:   []string{entry.ExtraData},
 			}
 		} else {
 			buildersMap[entry.ExtraData] = entry
 		}
-	}
-
-	// Prepare top builders by extra stats
-	for _, entry := range builders {
-		p := float64(entry.NumBlocks) / float64(buildersNumPayloads) * 100
-		entry.Percent = fmt.Sprintf("%.2f", p)
 	}
 
 	// Prepare top builders by summary stats
