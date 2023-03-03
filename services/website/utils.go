@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"math/big"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -20,6 +21,18 @@ var (
 
 	// Caser is used for casing strings
 	caser = cases.Title(language.English)
+
+	// Aliases maps a string (the main builder identifier) to a function that
+	// returns if an input string is an alias of that builder identifier.
+	aliases = map[string]func(string) bool{
+		"builder0x69": func(in string) bool {
+			return strings.Contains(in, "builder0x69")
+		},
+		"bob the builder": func(in string) bool {
+			match, _ := regexp.MatchString("s[0-9]e[0-9].*(t|f)", in)
+			return match
+		},
+	}
 )
 
 func weiToEth(wei string) string {
@@ -140,21 +153,26 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 	buildersNumPayloads := uint64(0)
 	for _, entry := range builders {
 		buildersNumPayloads += entry.NumBlocks
-		if len(entry.Aliases) != 0 {
-			// Aliases[0] must be the same among all aliases.
-			mainAlias := entry.Aliases[0]
-			topBuilderEntry, isKnown := buildersMap[mainAlias]
-			if isKnown {
-				topBuilderEntry.NumBlocks += entry.NumBlocks
-				topBuilderEntry.Aliases = append(topBuilderEntry.Aliases, entry.ExtraData)
-				continue
+		updated := false
+		for k, v := range aliases {
+			// Check if this is one of the known aliases.
+			if v(entry.ExtraData) {
+				updated = true
+				topBuilderEntry, isKnown := buildersMap[k]
+				if isKnown {
+					topBuilderEntry.NumBlocks += entry.NumBlocks
+					topBuilderEntry.Aliases = append(topBuilderEntry.Aliases, entry.ExtraData)
+				} else {
+					buildersMap[k] = &database.TopBuilderEntry{
+						ExtraData: k,
+						NumBlocks: entry.NumBlocks,
+						Aliases:   []string{entry.ExtraData},
+					}
+				}
+				break
 			}
-			buildersMap[mainAlias] = &database.TopBuilderEntry{
-				ExtraData: mainAlias,
-				NumBlocks: entry.NumBlocks,
-				Aliases:   []string{entry.ExtraData},
-			}
-		} else {
+		}
+		if !updated {
 			buildersMap[entry.ExtraData] = entry
 		}
 	}
