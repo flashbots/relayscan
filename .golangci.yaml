@@ -27,6 +27,7 @@ linters:
     - deadcode
     - varcheck
     - interfacebloat
+    - dupword
 
     #
     # Disabled because of generics:
