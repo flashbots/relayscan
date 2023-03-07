@@ -195,29 +195,36 @@ func consolidateBuilderProfitEntries(entries []*database.BuilderProfitEntry) []*
 	buildersNumPayloads := uint64(0)
 	for _, entry := range entries {
 		buildersNumPayloads += entry.NumBlocks
-		if strings.Contains(entry.ExtraData, "builder0x69") {
-			entryConsolidated, isKnown := buildersMap["builder0x69"]
-			if isKnown {
-				entryConsolidated.Aliases = append(entryConsolidated.Aliases, entry.ExtraData)
-				entryConsolidated.NumBlocks += entry.NumBlocks
-				entryConsolidated.NumBlocksProfit += entry.NumBlocksProfit
-				entryConsolidated.NumBlocksSubsidised += entry.NumBlocksSubsidised
-				entryConsolidated.ProfitTotal = addFloatStrings(entryConsolidated.ProfitTotal, entry.ProfitTotal, 4)
-				entryConsolidated.SubsidiesTotal = addFloatStrings(entryConsolidated.SubsidiesTotal, entry.SubsidiesTotal, 4)
-				entryConsolidated.ProfitPerBlockAvg = divFloatStrings(entryConsolidated.ProfitTotal, fmt.Sprint(entryConsolidated.NumBlocks), 4)
-			} else {
-				buildersMap["builder0x69"] = &database.BuilderProfitEntry{
-					ExtraData:           "builder0x69",
-					NumBlocks:           entry.NumBlocks,
-					NumBlocksProfit:     entry.NumBlocksProfit,
-					NumBlocksSubsidised: entry.NumBlocksSubsidised,
-					ProfitTotal:         entry.ProfitTotal,
-					SubsidiesTotal:      entry.SubsidiesTotal,
-					ProfitPerBlockAvg:   entry.ProfitPerBlockAvg,
-					Aliases:             []string{entry.ExtraData},
+		updated := false
+		for k, v := range aliases {
+			// Check if this is one of the known aliases.
+			if v(entry.ExtraData) {
+				updated = true
+				entryConsolidated, isKnown := buildersMap[k]
+				if isKnown {
+					entryConsolidated.Aliases = append(entryConsolidated.Aliases, entry.ExtraData)
+					entryConsolidated.NumBlocks += entry.NumBlocks
+					entryConsolidated.NumBlocksProfit += entry.NumBlocksProfit
+					entryConsolidated.NumBlocksSubsidised += entry.NumBlocksSubsidised
+					entryConsolidated.ProfitTotal = addFloatStrings(entryConsolidated.ProfitTotal, entry.ProfitTotal, 4)
+					entryConsolidated.SubsidiesTotal = addFloatStrings(entryConsolidated.SubsidiesTotal, entry.SubsidiesTotal, 4)
+					entryConsolidated.ProfitPerBlockAvg = divFloatStrings(entryConsolidated.ProfitTotal, fmt.Sprint(entryConsolidated.NumBlocks), 4)
+				} else {
+					buildersMap[k] = &database.BuilderProfitEntry{
+						ExtraData:           k,
+						NumBlocks:           entry.NumBlocks,
+						NumBlocksProfit:     entry.NumBlocksProfit,
+						NumBlocksSubsidised: entry.NumBlocksSubsidised,
+						ProfitTotal:         entry.ProfitTotal,
+						SubsidiesTotal:      entry.SubsidiesTotal,
+						ProfitPerBlockAvg:   entry.ProfitPerBlockAvg,
+						Aliases:             []string{entry.ExtraData},
+					}
 				}
+				break
 			}
-		} else {
+		}
+		if !updated {
 			buildersMap[entry.ExtraData] = entry
 		}
 	}
