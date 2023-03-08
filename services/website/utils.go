@@ -177,6 +177,11 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 		}
 	}
 
+	for _, entry := range builders {
+		p := float64(entry.NumBlocks) / float64(buildersNumPayloads) * 100
+		entry.Percent = fmt.Sprintf("%.2f", p)
+	}
+
 	// Prepare top builders by summary stats
 	resp := []*database.TopBuilderEntry{}
 	for _, entry := range buildersMap {
