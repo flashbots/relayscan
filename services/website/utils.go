@@ -29,7 +29,7 @@ var (
 			return strings.Contains(in, "builder0x69")
 		},
 		"bob the builder": func(in string) bool {
-			match, _ := regexp.MatchString("s[0-9]e[0-9].*(t|f)", in)
+			match, _ := regexp.MatchString("s[0-9]+e[0-9].*(t|f)", in)
 			return match
 		},
 	}
