@@ -96,6 +96,13 @@ func TestConsolidateBuilderProfitEntries(t *testing.T) {
 			Aliases:             []string{"bob the builder"},
 		},
 		{
+			ExtraData:           "s12e14t",
+			NumBlocks:           1,
+			NumBlocksSubsidised: 1,
+			SubsidiesTotal:      "1",
+			Aliases:             []string{"bob the builder"},
+		},
+		{
 			ExtraData:           "s0e2ts10e11t",
 			NumBlocks:           1,
 			NumBlocksSubsidised: 1,
@@ -127,12 +134,12 @@ func TestConsolidateBuilderProfitEntries(t *testing.T) {
 		},
 		{
 			ExtraData:           "bob the builder",
-			NumBlocks:           3,
-			NumBlocksSubsidised: 3,
+			NumBlocks:           4,
+			NumBlocksSubsidised: 4,
 			ProfitTotal:         "0.0000",
 			ProfitPerBlockAvg:   "0.0000",
-			SubsidiesTotal:      "3.0000",
-			Aliases:             []string{"s3e6f", "s0e3f", "s0e2ts10e11t"},
+			SubsidiesTotal:      "4.0000",
+			Aliases:             []string{"s3e6f", "s0e3f", "s12e14t", "s0e2ts10e11t"},
 		},
 	}
 
