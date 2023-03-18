@@ -67,16 +67,18 @@
                             <td class="td-builder-extradata">
                                 {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
                                 {{ if ne (len .Aliases) 0 }}
-                                <i id="icon-tooltip-builder-alias" class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
-                                <div id="tooltip-builder-alias" class="tooltip builder-aliases" role="tooltip">
-                                    <b>extra_data values:</b>
-                                    <ul>
-                                        {{ range .Aliases }}
-                                        <li>{{ . }}</li>
-                                        {{ end }}
-                                    </ul>
-                                    <div id="arrow" data-popper-arrow></div>
-                                </div>
+                                <span class="tooltip-wrapper">
+                                    <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
+                                    <div id="tooltip-builder-alias" class="tooltip builder-aliases" role="tooltip">
+                                        <b>extra_data values:</b>
+                                        <ul>
+                                            {{ range .Aliases }}
+                                            <li>{{ . }}</li>
+                                            {{ end }}
+                                        </ul>
+                                        <div id="arrow" data-popper-arrow></div>
+                                    </div>
+                                </span>
                                 {{ end }}
 
                             </td>
@@ -93,7 +95,7 @@
                             <td class="td-builder-extradata">
                                 {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
                                 {{ if ne (len .Aliases) 0 }}
-                                <i id="icon-tooltip-builder-alias" class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
+                                <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
                                 {{ end}}
                             </td>
                             <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
@@ -128,16 +130,18 @@
                     <td class="builder-extradata">
                         {{ if .ExtraData }}<span style="white-space: pre;">{{ .ExtraData }}</span>{{ else }}&nbsp;{{ end }}
                         {{ if ne (len .Aliases) 0 }}
-                        <i id="icon-tooltip-builderprofit-alias" class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builderprofit-alias"></i>
-                        <div id="tooltip-builderprofit-alias" class="tooltip builder-aliases" role="tooltip">
-                            <b>extra_data values:</b>
-                            <ul>
-                                {{ range .Aliases }}
-                                <li>{{ . }}</li>
-                                {{ end }}
-                            </ul>
-                            <div class="arrow" data-popper-arrow></div>
-                        </div>
+                        <span class="tooltip-wrapper">
+                            <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builderprofit-alias"></i>
+                            <div class="tooltip builder-aliases" role="tooltip">
+                                <b>extra_data values:</b>
+                                <ul>
+                                    {{ range .Aliases }}
+                                    <li>{{ . }}</li>
+                                    {{ end }}
+                                </ul>
+                                <div class="arrow" data-popper-arrow></div>
+                            </div>
+                        </span>
                         {{ end }}
                     </td>
                     <td class="td-num-blocks" data-sort="{{ .NumBlocks }}">{{ .NumBlocks | prettyInt }}</td>
@@ -159,17 +163,13 @@
 
 <script src="https://unpkg.com/@popperjs/core@2"></script>
 <script>
-    const tooltips = [
-        ['#icon-tooltip-builder-alias', '#tooltip-builder-alias'],
-        ['#icon-tooltip-builderprofit-alias', '#tooltip-builderprofit-alias'],
-    ]
-
     const showEvents = ['mouseenter', 'focus'];
     const hideEvents = ['mouseleave', 'blur'];
 
-    tooltips.forEach(([trigger, tooltip]) => {
-        const elTrigger = document.querySelector(trigger);
-        const elTooltip = document.querySelector(tooltip);
+    // Tooltip setup
+    for (const tooltip of document.getElementsByClassName("tooltip-wrapper")) {
+        const elTrigger = tooltip.querySelector(".tooltip-icon");
+        const elTooltip = tooltip.querySelector(".tooltip");
         const popperInstance = Popper.createPopper(elTrigger, elTooltip, { modifiers: [{ name: 'offset', options: { offset: [0, 8] } }], });
         function showTooltip() {
             elTooltip.setAttribute('data-show', ''); // Show the tooltip
@@ -187,8 +187,7 @@
         hideEvents.forEach((event) => {
             elTrigger.addEventListener(event, hideTooltip);
         });
-
-    })
+    }
 
     showBuildersForRelay = function (relay) {
         // hide all builders
