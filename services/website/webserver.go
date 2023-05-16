@@ -249,7 +249,7 @@ func (srv *Webserver) updateHTML() {
 	overviewMd += "```"
 	overviewMdBytes := []byte(overviewMd)
 
-	builderProfitMd := fmt.Sprintf("Builder profits - 24h, %s UTC, via relayscan.io/builder-profits \n\n```\n", now.Format("2006-01-02 15:04"))
+	builderProfitMd := fmt.Sprintf("Builder profits - 24h, %s UTC, via relayscan.io/builder-profit \n\n```\n", now.Format("2006-01-02 15:04"))
 	builderProfitMd += builderProfitTable(stats24h.BuilderProfits)
 	builderProfitMd += "```"
 	builderProfitMdBytes := []byte(builderProfitMd)
