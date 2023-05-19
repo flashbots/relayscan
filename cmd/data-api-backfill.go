@@ -17,6 +17,7 @@ import (
 var (
 	cliRelay   string
 	initCursor uint64
+	minSlot    uint64
 	// bidsOnly   bool
 )
 
@@ -24,6 +25,7 @@ func init() {
 	rootCmd.AddCommand(backfillDataAPICmd)
 	backfillDataAPICmd.Flags().StringVar(&cliRelay, "relay", "", "specific relay only")
 	backfillDataAPICmd.Flags().Uint64Var(&initCursor, "cursor", 0, "initial cursor")
+	backfillDataAPICmd.Flags().Uint64Var(&minSlot, "min-slot", 0, "minimum slot (if unset, backfill until the merge)")
 	// backfillDataAPICmd.Flags().BoolVar(&bidsOnly, "bids", false, "only bids")
 }
 
@@ -69,7 +71,7 @@ var backfillDataAPICmd = &cobra.Command{
 		}
 
 		for _, relay := range relays {
-			backfiller := newBackfiller(db, relay, initCursor)
+			backfiller := newBackfiller(db, relay, initCursor, minSlot)
 			// backfiller.backfillDataAPIBids()
 			err = backfiller.backfillPayloadsDelivered()
 			if err != nil {
@@ -83,13 +85,15 @@ type backfiller struct {
 	relay      common.RelayEntry
 	db         *database.DatabaseService
 	cursorSlot uint64
+	minSlot    uint64
 }
 
-func newBackfiller(db *database.DatabaseService, relay common.RelayEntry, cursorSlot uint64) *backfiller {
+func newBackfiller(db *database.DatabaseService, relay common.RelayEntry, cursorSlot, minSlot uint64) *backfiller {
 	return &backfiller{
 		relay:      relay,
 		db:         db,
 		cursorSlot: cursorSlot,
+		minSlot:    minSlot,
 	}
 }
 
@@ -170,6 +174,11 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 
 		if cursorSlot < latestSlotInDB {
 			log.Infof("Payloads backfilled until last in DB - at slot %d", latestSlotInDB)
+			return nil
+		}
+
+		if cursorSlot < bf.minSlot {
+			log.Infof("Payloads backfilled until min slot %d", bf.minSlot)
 			return nil
 		}
 		// time.Sleep(1 * time.Second)
