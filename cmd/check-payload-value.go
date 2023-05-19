@@ -17,6 +17,7 @@ import (
 
 var (
 	limit              uint64
+	slotMax            uint64
 	numThreads         uint64 = 10
 	ethNodeURI         string
 	ethNodeBackupURI   string
@@ -29,6 +30,7 @@ var (
 func init() {
 	rootCmd.AddCommand(checkPayloadValueCmd)
 	checkPayloadValueCmd.Flags().Uint64Var(&slot, "slot", 0, "a specific slot")
+	checkPayloadValueCmd.Flags().Uint64Var(&slotMax, "slot-max", 0, "a specific max slot, only check slots below this")
 	checkPayloadValueCmd.Flags().Uint64Var(&limit, "limit", 1000, "how many payloads")
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", defaultEthNodeURI, "eth node URI (i.e. Infura)")
@@ -80,6 +82,9 @@ var checkPayloadValueCmd = &cobra.Command{
 			}
 			err = db.DB.Select(&entries, query)
 		} else if checkAll {
+			if slotMax > 0 {
+				query += fmt.Sprintf(" WHERE slot<=%d", slotMax)
+			}
 			query += ` ORDER BY slot DESC`
 			if limit > 0 {
 				query += fmt.Sprintf(" limit %d", limit)
@@ -97,6 +102,7 @@ var checkPayloadValueCmd = &cobra.Command{
 			log.WithError(err).Fatalf("couldn't get entries")
 		}
 
+		log.Infof("query: %s", query)
 		log.Infof("got %d entries", len(entries))
 		if len(entries) == 0 {
 			return
