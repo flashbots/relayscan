@@ -59,8 +59,8 @@ func (s *RelayCollector) Start() {
 		}
 
 		latestSlot = headEvent.Slot
-		currentEpoch := latestSlot / uint64(relaycommon.SlotsPerEpoch)
-		slotsUntilNextEpoch := uint64(relaycommon.SlotsPerEpoch) - (latestSlot % uint64(relaycommon.SlotsPerEpoch))
+		currentEpoch := latestSlot / relaycommon.SlotsPerEpoch
+		slotsUntilNextEpoch := relaycommon.SlotsPerEpoch - (latestSlot % relaycommon.SlotsPerEpoch)
 		s.log.Infof("headSlot: %d / currentEpoch: %d / slotsUntilNextEpoch: %d", latestSlot, currentEpoch, slotsUntilNextEpoch)
 
 		// On every new epoch, get proposer duties for current and next epoch (to avoid boundary problems)
@@ -89,7 +89,7 @@ func (s *RelayCollector) Start() {
 		latestEpoch = currentEpoch
 
 		// Now get the latest block, for the execution payload
-		block, err := s.bn.GetBlock()
+		block, err := s.bn.GetBlock("head")
 		if err != nil {
 			s.log.WithError(err).Error("failed get latest block from BN")
 			continue
