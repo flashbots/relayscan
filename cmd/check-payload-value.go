@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -230,7 +231,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		}
 
 		entry.BlockCoinbaseAddress = database.NewNullString(block.Miner)
-		coinbaseIsProposer := block.Miner == entry.ProposerFeeRecipient
+		coinbaseIsProposer := strings.EqualFold(block.Miner, entry.ProposerFeeRecipient)
 		entry.BlockCoinbaseIsProposer = database.NewNullBool(coinbaseIsProposer)
 
 		// query block by number to ensure that's what landed on-chain
@@ -246,32 +247,6 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			saveEntry(_log, entry)
 			continue
 		}
-
-		// entry.BlockHashOnChain = database.NewNullString(blockByNum.Hash)
-		// entry.BlockHashOnChainDiffs = database.NewNullBool(blockByNum.Hash != block.Hash)
-		// if blockByNum.Hash != block.Hash {
-		// 	entry.ValueCheckOk = database.NewNullBool(false)
-		// 	_log.Warnf("block hash mismatch! payload: %s / by number: %s", entry.BlockHash, blockByNum.Hash)
-
-		// 	// check if it was uncled
-		// 	_log.Info("checking for uncling...")
-		// 	for i := block.Number + 1; i < block.Number+8; i++ {
-		// 		nextBlockByNum, err := getBlockByNumber(i, false)
-		// 		if err != nil {
-		// 			_log.WithError(err).Warnf("couldn't get +block by number %d", i)
-		// 		}
-		// 		wasUncled := common.StringSliceContains(nextBlockByNum.Uncles, block.Hash)
-		// 		_log.Infof("block %d has %d uncles. original block included? %v", i, len(nextBlockByNum.Uncles), wasUncled)
-		// 		entry.WasUncled = database.NewNullBool(false)
-		// 		if wasUncled {
-		// 			_log.Info("-- was uncled!")
-		// 			entry.WasUncled = database.NewNullBool(true)
-		// 			break
-		// 		}
-		// 	}
-		// 	saveEntry(_log, entry)
-		// 	continue
-		// }
 
 		// Block was found on chain and is same for this blocknumber. Now check the payment!
 		checkMethod := "balanceDiff"
@@ -295,23 +270,6 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 					}
 				}
 			}
-
-			// if isDeliveredValueIncorrect { // check tx in + out
-			// 	for i, tx := range block.Transactions {
-			// 		if tx.From == entry.ProposerFeeRecipient {
-			// 			_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value.String())
-			// 			proposerValueDiffFromClaim = new(big.Int).Add(proposerValueDiffFromClaim, &tx.Value)
-			// 		} else if tx.To == entry.ProposerFeeRecipient && i < len(block.Transactions)-1 {
-			// 			_log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value.String())
-			// 		}
-			// 	}
-			// 	if proposerValueDiffFromClaim.String() == "0" {
-			// 		_log.Debug("all good after considering outgoing tx")
-			// 		isDeliveredValueIncorrect = false
-			// 	} else {
-			// 		_log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.Number)
-			// 	}
-			// }
 
 			if isDeliveredValueIncorrect {
 				_log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.Number)
@@ -343,6 +301,18 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		entry.ValueDeliveredEth = database.NewNullString(common.WeiToEth(proposerBalanceDiffWei).String())
 		entry.ValueDeliveredDiffWei = database.NewNullString(proposerValueDiffFromClaim.String())
 		entry.ValueDeliveredDiffEth = database.NewNullString(common.WeiToEth(proposerValueDiffFromClaim).String())
+
+		log.WithFields(logrus.Fields{
+			"coinbaseIsProposer": coinbaseIsProposer,
+			// "coinbase":                 block.Miner,
+			// "proposerFeeRec(reported)": entry.ProposerFeeRecipient,
+			"valueCheckOk":     entry.ValueCheckOk.Bool,
+			"valueCheckMethod": entry.ValueCheckMethod.String,
+			// "valueDeliveredWei":       entry.ValueDeliveredWei,
+			"valueDeliveredEth": entry.ValueDeliveredEth.String,
+			// "valueDeliveredDiffWei":   entry.ValueDeliveredDiffWei,
+			"valueDeliveredDiffEth": entry.ValueDeliveredDiffEth.String,
+		}).Info("value check done")
 
 		if !coinbaseIsProposer {
 			// Get builder balance diff
