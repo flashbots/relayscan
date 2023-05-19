@@ -23,6 +23,7 @@ var (
 	checkIncorrectOnly bool
 	checkMissedOnly    bool
 	checkTx            bool
+	checkAll           bool
 )
 
 func init() {
@@ -36,6 +37,7 @@ func init() {
 	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
 	checkPayloadValueCmd.Flags().BoolVar(&checkMissedOnly, "check-missed", false, "whether to double-check missed slots only")
 	checkPayloadValueCmd.Flags().BoolVar(&checkTx, "check-tx", false, "whether to check for tx from/to proposer feeRecipient")
+	checkPayloadValueCmd.Flags().BoolVar(&checkAll, "check-all", false, "whether to check all entries")
 }
 
 var checkPayloadValueCmd = &cobra.Command{
@@ -43,14 +45,6 @@ var checkPayloadValueCmd = &cobra.Command{
 	Short: "Check payload value for delivered payloads",
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
-		// log.Infof("Using beacon node: %s", beaconNodeURI)
-		// bn := beaconclient.NewProdBeaconInstance(log, beaconNodeURI)
-		// syncStatus, err := bn.SyncStatus()
-		// if err != nil {
-		// 	log.WithError(err).Fatal("couldn't get BN sync status")
-		// } else if syncStatus.IsSyncing {
-		// 	log.Fatal("beacon node is syncing")
-		// }
 
 		log.Infof("Using eth node: %s", ethNodeURI)
 		client := flashbotsrpc.New(ethNodeURI)
@@ -81,6 +75,12 @@ var checkPayloadValueCmd = &cobra.Command{
 			err = db.DB.Select(&entries, query)
 		} else if checkMissedOnly {
 			query += ` WHERE slot_missed=true ORDER BY slot DESC`
+			if limit > 0 {
+				query += fmt.Sprintf(" limit %d", limit)
+			}
+			err = db.DB.Select(&entries, query)
+		} else if checkAll {
+			query += ` ORDER BY slot DESC`
 			if limit > 0 {
 				query += fmt.Sprintf(" limit %d", limit)
 			}
