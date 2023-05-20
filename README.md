@@ -27,33 +27,8 @@ Monitoring of Ethereum mev-boost relays:
 * Relays are configured in [`/common/relays.go`](/common/relays.go)
 * Some environment variables are required, see [`.env.example`](/.env.example)
 * Saving and checking payloads is split into phases/commands:
-  * `data-api-backfill` -- queries the data API of all relays and puts that data into the database
-  * `check-payload-value` -- checks all new database entries for payment validity
-
-```bash
-$ go run . --help
-https://github.com/flashbots/relayscan
-
-Usage:
-  relay [flags]
-  relay [command]
-
-Available Commands:
-  backfill-extradata  Backfill extra_data
-  check-payload-value Check payload value for delivered payloads
-  collect-live-bids   On every slot, ask for live bids
-  completion          Generate the autocompletion script for the specified shell
-  data-api-backfill   Backfill all relays data API
-  help                Help about any command
-  inspect-block       Inspect a block
-  version             Print the version number the relay application
-  website             Start the website server
-
-Flags:
-  -h, --help   help for relay
-
-Use "relay [command] --help" for more information about a command.
-```
+  * [`data-api-backfill`](https://github.com/flashbots/relayscan/blob/cleanup/cmd/data-api-backfill.go) -- queries the data API of all relays and puts that data into the database
+  * [`check-payload-value`](https://github.com/flashbots/relayscan/blob/cleanup/cmd/check-payload-value.go) -- checks all new database entries for payment validity
 
 
 ## Getting started
@@ -61,8 +36,11 @@ Use "relay [command] --help" for more information about a command.
 ### Run
 
 ```bash
-# Query relay data APIs for delivered payloads
+# Query relay data APIs for delivered payloads, and store in the database (by default, until the merge!)
 go run . data-api-backfill
+
+# Backfill data only until a specific slot
+go run . data-api-backfill --min-slot=6482170
 
 # Check new entries for valid payments
 go run . check-payload-value
@@ -87,4 +65,31 @@ make lint
 make test
 make test-race
 make build
+```
+
+### Help
+
+```bash
+$ go run . --help
+https://github.com/flashbots/relayscan
+
+Usage:
+  relay [flags]
+  relay [command]
+
+Available Commands:
+  backfill-extradata  Backfill extra_data
+  check-payload-value Check payload value for delivered payloads
+  collect-live-bids   On every slot, ask for live bids
+  completion          Generate the autocompletion script for the specified shell
+  data-api-backfill   Backfill all relays data API
+  help                Help about any command
+  inspect-block       Inspect a block
+  version             Print the version number the relay application
+  website             Start the website server
+
+Flags:
+  -h, --help   help for relay
+
+Use "relay [command] --help" for more information about a command.
 ```
