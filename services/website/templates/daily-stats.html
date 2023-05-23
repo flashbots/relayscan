@@ -35,16 +35,15 @@
                 {{ if ne .DayNext "" }}<a href="/stats/day/{{ .DayNext }}">next <i class="bi bi-arrow-right"></i></a>{{ else }}next <i class="bi bi-arrow-right"></i>{{ end}}
             </p>
         </center>
+
         <br>
         <br>
-        <div class="pure-g">
-            <div class="pure-u-1 pure-u-md-1-2 stats-table">
-                <div>
-                    <h2>Top Relays</h2>
-                    <p>
-                        by payloads delivered, 24h
-                    </p>
-                    <table class="pure-table pure-table-horizontal">
+
+
+        <div class="pure-g" id="content-overview">
+            <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-relays">
+                <div id="stats-relays-inner">
+                    <table class="pure-table pure-table-horizontal" style="width: 100%;">
                         <thead>
                             <tr>
                                 <th>Relay</th>
@@ -52,60 +51,62 @@
                                 <th>Percent</th>
                             </tr>
                         </thead>
-                        <tbody>
-
+                        <tbody id="tbody-relays" class="tbody-relays">
                             {{ range .TopRelays }}
-                            <tr>
-                                <td>{{ .Relay }}</td>
+                            <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')">
+                                <td class="td-relay-name"><a href="https://{{ .Relay }}" target="_blank">{{ .Relay }}</a></td>
                                 <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
                                 <td style="text-align:right">{{ .Percent }} %</td>
                             </tr>
                             {{ end }}
                         </tbody>
                     </table>
+                    <div class="copy-table-to-clipboard">
+                        <a href="/overview/md" onclick="copyRelays(event); return false;">copy markdown <i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+                    </div>
                 </div>
-
             </div>
-            <div class="pure-u-1 pure-u-md-1-2 stats-table">
 
-                <div>
-                    <h2>Top Builders</h2>
-                    <p>
-                        by blocks landed on-chain, 24h </p>
-                    <table class="pure-table pure-table-horizontal">
+            <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-builders">
+                <div id="stats-builders-inner">
+                    <table class="pure-table pure-table-horizontal" style="width: 100%;">
                         <thead>
                             <tr>
-                                <th>Builder extra_data (consolidated)</th>
+                                <th>Builder (extra_data)</th>
                                 <th>Blocks</th>
-                                <th>Percent</th>
+                                <th style="min-width: 100px;">Percent</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="tbody-builders-all" class="tbody-builders">
                             {{ range .TopBuildersBySummary }}
                             <tr>
-                                <td>
+                                <td class="td-builder-extradata">
                                     {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
                                     {{ if ne (len .Aliases) 0 }}
-                                    <i id="builder-alias-icon" class="bi bi-info-circle" aria-describedby="tooltip"></i>
-                                    <div id="tooltip" class="builder-aliases" role="tooltip">
-                                        <b>extra_data values:</b>
-                                        <ul>
-                                            {{ range .Aliases }}
-                                            <li>{{ . }}</li>
-                                            {{ end }}
-                                        </ul>
-                                        <div id="arrow" data-popper-arrow></div>
-                                    </div>
+                                    <span class="tooltip-wrapper">
+                                        <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
+                                        <div id="tooltip-builder-alias" class="tooltip builder-aliases" role="tooltip">
+                                            <b>extra_data values:</b>
+                                            <ul>
+                                                {{ range .Aliases }}
+                                                <li>{{ . }}</li>
+                                                {{ end }}
+                                            </ul>
+                                            <div id="arrow" data-popper-arrow></div>
+                                        </div>
+                                    </span>
                                     {{ end }}
 
                                 </td>
-                                <td style="text-align:right">{{ .NumBlocks | prettyInt }}</td>
-                                <td style="text-align:right">{{ .Percent }} %</td>
+                                <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
+                                <td class="td-builder-percent">{{ .Percent }} %</td>
                             </tr>
                             {{ end }}
                         </tbody>
                     </table>
-
+                    <div class="copy-table-to-clipboard">
+                        <a href="/overview/md" onclick="copyBuilders(event); return false;">copy markdown <i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -114,64 +115,31 @@
 
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script>
-        const button = document.querySelector('#builder-alias-icon');
-        const tooltip = document.querySelector('#tooltip');
-
-        // Pass the button, the tooltip, and some options, and Popper will do the
-        // magic positioning for you:
-        const popperInstance = Popper.createPopper(button, tooltip, {
-            modifiers: [
-                {
-                    name: 'offset',
-                    options: {
-                        offset: [0, 8],
-                    },
-                },
-            ],
-        });
-
-
-        function show() {
-            // Make the tooltip visible
-            tooltip.setAttribute('data-show', '');
-
-            // Enable the event listeners
-            popperInstance.setOptions((options) => ({
-                ...options,
-                modifiers: [
-                    ...options.modifiers,
-                    { name: 'eventListeners', enabled: true },
-                ],
-            }));
-
-            // Update its position
-            popperInstance.update();
-        }
-
-        function hide() {
-            // Hide the tooltip
-            tooltip.removeAttribute('data-show');
-
-            // Disable the event listeners
-            popperInstance.setOptions((options) => ({
-                ...options,
-                modifiers: [
-                    ...options.modifiers,
-                    { name: 'eventListeners', enabled: false },
-                ],
-            }));
-        }
-
         const showEvents = ['mouseenter', 'focus'];
         const hideEvents = ['mouseleave', 'blur'];
 
-        showEvents.forEach((event) => {
-            button.addEventListener(event, show);
-        });
+        // Tooltip setup
+        for (const tooltip of document.getElementsByClassName("tooltip-wrapper")) {
+            const elTrigger = tooltip.querySelector(".tooltip-icon");
+            const elTooltip = tooltip.querySelector(".tooltip");
+            const popperInstance = Popper.createPopper(elTrigger, elTooltip, { modifiers: [{ name: 'offset', options: { offset: [0, 8] } }], });
+            function showTooltip() {
+                elTooltip.setAttribute('data-show', ''); // Show the tooltip
+                popperInstance.setOptions((options) => ({ ...options, modifiers: [...options.modifiers, { name: 'eventListeners', enabled: true },] }));
+                popperInstance.update(); // Update its position
+            }
+            function hideTooltip() {
+                elTooltip.removeAttribute('data-show'); // Hide the tooltip
+                popperInstance.setOptions((options) => ({ ...options, modifiers: [...options.modifiers, { name: 'eventListeners', enabled: false }] }));
+            }
+            showEvents.forEach((event) => {
+                elTrigger.addEventListener(event, showTooltip);
+            });
 
-        hideEvents.forEach((event) => {
-            button.addEventListener(event, hide);
-        });
+            hideEvents.forEach((event) => {
+                elTrigger.addEventListener(event, hideTooltip);
+            });
+        }
     </script>
 </body>
 
