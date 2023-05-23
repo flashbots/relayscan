@@ -1,23 +1,19 @@
 # relayscan
 
+[![Goreport status](https://goreportcard.com/badge/github.com/flashbots/relayscan)](https://goreportcard.com/report/github.com/flashbots/relayscan)
 [![Test status](https://github.com/flashbots/relayscan/workflows/Checks/badge.svg)](https://github.com/flashbots/relayscan/actions?query=workflow%3A%22Checks%22)
 
-Disclaimer: This code is work-in-progress and quick'n dirty in a lot of places. Use at your own risk.
+Monitoring, analytics & data for Ethereum MEV-Boost builders and relays
 
 Running on https://relayscan.io
 
----
+## Notes
 
-Monitoring of Ethereum mev-boost relays:
-
-* PostgreSQL database with delivered payloads of all relays
-* Ensure payments are correct (according to claim in bid)
-* Call `getHeader` on every relay on every slot and save to DB
-
----
-
-* License: AGPL
+- Work in progress
+- Multiple relays can serve a payload for the same slot (if the winning builder sent the best bid to multiple relays, and the proposer asks for a payload from all of them)
+- Comments and feature requests: [@relayscan_io](https://twitter.com/relayscan_io)
 * Maintainer: [@metachris](https://twitter.com/metachris)
+- License: AGPL
 
 ---
 
