@@ -321,6 +321,7 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 			srv.log.WithError(err).Error("root: error parsing template")
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 		err = tpl.ExecuteTemplate(w, "base", htmlData)
 		if err != nil {
 			srv.log.WithError(err).Error("root: error executing template")
@@ -347,6 +348,7 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(htmlBytes)
 }
 
@@ -359,12 +361,14 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 func (srv *Webserver) handleOverviewMarkdown(w http.ResponseWriter, req *http.Request) {
 	srv.markdownSummaryRespLock.RLock()
 	defer srv.markdownSummaryRespLock.RUnlock()
+	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(*srv.markdownOverview)
 }
 
 func (srv *Webserver) handleBuilderProfitMarkdown(w http.ResponseWriter, req *http.Request) {
 	srv.markdownSummaryRespLock.RLock()
 	defer srv.markdownSummaryRespLock.RUnlock()
+	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(*srv.markdownBuilderProfit)
 }
 
@@ -420,6 +424,7 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 			srv.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		w.WriteHeader(http.StatusOK)
 		err = tpl.Execute(w, htmlData)
 		if err != nil {
 			srv.log.WithError(err).Error("error executing template")
@@ -427,6 +432,7 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 			return
 		}
 	} else {
+		w.WriteHeader(http.StatusOK)
 		err = srv.templateDailyStats.Execute(w, htmlData)
 		if err != nil {
 			srv.log.WithError(err).Error("error executing template")
@@ -452,10 +458,10 @@ func (srv *Webserver) handleDailyStatsJSON(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	type apiResp struct { //nolint:musttag
-		Date     string
-		Relays   []*database.TopRelayEntry
-		Builders []*database.TopBuilderEntry
+	type apiResp struct {
+		Date     string                      `json:"date"`
+		Relays   []*database.TopRelayEntry   `json:"relays"`
+		Builders []*database.TopBuilderEntry `json:"builders"`
 	}
 
 	resp := apiResp{
@@ -464,8 +470,5 @@ func (srv *Webserver) handleDailyStatsJSON(w http.ResponseWriter, req *http.Requ
 		Builders: consolidateBuilderEntries(builders),
 	}
 
-	// encode json to response writer
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(resp) //nolint:errchkjson
+	srv.RespondOK(w, resp)
 }
