@@ -50,8 +50,8 @@ type Webserver struct {
 	stats       map[string]*Stats
 	statsLock   sync.RWMutex
 
-	statsAPIResp     *[]byte
-	statsAPIRespLock sync.RWMutex
+	// statsAPIResp     *[]byte
+	// statsAPIRespLock sync.RWMutex
 
 	markdownOverview        *[]byte
 	markdownBuilderProfit   *[]byte
@@ -125,6 +125,8 @@ func (srv *Webserver) StartServer() (err error) {
 
 func (srv *Webserver) getRouter() http.Handler {
 	r := mux.NewRouter()
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+
 	r.HandleFunc("/", srv.handleRoot).Methods(http.MethodGet)
 	r.HandleFunc("/overview", srv.handleRoot).Methods(http.MethodGet)
 	r.HandleFunc("/builder-profit", srv.handleRoot).Methods(http.MethodGet)
@@ -132,10 +134,9 @@ func (srv *Webserver) getRouter() http.Handler {
 	r.HandleFunc("/overview/md", srv.handleOverviewMarkdown).Methods(http.MethodGet)
 	r.HandleFunc("/builder-profit/md", srv.handleBuilderProfitMarkdown).Methods(http.MethodGet)
 
-	// r.HandleFunc("/builder-profit/md", srv.handleBuilderProfitMarkdown).Methods(http.MethodGet)
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}", srv.handleDailyStats).Methods(http.MethodGet)
-	r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
+	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}/json", srv.handleDailyStatsJSON).Methods(http.MethodGet)
+	// r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
 
 	if srv.opts.EnablePprof {
 		srv.log.Info("pprof API enabled")
@@ -349,11 +350,11 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	_, _ = w.Write(htmlBytes)
 }
 
-func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {
-	srv.statsAPIRespLock.RLock()
-	defer srv.statsAPIRespLock.RUnlock()
-	_, _ = w.Write(*srv.statsAPIResp)
-}
+// func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {
+// 	srv.statsAPIRespLock.RLock()
+// 	defer srv.statsAPIRespLock.RUnlock()
+// 	_, _ = w.Write(*srv.statsAPIResp)
+// }
 
 func (srv *Webserver) handleOverviewMarkdown(w http.ResponseWriter, req *http.Request) {
 	srv.markdownSummaryRespLock.RLock()
@@ -367,30 +368,32 @@ func (srv *Webserver) handleBuilderProfitMarkdown(w http.ResponseWriter, req *ht
 	_, _ = w.Write(*srv.markdownBuilderProfit)
 }
 
+func (srv *Webserver) _getDailyStats(t time.Time) (since, until, minDate time.Time, relays []*database.TopRelayEntry, builders []*database.TopBuilderEntry, err error) {
+	now := time.Now().UTC()
+	minDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Add(-24 * time.Hour).UTC()
+	if t.UTC().After(minDate.UTC()) {
+		return now, now, minDate, nil, nil, fmt.Errorf("date is too recent") //nolint:goerr113
+	}
+
+	since = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+	until = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, time.UTC)
+	relays, builders, err = srv.db.GetStatsForTimerange(since, until, "")
+	return since, until, minDate, relays, builders, err
+}
+
 func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 
-	// 1. ensure date is before today
 	layout := "2006-01-02"
 	t, err := time.Parse(layout, vars["day"])
 	if err != nil {
 		srv.RespondError(w, http.StatusBadRequest, "invalid date")
 		return
 	}
-	now := time.Now().UTC()
-	minDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Add(-24 * time.Hour).UTC()
-	if t.UTC().After(minDate.UTC()) {
-		srv.RespondError(w, http.StatusBadRequest, "date is too recent")
-		return
-	}
 
-	// 2. lookup daily stats from DB?
-	// 3. query stats from DB
-	since := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
-	until := time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, time.UTC)
-	relays, builders, err := srv.db.GetStatsForTimerange(since, until, "")
+	since, until, minDate, relays, builders, err := srv._getDailyStats(t)
 	if err != nil {
-		srv.RespondError(w, http.StatusBadRequest, "invalid date")
+		srv.RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -431,4 +434,38 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 			return
 		}
 	}
+}
+
+func (srv *Webserver) handleDailyStatsJSON(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+
+	layout := "2006-01-02"
+	t, err := time.Parse(layout, vars["day"])
+	if err != nil {
+		srv.RespondError(w, http.StatusBadRequest, "invalid date")
+		return
+	}
+
+	_, _, _, relays, builders, err := srv._getDailyStats(t) //nolint:dogsled
+	if err != nil {
+		srv.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	type apiResp struct { //nolint:musttag
+		Date     string
+		Relays   []*database.TopRelayEntry
+		Builders []*database.TopBuilderEntry
+	}
+
+	resp := apiResp{
+		Date:     t.Format("2006-01-02"),
+		Relays:   prepareRelaysEntries(relays),
+		Builders: consolidateBuilderEntries(builders),
+	}
+
+	// encode json to response writer
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(resp) //nolint:errchkjson
 }
