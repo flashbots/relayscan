@@ -46,13 +46,14 @@ type Webserver struct {
 	templateIndex      *template.Template
 	templateDailyStats *template.Template
 
-	htmlDefault *HTMLData
-	stats       map[string]*Stats
-	statsLock   sync.RWMutex
+	stats     map[string]*Stats
+	statsLock sync.RWMutex
 
 	// statsAPIResp     *[]byte
 	// statsAPIRespLock sync.RWMutex
 
+	// viewOverview            *[]byte
+	// viewBuilderProfit       *[]byte
 	markdownOverview        *[]byte
 	markdownBuilderProfit   *[]byte
 	markdownSummaryRespLock sync.RWMutex
@@ -86,8 +87,6 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	server.htmlDefault = &HTMLData{} //nolint:exhaustruct
 
 	return server, nil
 }
@@ -235,7 +234,6 @@ func (srv *Webserver) updateHTML() {
 
 	// Save the html data
 	srv.statsLock.Lock()
-	srv.htmlDefault = &htmlData
 	srv.stats = stats
 	srv.statsLock.Unlock()
 
@@ -255,6 +253,7 @@ func (srv *Webserver) updateHTML() {
 	builderProfitMd += "```"
 	builderProfitMdBytes := []byte(builderProfitMd)
 
+	// prepare commonly used views
 	srv.markdownSummaryRespLock.Lock()
 	srv.markdownOverview = &overviewMdBytes
 	srv.markdownBuilderProfit = &builderProfitMdBytes
@@ -308,7 +307,7 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	}
 
 	srv.statsLock.RLock()
-	htmlData := *srv.htmlDefault
+	htmlData := HTMLData{} //nolint:exhaustruct
 	htmlData.Stats = srv.stats[timespan]
 	srv.statsLock.RUnlock()
 

@@ -8,10 +8,32 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/styles.css?v=3">
+    <link rel="stylesheet" href="/static/styles.css?v=10">
 
-    <title>relayscan.io &ndash; Daily MEV-Boost Stats - {{ .Day }}</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/static/favicon/site.webmanifest">
+
+    <!-- HTML Meta Tags -->
+    <title>MEV-Boost Stats for {{ .Day }} | relayscan.io</title>
     <meta name="description" content="Monitoring, analytics & data for Ethereum MEV-Boost builders and relays">
+
+    <!-- Facebook Meta Tags -->
+    <meta property="og:url" content="https://www.relayscan.io/stats/day/{{ .Day }}">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="MEV-Boost Stats for {{ .Day }} | relayscan.io">
+    <meta property="og:description" content="Monitoring, analytics & data for Ethereum MEV-Boost builders and relays">
+    <meta property="og:image" content="https://relayscan.io/static/images/logo1-square.png">
+
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@relayscan_io">
+    <meta property="twitter:domain" content="relayscan.io">
+    <meta property="twitter:url" content="https://www.relayscan.io/stats/day/{{ .Day }}">
+    <meta name="twitter:title" content="MEV-Boost Stats for {{ .Day }} | relayscan.io">
+    <meta name="twitter:description" content="Monitoring, analytics & data for Ethereum MEV-Boost builders and relays">
+    <meta name="twitter:image" content="https://relayscan.io/static/images/logo1-square.png">
 </head>
 
 <body>
