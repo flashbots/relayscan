@@ -54,5 +54,5 @@ func ParseIndexTemplate() (*template.Template, error) {
 }
 
 func ParseDailyStatsTemplate() (*template.Template, error) {
-	return template.New("daily-stats.html").Funcs(funcMap).ParseFiles("services/website/templates/daily-stats.html")
+	return template.New("daily-stats.html").Funcs(funcMap).ParseFiles("services/website/templates/daily-stats.html", "services/website/templates/base.html")
 }

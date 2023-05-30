@@ -1,168 +1,92 @@
 <!doctype html>
 <html lang="en">
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="/static/styles.css?v=10">
+{{ define "content" }}
 
-    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
-    <link rel="manifest" href="/static/favicon/site.webmanifest">
+<div class="content">
+    <center>
+        <h1 style="margin-bottom:0.3em;">Daily stats for {{ .Day }}</h1>
+        <p>{{ .TimeSince }} <i class="bi bi-arrow-right"></i> {{ .TimeUntil }}</p>
+        <p>
+            <a href="/stats/day/{{ .DayPrev }}"><i class="bi bi-arrow-left"></i> prev</a> |
+            {{ if ne .DayNext "" }}<a href="/stats/day/{{ .DayNext }}">next <i class="bi bi-arrow-right"></i></a>{{ else }}next <i class="bi bi-arrow-right"></i>{{ end}}
+        </p>
+    </center>
 
-    <!-- HTML Meta Tags -->
-    <title>MEV-Boost Stats for {{ .Day }} | relayscan.io</title>
-    <meta name="description" content="Monitoring, analytics & data for Ethereum MEV-Boost builders and relays">
+    <br>
+    <br>
 
-    <!-- Facebook Meta Tags -->
-    <meta property="og:url" content="https://www.relayscan.io/stats/day/{{ .Day }}">
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="MEV-Boost Stats for {{ .Day }} | relayscan.io">
-    <meta property="og:description" content="Monitoring, analytics & data for Ethereum MEV-Boost builders and relays">
-    <meta property="og:image" content="https://relayscan.io/static/images/logo1-square.png">
-
-    <!-- Twitter Meta Tags -->
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:site" content="@relayscan_io">
-    <meta property="twitter:domain" content="relayscan.io">
-    <meta property="twitter:url" content="https://www.relayscan.io/stats/day/{{ .Day }}">
-    <meta name="twitter:title" content="MEV-Boost Stats for {{ .Day }} | relayscan.io">
-    <meta name="twitter:description" content="Monitoring, analytics & data for Ethereum MEV-Boost builders and relays">
-    <meta name="twitter:image" content="https://relayscan.io/static/images/logo1-square.png">
-</head>
-
-<body>
-    <div class="header">
-        <div class="home-menu pure-menu pure-menu-horizontal">
-            <a class="pure-menu-heading" href="/">relayscan.io</a>
-
-            <ul class="pure-menu-list">
-                <!-- <li class="pure-menu-item"><a href="https://hackmd.io/XfSCHCb7RfOzjub72s54eg" class="pure-menu-link">About</a></li> -->
-                <li class="pure-menu-item"><a href="https://twitter.com/relayscan_io" class="pure-menu-link"><i class="bi bi-twitter"></i></a></li>
-            </ul>
-        </div>
-    </div>
-
-    <div class="content">
-        <center>
-            <h1 style="margin-bottom:0.3em;">Daily stats for {{ .Day }}</h1>
-            <p>{{ .TimeSince }} <i class="bi bi-arrow-right"></i> {{ .TimeUntil }}</p>
-            <p>
-                <a href="/stats/day/{{ .DayPrev }}"><i class="bi bi-arrow-left"></i> prev</a> |
-                {{ if ne .DayNext "" }}<a href="/stats/day/{{ .DayNext }}">next <i class="bi bi-arrow-right"></i></a>{{ else }}next <i class="bi bi-arrow-right"></i>{{ end}}
-            </p>
-        </center>
-
-        <br>
-        <br>
-
-
-        <div class="pure-g" id="content-overview">
-            <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-relays">
-                <div id="stats-relays-inner">
-                    <table class="pure-table pure-table-horizontal" style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Relay</th>
-                                <th>Payloads</th>
-                                <th>Percent</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-relays" class="tbody-relays">
-                            {{ range .TopRelays }}
-                            <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')">
-                                <td class="td-relay-name"><a href="https://{{ .Relay }}" target="_blank">{{ .Relay }}</a></td>
-                                <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
-                                <td style="text-align:right">{{ .Percent }} %</td>
-                            </tr>
-                            {{ end }}
-                        </tbody>
-                    </table>
-                    <div class="copy-table-to-clipboard">
-                        <a href="/overview/md" onclick="copyRelays(event); return false;">copy markdown <i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-builders">
-                <div id="stats-builders-inner">
-                    <table class="pure-table pure-table-horizontal" style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>Builder (extra_data)</th>
-                                <th>Blocks</th>
-                                <th style="min-width: 100px;">Percent</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbody-builders-all" class="tbody-builders">
-                            {{ range .TopBuildersBySummary }}
-                            <tr>
-                                <td class="td-builder-extradata">
-                                    {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
-                                    {{ if ne (len .Aliases) 0 }}
-                                    <span class="tooltip-wrapper">
-                                        <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
-                                        <div id="tooltip-builder-alias" class="tooltip builder-aliases" role="tooltip">
-                                            <b>extra_data values:</b>
-                                            <ul>
-                                                {{ range .Aliases }}
-                                                <li>{{ . }}</li>
-                                                {{ end }}
-                                            </ul>
-                                            <div id="arrow" data-popper-arrow></div>
-                                        </div>
-                                    </span>
-                                    {{ end }}
-
-                                </td>
-                                <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
-                                <td class="td-builder-percent">{{ .Percent }} %</td>
-                            </tr>
-                            {{ end }}
-                        </tbody>
-                    </table>
-                    <div class="copy-table-to-clipboard">
-                        <a href="/overview/md" onclick="copyBuilders(event); return false;">copy markdown <i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
-                    </div>
+    <div class="pure-g" id="content-overview">
+        <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-relays">
+            <div id="stats-relays-inner">
+                <table class="pure-table pure-table-horizontal" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Relay</th>
+                            <th>Payloads</th>
+                            <th>Percent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-relays" class="tbody-relays">
+                        {{ range .TopRelays }}
+                        <tr class="tr-relay" onmouseover="relayMouseOver('{{.Relay}}')" onmouseout="relayMouseOut('{{.Relay}}')">
+                            <td class="td-relay-name"><a href="https://{{ .Relay }}" target="_blank">{{ .Relay }}</a></td>
+                            <td style="text-align:right">{{ .NumPayloads | prettyInt }}</td>
+                            <td style="text-align:right">{{ .Percent }} %</td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                <div class="copy-table-to-clipboard">
+                    <a href="/overview/md" onclick="copyRelays(event); return false;">copy markdown <i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
                 </div>
             </div>
         </div>
 
+        <div class="pure-u-1 pure-u-md-1-2 stats-table" id="stats-builders">
+            <div id="stats-builders-inner">
+                <table class="pure-table pure-table-horizontal" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Builder (extra_data)</th>
+                            <th>Blocks</th>
+                            <th style="min-width: 100px;">Percent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-builders-all" class="tbody-builders">
+                        {{ range .TopBuildersBySummary }}
+                        <tr>
+                            <td class="td-builder-extradata">
+                                {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
+                                {{ if ne (len .Aliases) 0 }}
+                                <span class="tooltip-wrapper">
+                                    <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
+                                    <div id="tooltip-builder-alias" class="tooltip builder-aliases" role="tooltip">
+                                        <b>extra_data values:</b>
+                                        <ul>
+                                            {{ range .Aliases }}
+                                            <li>{{ . }}</li>
+                                            {{ end }}
+                                        </ul>
+                                        <div id="arrow" data-popper-arrow></div>
+                                    </div>
+                                </span>
+                                {{ end }}
+
+                            </td>
+                            <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
+                            <td class="td-builder-percent">{{ .Percent }} %</td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+                <div class="copy-table-to-clipboard">
+                    <a href="/overview/md" onclick="copyBuilders(event); return false;">copy markdown <i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script>
-        const showEvents = ['mouseenter', 'focus'];
-        const hideEvents = ['mouseleave', 'blur'];
+</div>
 
-        // Tooltip setup
-        for (const tooltip of document.getElementsByClassName("tooltip-wrapper")) {
-            const elTrigger = tooltip.querySelector(".tooltip-icon");
-            const elTooltip = tooltip.querySelector(".tooltip");
-            const popperInstance = Popper.createPopper(elTrigger, elTooltip, { modifiers: [{ name: 'offset', options: { offset: [0, 8] } }], });
-            function showTooltip() {
-                elTooltip.setAttribute('data-show', ''); // Show the tooltip
-                popperInstance.setOptions((options) => ({ ...options, modifiers: [...options.modifiers, { name: 'eventListeners', enabled: true },] }));
-                popperInstance.update(); // Update its position
-            }
-            function hideTooltip() {
-                elTooltip.removeAttribute('data-show'); // Hide the tooltip
-                popperInstance.setOptions((options) => ({ ...options, modifiers: [...options.modifiers, { name: 'eventListeners', enabled: false }] }));
-            }
-            showEvents.forEach((event) => {
-                elTrigger.addEventListener(event, showTooltip);
-            });
-
-            hideEvents.forEach((event) => {
-                elTrigger.addEventListener(event, hideTooltip);
-            });
-        }
-    </script>
-</body>
-
-</html>
+{{ end }}

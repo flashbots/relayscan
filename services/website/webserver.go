@@ -46,17 +46,13 @@ type Webserver struct {
 	templateIndex      *template.Template
 	templateDailyStats *template.Template
 
-	stats     map[string]*Stats
 	statsLock sync.RWMutex
+	stats     map[string]*Stats
+	htmlData  *HTMLData
 
-	// statsAPIResp     *[]byte
-	// statsAPIRespLock sync.RWMutex
-
-	// viewOverview            *[]byte
-	// viewBuilderProfit       *[]byte
+	markdownSummaryRespLock sync.RWMutex
 	markdownOverview        *[]byte
 	markdownBuilderProfit   *[]byte
-	markdownSummaryRespLock sync.RWMutex
 }
 
 func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
@@ -72,6 +68,7 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 		log:  opts.Log,
 		db:   opts.DB,
 
+		htmlData:              &HTMLData{},
 		stats:                 make(map[string]*Stats),
 		minifier:              minifier,
 		markdownOverview:      &[]byte{},
@@ -235,6 +232,7 @@ func (srv *Webserver) updateHTML() {
 	// Save the html data
 	srv.statsLock.Lock()
 	srv.stats = stats
+	srv.htmlData = &htmlData
 	srv.statsLock.Unlock()
 
 	// helper
@@ -307,7 +305,7 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	}
 
 	srv.statsLock.RLock()
-	htmlData := HTMLData{} //nolint:exhaustruct
+	htmlData := srv.htmlData
 	htmlData.Stats = srv.stats[timespan]
 	srv.statsLock.RUnlock()
 
