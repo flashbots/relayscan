@@ -1,15 +1,12 @@
-<!doctype html>
-<html lang="en">
-
 {{ define "content" }}
 
-<div class="content">
-    <center>
-        <h1 style="margin-bottom:0.3em;">Daily stats for {{ .Day }}</h1>
-        <p>{{ .TimeSince }} <i class="bi bi-arrow-right"></i> {{ .TimeUntil }}</p>
+<div class="content daily-stats">
+    <center class="header">
+        <h1 style="margin-bottom:0.3em;">MEV-Boost Stats for {{ .Day }}</h1>
+        <p>{{ .TimeSince }} <i class="bi bi-arrow-right"></i> {{ .TimeUntil }} (UTC)</p>
         <p>
-            <a href="/stats/day/{{ .DayPrev }}"><i class="bi bi-arrow-left"></i> prev</a> |
-            {{ if ne .DayNext "" }}<a href="/stats/day/{{ .DayNext }}">next <i class="bi bi-arrow-right"></i></a>{{ else }}next <i class="bi bi-arrow-right"></i>{{ end}}
+            <a href="/stats/day/{{ .DayPrev }}"><i class="bi bi-arrow-left"></i> prev day</a> |
+            {{ if ne .DayNext "" }}<a href="/stats/day/{{ .DayNext }}">next day <i class="bi bi-arrow-right"></i></a>{{ else }}next day <i class="bi bi-arrow-right"></i>{{ end}}
         </p>
     </center>
 

@@ -592,3 +592,12 @@ td.td-relay-name {
     text-decoration: none;
     color: #434343;
 }
+
+.daily-stats .header a {
+    color: #2a629d;
+    text-decoration: none;
+}
+
+.daily-stats .header a:hover {
+    border-bottom: 1px dotted blue;
+}

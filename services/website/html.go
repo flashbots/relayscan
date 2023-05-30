@@ -19,6 +19,8 @@ type Stats struct {
 }
 
 type HTMLData struct {
+	Title string
+
 	GeneratedAt    time.Time
 	LastUpdateTime string
 	TimeSpans      []string
@@ -29,6 +31,8 @@ type HTMLData struct {
 }
 
 type HTMLDataDailyStats struct {
+	Title string
+
 	Day       string
 	DayPrev   string
 	DayNext   string

@@ -31,6 +31,7 @@ type WebserverOpts struct {
 	Log           *logrus.Entry
 	EnablePprof   bool
 	Dev           bool // reloads template on every request
+	Only24h       bool
 }
 
 type Webserver struct {
@@ -63,12 +64,14 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 	minifier.AddFunc("text/html", html.Minify)
 	minifier.AddFunc("application/javascript", html.Minify)
 
+	opts.Only24h = opts.Dev
+
 	server := &Webserver{
 		opts: opts,
 		log:  opts.Log,
 		db:   opts.DB,
 
-		htmlData:              &HTMLData{},
+		htmlData:              &HTMLData{}, //nolint:exhaustruct
 		stats:                 make(map[string]*Stats),
 		minifier:              minifier,
 		markdownOverview:      &[]byte{},
@@ -201,13 +204,6 @@ func (srv *Webserver) updateHTML() {
 
 	stats := make(map[string]*Stats)
 
-	srv.log.Info("updating 7d stats...")
-	stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
-	if err != nil {
-		srv.log.WithError(err).Error("Failed to get stats for 24h")
-		return
-	}
-
 	srv.log.Info("updating 24h stats...")
 	stats["24h"], err = srv.getStatsForHours(24 * time.Hour)
 	if err != nil {
@@ -215,18 +211,27 @@ func (srv *Webserver) updateHTML() {
 		return
 	}
 
-	srv.log.Info("updating 12h stats...")
-	stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
-	if err != nil {
-		srv.log.WithError(err).Error("Failed to get stats for 12h")
-		return
-	}
+	if !srv.opts.Only24h {
+		srv.log.Info("updating 7d stats...")
+		stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
+		if err != nil {
+			srv.log.WithError(err).Error("Failed to get stats for 24h")
+			return
+		}
 
-	srv.log.Info("updating 1h stats...")
-	stats["1h"], err = srv.getStatsForHours(1 * time.Hour)
-	if err != nil {
-		srv.log.WithError(err).Error("Failed to get stats for 1h")
-		return
+		srv.log.Info("updating 12h stats...")
+		stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
+		if err != nil {
+			srv.log.WithError(err).Error("Failed to get stats for 12h")
+			return
+		}
+
+		srv.log.Info("updating 1h stats...")
+		stats["1h"], err = srv.getStatsForHours(1 * time.Hour)
+		if err != nil {
+			srv.log.WithError(err).Error("Failed to get stats for 1h")
+			return
+		}
 	}
 
 	// Save the html data
@@ -300,8 +305,10 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	}
 
 	view := "overview"
+	title := "MEV-Boost Relay & Builder Stats"
 	if strings.HasSuffix(req.URL.Path, "builder-profit") {
 		view = "builder-profit"
+		title = "MEV-Boost Builder Profitability"
 	}
 
 	srv.statsLock.RLock()
@@ -309,6 +316,7 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	htmlData.Stats = srv.stats[timespan]
 	srv.statsLock.RUnlock()
 
+	htmlData.Title = title
 	htmlData.TimeSpan = timespan
 	htmlData.View = view
 
@@ -405,29 +413,29 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 	}
 
 	htmlData := &HTMLDataDailyStats{
+		Title:                "MEV-Boost Stats for " + t.Format("2006-01-02"),
 		Day:                  t.Format("2006-01-02"),
 		DayPrev:              t.Add(-24 * time.Hour).Format("2006-01-02"),
 		DayNext:              dayNext,
-		TimeSince:            since.Format("2006-01-02 15:04:05 UTC"),
-		TimeUntil:            until.Format("2006-01-02 15:04:05 UTC"),
+		TimeSince:            since.Format("2006-01-02 15:04"),
+		TimeUntil:            until.Format("2006-01-02 15:04"),
 		TopRelays:            prepareRelaysEntries(relays),
 		TopBuildersBySummary: consolidateBuilderEntries(builders),
 	}
 
 	if srv.opts.Dev {
-		tpl, err := template.New("daily-stats.html").Funcs(funcMap).ParseFiles("services/website/templates/daily-stats.html")
+		tpl, err := ParseDailyStatsTemplate()
 		if err != nil {
-			srv.log.WithError(err).Error("error parsing template")
-			srv.RespondError(w, http.StatusInternalServerError, err.Error())
+			srv.log.WithError(err).Error("root: error parsing template")
 			return
 		}
 		w.WriteHeader(http.StatusOK)
-		err = tpl.Execute(w, htmlData)
+		err = tpl.ExecuteTemplate(w, "base", htmlData)
 		if err != nil {
-			srv.log.WithError(err).Error("error executing template")
-			srv.RespondError(w, http.StatusInternalServerError, err.Error())
+			srv.log.WithError(err).Error("root: error executing template")
 			return
 		}
+		return
 	} else {
 		w.WriteHeader(http.StatusOK)
 		err = srv.templateDailyStats.Execute(w, htmlData)
