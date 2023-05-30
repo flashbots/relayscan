@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS ` + TableSignedBuilderBid + ` (
 	gas_used      bigint NOT NULL,
 	extra_data    text NOT NULL,
 	timestamp     bigint NOT NULL,
-	prev_randao   string NOT NULL,
+	prev_randao   text NOT NULL,
 
 	epoch bigint NOT NULL
 );
