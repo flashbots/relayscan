@@ -92,9 +92,10 @@ var updateBuilderStatsCmd = &cobra.Command{
 				check(err)
 				bucketEndTime := bucketStartTime.Add(time.Hour)
 				hourBucket[hour][builderID] = &database.BuilderStatsEntry{
-					Hours:     1,
-					TimeStart: bucketStartTime,
-					TimeEnd:   bucketEndTime,
+					Hours:       1,
+					TimeStart:   bucketStartTime,
+					TimeEnd:     bucketEndTime,
+					BuilderName: builderID,
 				}
 			}
 			hourBucket[hour][builderID].BlocksIncluded += 1
@@ -111,9 +112,13 @@ var updateBuilderStatsCmd = &cobra.Command{
 		for _, hour := range hours {
 			builderStats := hourBucket[hour]
 			log.Infof("hour: %s", hour)
+			entries := make([]*database.BuilderStatsEntry, 0, len(builderStats))
 			for builderID, stats := range builderStats {
 				log.Infof("- %34s: %4d blocks", builderID, stats.BlocksIncluded)
+				entries = append(entries, stats)
 			}
+			err = db.SaveBuilderStats(entries)
+			check(err)
 		}
 	},
 }
