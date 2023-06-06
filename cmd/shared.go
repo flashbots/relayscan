@@ -33,6 +33,12 @@ var (
 	errURLEmpty = errors.New("url is empty")
 )
 
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func connectPostgres(dsn string) (*database.DatabaseService, error) {
 	dbURL, err := url.Parse(dsn)
 	if err != nil {

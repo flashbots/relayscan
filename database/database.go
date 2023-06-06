@@ -179,3 +179,15 @@ func (s *DatabaseService) GetSignedBuilderBidsForSlot(slot uint64) (res []*Signe
 	err = s.DB.Select(&res, query, slot)
 	return res, err
 }
+
+func (s *DatabaseService) SaveBuilderStats(entries []*BuilderStatsEntry) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	query := `INSERT INTO ` + TableBlockBuilderInclusionStats + `
+	(hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included) VALUES
+	(:hours, :time_start, :time_end, :builder_name, :extra_data, :builder_pubkeys, :blocks_included)
+	ON CONFLICT DO NOTHING`
+	_, err := s.DB.NamedExec(query, entries)
+	return err
+}
