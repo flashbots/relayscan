@@ -77,11 +77,7 @@ var inspectBlockCmd = &cobra.Command{
 			log.WithError(err).Fatalf("failed connecting to eth nodes")
 		}
 
-		db, err := connectPostgres(defaultPostgresDSN)
-		if err != nil {
-			log.WithError(err).Fatalf("failed connecting to postgres")
-		}
-
+		db := mustConnectPostgres(defaultPostgresDSN)
 		var mevGethRPC *flashbotsrpc.FlashbotsRPC
 		if mevGethURI == "" {
 			log.Warn("No mev-geth uri provided, cannot simulate block to find coinbase payments")

@@ -172,6 +172,14 @@ func (s *DatabaseService) GetDeliveredPayloadsForSlot(slot uint64) (res []*DataA
 	return res, err
 }
 
+func (s *DatabaseService) GetDeliveredPayloadsForSlots(slotStart, slotEnd uint64) (res []*DataAPIPayloadDeliveredEntry, err error) {
+	query := `SELECT
+		id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number
+	FROM ` + TableDataAPIPayloadDelivered + ` WHERE slot>=$1 AND slot<=$2;`
+	err = s.DB.Select(&res, query, slotStart, slotEnd)
+	return res, err
+}
+
 func (s *DatabaseService) GetSignedBuilderBidsForSlot(slot uint64) (res []*SignedBuilderBidEntry, err error) {
 	query := `SELECT
 		id, relay, requested_at, received_at, duration_ms, slot, parent_hash, proposer_pubkey, pubkey, signature, value, fee_recipient, block_hash, block_number, gas_limit, gas_used, extra_data, epoch, timestamp, prev_randao
