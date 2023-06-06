@@ -7,7 +7,7 @@ import (
 )
 
 func TestSlotToTime(t *testing.T) {
-	require.Equal(t, 1685923199, slotToTime(6591598).Unix())
+	require.Equal(t, int64(1685923199), slotToTime(6591598).Unix())
 }
 
 func TestTimeToSlot(t *testing.T) {
