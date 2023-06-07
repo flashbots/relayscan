@@ -4,10 +4,10 @@ import (
 	_ "embed"
 	"fmt"
 	"math/big"
-	"regexp"
 	"sort"
 	"strings"
 
+	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
 	"github.com/olekukonko/tablewriter"
 	"golang.org/x/text/cases"
@@ -21,18 +21,6 @@ var (
 
 	// Caser is used for casing strings
 	caser = cases.Title(language.English)
-
-	// Aliases maps a string (the main builder identifier) to a function that
-	// returns if an input string is an alias of that builder identifier.
-	aliases = map[string]func(string) bool{
-		"builder0x69": func(in string) bool {
-			return strings.Contains(in, "builder0x69")
-		},
-		"bob the builder": func(in string) bool {
-			match, _ := regexp.MatchString("s[0-9]+e[0-9].*(t|f)", in)
-			return match
-		},
-	}
 )
 
 func weiToEth(wei string) string {
@@ -154,7 +142,7 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 	for _, entry := range builders {
 		buildersNumPayloads += entry.NumBlocks
 		updated := false
-		for k, v := range aliases {
+		for k, v := range common.BuilderAliases {
 			// Check if this is one of the known aliases.
 			if v(entry.ExtraData) {
 				updated = true
@@ -196,7 +184,7 @@ func consolidateBuilderProfitEntries(entries []*database.BuilderProfitEntry) []*
 	for _, entry := range entries {
 		buildersNumPayloads += entry.NumBlocks
 		updated := false
-		for k, v := range aliases {
+		for k, v := range common.BuilderAliases {
 			// Check if this is one of the known aliases.
 			if v(entry.ExtraData) {
 				updated = true

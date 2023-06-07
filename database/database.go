@@ -192,14 +192,12 @@ func (s *DatabaseService) SaveBuilderStats(entries []*BuilderStatsEntry) error {
 	if len(entries) == 0 {
 		return nil
 	}
-	// (hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included) VALUES
-	// (:hours, :time_start, :time_end, :builder_name, :extra_data, :builder_pubkeys, :blocks_included)
-	// builder_pubkeys = EXCLUDED.builder_pubkeys,
-	// extra_data = EXCLUDED.extra_data,
 	query := `INSERT INTO ` + TableBlockBuilderInclusionStats + `
-	(hours, time_start, time_end, builder_name, blocks_included) VALUES
-	(:hours, :time_start, :time_end, :builder_name, :blocks_included)
+	(hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included) VALUES
+	(:hours, :time_start, :time_end, :builder_name, :extra_data, :builder_pubkeys, :blocks_included)
 		ON CONFLICT (hours, time_start, time_end, builder_name) DO UPDATE SET
+		builder_pubkeys = EXCLUDED.builder_pubkeys,
+		extra_data = EXCLUDED.extra_data,
 		blocks_included = EXCLUDED.blocks_included;`
 	_, err := s.DB.NamedExec(query, entries)
 	return err

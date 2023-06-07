@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"sort"
+	"strings"
 	"time"
 
+	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
 	"github.com/spf13/cobra"
 )
@@ -73,7 +75,7 @@ var updateBuilderStatsCmd = &cobra.Command{
 		log.Infof("slots: %d -> %d (%d total)", slotStart, slotEnd, slotEnd-slotStart)
 
 		db := mustConnectPostgres(defaultPostgresDSN)
-		log.Info("Connected to database")
+		log.Info("Connected to database. Querying delivered payloads...")
 
 		entries, err := db.GetDeliveredPayloadsForSlots(slotStart, slotEnd)
 		check(err)
@@ -97,7 +99,7 @@ var updateBuilderStatsCmd = &cobra.Command{
 func saveHourBucket(db *database.DatabaseService, entriesBySlot map[uint64]*database.DataAPIPayloadDeliveredEntry) {
 	hourBucket := make(map[string]map[string]*database.BuilderStatsEntry)
 	for _, entry := range entriesBySlot {
-		builderID := entry.ExtraData
+		builderID := common.BuilderNameFromExtraData(entry.ExtraData)
 
 		t := slotToTime(entry.Slot)
 		hour := t.Format("2006-01-02 15")
@@ -117,6 +119,12 @@ func saveHourBucket(db *database.DatabaseService, entriesBySlot map[uint64]*data
 			}
 		}
 		hourBucket[hour][builderID].BlocksIncluded += 1
+		if !strings.Contains(hourBucket[hour][builderID].ExtraData, entry.ExtraData+"\n") {
+			hourBucket[hour][builderID].ExtraData += entry.ExtraData + "\n"
+		}
+		if !strings.Contains(hourBucket[hour][builderID].BuilderPubkeys, entry.BuilderPubkey+"\n") {
+			hourBucket[hour][builderID].BuilderPubkeys += entry.BuilderPubkey + "\n"
+		}
 	}
 
 	// sort hourBucket keys alphabetically
@@ -129,7 +137,7 @@ func saveHourBucket(db *database.DatabaseService, entriesBySlot map[uint64]*data
 	// print
 	for _, hour := range hours {
 		builderStats := hourBucket[hour]
-		log.Infof("hour: %s", hour)
+		log.Infof("- updating hour: %s", hour)
 		entries := make([]*database.BuilderStatsEntry, 0, len(builderStats))
 		for builderID, stats := range builderStats {
 			if builderStatsVerbose {
@@ -145,7 +153,7 @@ func saveHourBucket(db *database.DatabaseService, entriesBySlot map[uint64]*data
 func saveDayBucket(db *database.DatabaseService, entriesBySlot map[uint64]*database.DataAPIPayloadDeliveredEntry) {
 	dayBucket := make(map[string]map[string]*database.BuilderStatsEntry)
 	for _, entry := range entriesBySlot {
-		builderID := entry.ExtraData
+		builderID := common.BuilderNameFromExtraData(entry.ExtraData)
 
 		t := slotToTime(entry.Slot)
 		day := t.Format("2006-01-02")
@@ -164,6 +172,12 @@ func saveDayBucket(db *database.DatabaseService, entriesBySlot map[uint64]*datab
 			}
 		}
 		dayBucket[day][builderID].BlocksIncluded += 1
+		if !strings.Contains(dayBucket[day][builderID].ExtraData, entry.ExtraData+"\n") {
+			dayBucket[day][builderID].ExtraData += entry.ExtraData + "\n"
+		}
+		if !strings.Contains(dayBucket[day][builderID].BuilderPubkeys, entry.BuilderPubkey+"\n") {
+			dayBucket[day][builderID].BuilderPubkeys += entry.BuilderPubkey + "\n"
+		}
 	}
 
 	// sort hourBucket keys alphabetically
@@ -176,7 +190,7 @@ func saveDayBucket(db *database.DatabaseService, entriesBySlot map[uint64]*datab
 	// print
 	for _, day := range days {
 		builderStats := dayBucket[day]
-		log.Infof("day: %s", day)
+		log.Infof("- updating day: %s", day)
 		entries := make([]*database.BuilderStatsEntry, 0, len(builderStats))
 		for builderID, stats := range builderStats {
 			if builderStatsVerbose {

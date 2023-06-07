@@ -147,8 +147,8 @@ CREATE TABLE IF NOT EXISTS ` + TableBlockBuilderInclusionStats + ` (
 	time_end      timestamp NOT NULL,
 	builder_name  text NOT NULL,
 
-	extra_data    	text ARRAY,
-	builder_pubkeys text ARRAY,
+	extra_data    	text NOT NULL,
+	builder_pubkeys text NOT NULL,
 	blocks_included int NOT NULL,
 
 	UNIQUE (hours, time_start, time_end, builder_name)

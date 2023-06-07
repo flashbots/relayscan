@@ -5,13 +5,37 @@ import (
 	"fmt"
 	"math/big"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/flashbots/go-boost-utils/types"
 )
 
-var ErrMissingRelayPubkey = fmt.Errorf("missing relay public key")
+var (
+	ErrMissingRelayPubkey = fmt.Errorf("missing relay public key")
+
+	// Aliases maps a string (the main builder identifier) to a function that
+	// returns if an input string is an alias of that builder identifier.
+	BuilderAliases = map[string]func(string) bool{
+		"builder0x69": func(in string) bool {
+			return strings.Contains(in, "builder0x69")
+		},
+		"bob the builder": func(in string) bool {
+			match, _ := regexp.MatchString("s[0-9]+e[0-9].*(t|f)", in)
+			return match
+		},
+	}
+)
+
+func BuilderNameFromExtraData(extraData string) string {
+	for builder, aliasFunc := range BuilderAliases {
+		if aliasFunc(extraData) {
+			return builder
+		}
+	}
+	return extraData
+}
 
 // RelayEntry represents a relay that mev-boost connects to.
 type RelayEntry struct {
