@@ -202,3 +202,10 @@ func (s *DatabaseService) SaveBuilderStats(entries []*BuilderStatsEntry) error {
 	_, err := s.DB.NamedExec(query, entries)
 	return err
 }
+
+func (s *DatabaseService) GetLastDailyBuilderStatsEntry() (*BuilderStatsEntry, error) {
+	query := `SELECT hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included FROM ` + TableBlockBuilderInclusionStats + ` WHERE hours=24 ORDER BY time_end DESC LIMIT 1;`
+	entry := new(BuilderStatsEntry)
+	err := s.DB.Get(entry, query)
+	return entry, err
+}

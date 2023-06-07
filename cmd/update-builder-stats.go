@@ -11,15 +11,12 @@ import (
 )
 
 var (
-	// cliRelay   string
-	// initCursor uint64
-	// minSlot    uint64
-	// bidsOnly   bool
 	builderStatsDateStart  string
 	builderStatsDateEnd    string
 	builderStatsSaveDaily  bool
 	builderStatsSaveHourly bool
 	builderStatsVerbose    bool
+	builderStatsBackfill   bool
 )
 
 func init() {
@@ -29,6 +26,7 @@ func init() {
 	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsSaveDaily, "daily", false, "save daily stats")
 	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsSaveHourly, "hourly", false, "save hourly stats")
 	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsVerbose, "verbose", false, "verbose output")
+	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsBackfill, "backfill", false, "backfill hourly stats since last saved")
 }
 
 func timeToSlot(t time.Time) uint64 {
@@ -42,42 +40,71 @@ func slotToTime(slot uint64) time.Time {
 	return time.Unix(int64(timestamp), 0).UTC()
 }
 
+func parseDateTimeStr(s string) time.Time {
+	layout1 := "2006-01-02"
+	layout2 := "2006-01-02 15:04"
+	t, err := time.Parse(layout1, s)
+	if err != nil {
+		t, err = time.Parse(layout2, s)
+		check(err)
+	}
+	return t
+}
+
+func BeginningOfDay(t time.Time) time.Time {
+	year, month, day := t.Date()
+	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
+}
+
 var updateBuilderStatsCmd = &cobra.Command{
 	Use:   "update-builder-stats",
 	Short: "Update builder stats",
 	Run: func(cmd *cobra.Command, args []string) {
-		if builderStatsDateStart == "" {
-			log.Fatal("start date is required")
-		} else if builderStatsDateEnd == "" {
-			log.Fatal("end date is required")
+		var err error
+		// args check
+		if builderStatsBackfill {
+			if builderStatsSaveHourly {
+				log.Fatal("--backfill cannot be used with --hourly (for now)")
+			}
+		} else {
+			if builderStatsDateStart == "" {
+				log.Fatal("start date is required")
+			}
+			if builderStatsDateEnd == "" {
+				log.Fatal("end date is required")
+			}
 		}
 		if !builderStatsSaveDaily && !builderStatsSaveHourly {
 			log.Fatal("at least one of --daily or --hourly is required")
 		}
 
-		layout1 := "2006-01-02"
-		layout2 := "2006-01-02 15:04"
-		timeStart, err := time.Parse(layout1, builderStatsDateStart)
-		if err != nil {
-			timeStart, err = time.Parse(layout2, builderStatsDateStart)
+		// let's go
+		db := mustConnectPostgres(defaultPostgresDSN)
+		log.Info("Connected to database.")
+
+		var timeStart, timeEnd time.Time
+		var entries []*database.DataAPIPayloadDeliveredEntry
+		if builderStatsBackfill {
+			// backfill -- between latest daily entry and now
+			lastEntry, err := db.GetLastDailyBuilderStatsEntry()
 			check(err)
-		}
-		timeEnd, err := time.Parse(layout1, builderStatsDateEnd)
-		if err != nil {
-			timeEnd, err = time.Parse(layout2, builderStatsDateEnd)
-			check(err)
+			log.Infof("Last daily entry: %s %s - %s", lastEntry.BuilderName, lastEntry.TimeStart.String(), lastEntry.TimeEnd.String())
+			timeStart = lastEntry.TimeEnd
+			timeEnd = BeginningOfDay(time.Now().UTC())
+			// return
+		} else {
+			// query date range
+			timeStart = parseDateTimeStr(builderStatsDateStart)
+			timeEnd = parseDateTimeStr(builderStatsDateEnd)
 		}
 
-		log.Infof("update builder stats: %s -> %s ", timeStart.String(), timeEnd.String())
-
+		log.Infof("Updating builder stats: %s -> %s ", timeStart.String(), timeEnd.String())
 		slotStart := timeToSlot(timeStart)
 		slotEnd := timeToSlot(timeEnd)
-		log.Infof("slots: %d -> %d (%d total)", slotStart, slotEnd, slotEnd-slotStart)
+		log.Infof("Slots: %d -> %d (%d total)", slotStart, slotEnd, slotEnd-slotStart)
 
-		db := mustConnectPostgres(defaultPostgresDSN)
-		log.Info("Connected to database. Querying delivered payloads...")
-
-		entries, err := db.GetDeliveredPayloadsForSlots(slotStart, slotEnd)
+		log.Info("Querying payloads...")
+		entries, err = db.GetDeliveredPayloadsForSlots(slotStart, slotEnd)
 		check(err)
 		log.Infof("Found %d delivered-payload entries in database", len(entries))
 
