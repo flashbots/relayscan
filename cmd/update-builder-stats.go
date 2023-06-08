@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"database/sql"
+	"errors"
 	"sort"
 	"strings"
 	"time"
@@ -87,9 +89,12 @@ var updateBuilderStatsCmd = &cobra.Command{
 		if builderStatsBackfill {
 			// backfill -- between latest daily entry and now
 			lastEntry, err := db.GetLastDailyBuilderStatsEntry()
+			if errors.Is(err, sql.ErrNoRows) {
+				log.Fatal("No daily entries found in database. Please run without --backfill first.")
+			}
 			check(err)
 			log.Infof("Last daily entry: %s %s - %s", lastEntry.BuilderName, lastEntry.TimeStart.String(), lastEntry.TimeEnd.String())
-			timeStart = lastEntry.TimeEnd
+			timeStart = lastEntry.TimeStart
 			timeEnd = BeginningOfDay(time.Now().UTC())
 			// return
 		} else {
