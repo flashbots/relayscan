@@ -193,9 +193,9 @@ func (s *DatabaseService) SaveBuilderStats(entries []*BuilderStatsEntry) error {
 		return nil
 	}
 	query := `INSERT INTO ` + TableBlockBuilderInclusionStats + `
-	(hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included) VALUES
-	(:hours, :time_start, :time_end, :builder_name, :extra_data, :builder_pubkeys, :blocks_included)
-		ON CONFLICT (hours, time_start, time_end, builder_name) DO UPDATE SET
+	(type, hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included) VALUES
+	(:type, :hours, :time_start, :time_end, :builder_name, :extra_data, :builder_pubkeys, :blocks_included)
+		ON CONFLICT (type, hours, time_start, time_end, builder_name) DO UPDATE SET
 		builder_pubkeys = EXCLUDED.builder_pubkeys,
 		extra_data = EXCLUDED.extra_data,
 		blocks_included = EXCLUDED.blocks_included;`
@@ -203,9 +203,9 @@ func (s *DatabaseService) SaveBuilderStats(entries []*BuilderStatsEntry) error {
 	return err
 }
 
-func (s *DatabaseService) GetLastDailyBuilderStatsEntry() (*BuilderStatsEntry, error) {
-	query := `SELECT hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included FROM ` + TableBlockBuilderInclusionStats + ` WHERE hours=24 ORDER BY time_end DESC LIMIT 1;`
+func (s *DatabaseService) GetLastDailyBuilderStatsEntry(filterType string) (*BuilderStatsEntry, error) {
+	query := `SELECT type, hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included FROM ` + TableBlockBuilderInclusionStats + ` WHERE hours=24 AND type=$1 ORDER BY time_end DESC LIMIT 1;`
 	entry := new(BuilderStatsEntry)
-	err := s.DB.Get(entry, query)
+	err := s.DB.Get(entry, query, filterType)
 	return entry, err
 }

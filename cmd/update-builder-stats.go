@@ -19,6 +19,8 @@ var (
 	builderStatsSaveHourly bool
 	builderStatsVerbose    bool
 	builderStatsBackfill   bool
+
+	genesis = 1_606_824_023
 )
 
 func init() {
@@ -32,12 +34,10 @@ func init() {
 }
 
 func timeToSlot(t time.Time) uint64 {
-	genesis := 1_606_824_023
 	return uint64((t.Unix() - int64(genesis)) / 12)
 }
 
 func slotToTime(slot uint64) time.Time {
-	genesis := 1_606_824_023
 	timestamp := (slot * 12) + uint64(genesis)
 	return time.Unix(int64(timestamp), 0).UTC()
 }
@@ -88,7 +88,7 @@ var updateBuilderStatsCmd = &cobra.Command{
 		var entries []*database.DataAPIPayloadDeliveredEntry
 		if builderStatsBackfill {
 			// backfill -- between latest daily entry and now
-			lastEntry, err := db.GetLastDailyBuilderStatsEntry()
+			lastEntry, err := db.GetLastDailyBuilderStatsEntry(database.BuilderStatsEntryTypeExtraData)
 			if errors.Is(err, sql.ErrNoRows) {
 				log.Fatal("No daily entries found in database. Please run without --backfill first.")
 			}
@@ -106,6 +106,17 @@ var updateBuilderStatsCmd = &cobra.Command{
 		log.Infof("Updating builder stats: %s -> %s ", timeStart.String(), timeEnd.String())
 		slotStart := timeToSlot(timeStart)
 		slotEnd := timeToSlot(timeEnd)
+
+		// make sure slotStart is at the beginning of the day and not before
+		timeSlotStart := slotToTime(slotStart)
+		if timeSlotStart.Before(timeStart) {
+			slotStart++
+		}
+		timeSlotEnd := slotToTime(slotEnd)
+		if timeSlotEnd.After(timeEnd) {
+			slotEnd++
+		}
+
 		log.Infof("Slots: %d -> %d (%d total)", slotStart, slotEnd, slotEnd-slotStart)
 
 		log.Info("Querying payloads...")
@@ -183,50 +194,78 @@ func saveHourBucket(db *database.DatabaseService, entriesBySlot map[uint64]*data
 }
 
 func saveDayBucket(db *database.DatabaseService, entriesBySlot map[uint64]*database.DataAPIPayloadDeliveredEntry) {
-	dayBucket := make(map[string]map[string]*database.BuilderStatsEntry)
+	bucketByExtraData := make(map[string]map[string]*database.BuilderStatsEntry)
+	bucketByPubkey := make(map[string]map[string]*database.BuilderStatsEntry)
+
 	for _, entry := range entriesBySlot {
 		builderID := common.BuilderNameFromExtraData(entry.ExtraData)
 
 		t := slotToTime(entry.Slot)
 		day := t.Format("2006-01-02")
-		if _, ok := dayBucket[day]; !ok {
-			dayBucket[day] = make(map[string]*database.BuilderStatsEntry)
+		bucketStartTime, err := time.Parse("2006-01-02", day)
+		check(err)
+		bucketEndTime := bucketStartTime.Add(24 * time.Hour)
+
+		if _, ok := bucketByExtraData[day]; !ok {
+			bucketByExtraData[day] = make(map[string]*database.BuilderStatsEntry)
+			bucketByPubkey[day] = make(map[string]*database.BuilderStatsEntry)
 		}
-		if _, ok := dayBucket[day][builderID]; !ok {
-			bucketStartTime, err := time.Parse("2006-01-02", day)
-			check(err)
-			bucketEndTime := bucketStartTime.Add(24 * time.Hour)
-			dayBucket[day][builderID] = &database.BuilderStatsEntry{
+		if _, ok := bucketByExtraData[day][builderID]; !ok {
+			bucketByExtraData[day][builderID] = &database.BuilderStatsEntry{
+				Type:        database.BuilderStatsEntryTypeExtraData,
 				Hours:       24,
 				TimeStart:   bucketStartTime,
 				TimeEnd:     bucketEndTime,
 				BuilderName: builderID,
 			}
 		}
-		dayBucket[day][builderID].BlocksIncluded += 1
-		if !strings.Contains(dayBucket[day][builderID].ExtraData, entry.ExtraData+"\n") {
-			dayBucket[day][builderID].ExtraData += entry.ExtraData + "\n"
+		if _, ok := bucketByPubkey[day][entry.BuilderPubkey]; !ok {
+			bucketByPubkey[day][entry.BuilderPubkey] = &database.BuilderStatsEntry{
+				Type:           database.BuilderStatsEntryTypeBuilderPubkey,
+				Hours:          24,
+				TimeStart:      bucketStartTime,
+				TimeEnd:        bucketEndTime,
+				BuilderName:    entry.BuilderPubkey,
+				BuilderPubkeys: entry.BuilderPubkey + "\n",
+			}
 		}
-		if !strings.Contains(dayBucket[day][builderID].BuilderPubkeys, entry.BuilderPubkey+"\n") {
-			dayBucket[day][builderID].BuilderPubkeys += entry.BuilderPubkey + "\n"
+
+		// Update by extra data
+		bucketByExtraData[day][builderID].BlocksIncluded += 1
+		if !strings.Contains(bucketByExtraData[day][builderID].ExtraData, entry.ExtraData+"\n") {
+			bucketByExtraData[day][builderID].ExtraData += entry.ExtraData + "\n"
+		}
+		if !strings.Contains(bucketByExtraData[day][builderID].BuilderPubkeys, entry.BuilderPubkey+"\n") {
+			bucketByExtraData[day][builderID].BuilderPubkeys += entry.BuilderPubkey + "\n"
+		}
+
+		// Update by pubkey
+		bucketByPubkey[day][entry.BuilderPubkey].BlocksIncluded += 1
+		if !strings.Contains(bucketByPubkey[day][entry.BuilderPubkey].ExtraData, entry.ExtraData+"\n") {
+			bucketByPubkey[day][entry.BuilderPubkey].ExtraData += entry.ExtraData + "\n"
 		}
 	}
 
 	// sort hourBucket keys alphabetically
 	var days []string //nolint:prealloc
-	for day := range dayBucket {
+	for day := range bucketByExtraData {
 		days = append(days, day)
 	}
 	sort.Strings(days)
 
 	// print
 	for _, day := range days {
-		builderStats := dayBucket[day]
 		log.Infof("- updating day: %s", day)
-		entries := make([]*database.BuilderStatsEntry, 0, len(builderStats))
-		for builderID, stats := range builderStats {
+		entries := make([]*database.BuilderStatsEntry, 0)
+		for builderID, stats := range bucketByExtraData[day] {
 			if builderStatsVerbose {
-				log.Infof("- %34s: %4d blocks", builderID, stats.BlocksIncluded)
+				log.Infof("- [extra_data] %34s: %4d blocks", builderID, stats.BlocksIncluded)
+			}
+			entries = append(entries, stats)
+		}
+		for builderPubkey, stats := range bucketByPubkey[day] {
+			if builderStatsVerbose {
+				log.Infof("- [pubkey] %34s: %4d blocks", builderPubkey, stats.BlocksIncluded)
 			}
 			entries = append(entries, stats)
 		}

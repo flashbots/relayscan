@@ -159,7 +159,9 @@ type BuilderStatsEntry struct {
 	ID         int64     `db:"id"`
 	InsertedAt time.Time `db:"inserted_at"`
 
-	Hours       int       `db:"hours" json:"hours"`
+	Type  string `db:"type" json:"type"`
+	Hours int    `db:"hours" json:"hours"`
+
 	TimeStart   time.Time `db:"time_start" json:"time_start"`
 	TimeEnd     time.Time `db:"time_end" json:"time_end"`
 	BuilderName string    `db:"builder_name" json:"builder_name"`
@@ -168,3 +170,6 @@ type BuilderStatsEntry struct {
 	BuilderPubkeys string `db:"builder_pubkeys" json:"builder_pubkeys"`
 	BlocksIncluded int    `db:"blocks_included" json:"blocks_included"`
 }
+
+var BuilderStatsEntryTypeExtraData = "extra_data"
+var BuilderStatsEntryTypeBuilderPubkey = "builder_pubkey"
