@@ -171,5 +171,7 @@ type BuilderStatsEntry struct {
 	BlocksIncluded int    `db:"blocks_included" json:"blocks_included"`
 }
 
-var BuilderStatsEntryTypeExtraData = "extra_data"
-var BuilderStatsEntryTypeBuilderPubkey = "builder_pubkey"
+var (
+	BuilderStatsEntryTypeExtraData     = "extra_data"
+	BuilderStatsEntryTypeBuilderPubkey = "builder_pubkey"
+)
