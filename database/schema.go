@@ -160,4 +160,5 @@ CREATE INDEX IF NOT EXISTS ` + TableBlockBuilderInclusionStats + `_type_hours_id
 CREATE INDEX IF NOT EXISTS ` + TableBlockBuilderInclusionStats + `_time_start_idx ON ` + TableBlockBuilderInclusionStats + `("time_start");
 CREATE INDEX IF NOT EXISTS ` + TableBlockBuilderInclusionStats + `_time_end_idx ON ` + TableBlockBuilderInclusionStats + `("time_end");
 CREATE INDEX IF NOT EXISTS ` + TableBlockBuilderInclusionStats + `_builder_name_idx ON ` + TableBlockBuilderInclusionStats + `("builder_name");
+CREATE INDEX IF NOT EXISTS ` + TableBlockBuilderInclusionStats + `_extra_data_idx ON ` + TableBlockBuilderInclusionStats + `("extra_data");
 `

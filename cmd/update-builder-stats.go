@@ -73,7 +73,8 @@ var updateBuilderStatsCmd = &cobra.Command{
 				log.Fatal("start date is required")
 			}
 			if builderStatsDateEnd == "" {
-				log.Fatal("end date is required")
+				builderStatsDateEnd = time.Now().UTC().Format("2006-01-02")
+				log.Infof("Using today as end date: %s", builderStatsDateEnd)
 			}
 		}
 		if !builderStatsSaveDaily && !builderStatsSaveHourly {
