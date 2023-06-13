@@ -10,7 +10,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build go mod download
 
 # Now adding all the code and start building
 ADD . .
-RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -X cmd.Version=${VERSION} -X main.version=${VERSION}" -v -o relayscan main.go
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -X cmd.Version=${VERSION} -X main.Version=${VERSION}" -v -o relayscan main.go
 
 FROM alpine:latest
 WORKDIR /app
