@@ -1,4 +1,4 @@
-package common
+package vars
 
 import (
 	"regexp"

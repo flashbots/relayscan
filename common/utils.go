@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/flashbots/relayscan/vars"
 )
 
 func Check(err error) {
@@ -72,11 +73,11 @@ func StringSliceContains(haystack []string, needle string) bool {
 }
 
 func TimeToSlot(t time.Time) uint64 {
-	return uint64((t.Unix() - int64(Genesis)) / 12)
+	return uint64((t.Unix() - int64(vars.Genesis)) / 12)
 }
 
 func SlotToTime(slot uint64) time.Time {
-	timestamp := (slot * 12) + uint64(Genesis)
+	timestamp := (slot * 12) + uint64(vars.Genesis)
 	return time.Unix(int64(timestamp), 0).UTC()
 }
 

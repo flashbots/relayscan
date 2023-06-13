@@ -1,4 +1,5 @@
-package common
+// Package vars contains global variables and configuration
+package vars
 
 import (
 	"os"

@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/metachris/flashbotsrpc"
 	"github.com/metachris/go-ethutils/addresslookup"
 	"github.com/spf13/cobra"
@@ -35,8 +36,8 @@ var (
 )
 
 func init() {
-	inspectBlockCmd.Flags().StringVar(&ethNodeURI, "eth-node", common.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
-	inspectBlockCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", common.DefaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
+	inspectBlockCmd.Flags().StringVar(&ethNodeURI, "eth-node", vars.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
+	inspectBlockCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", vars.DefaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
 	inspectBlockCmd.Flags().StringVar(&mevGethURI, "mev-geth", os.Getenv("MEV_GETH"), "mev-geth node URI (to find coinbase payments via block simulation)")
 	inspectBlockCmd.Flags().StringVar(&slotStr, "slot", "", "a specific slot")
 	inspectBlockCmd.Flags().StringVar(&blockHash, "hash", "", "a specific block hash")
@@ -78,7 +79,7 @@ var inspectBlockCmd = &cobra.Command{
 			log.WithError(err).Fatalf("failed connecting to eth nodes")
 		}
 
-		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 		var mevGethRPC *flashbotsrpc.FlashbotsRPC
 		if mevGethURI == "" {
 			log.Warn("No mev-geth uri provided, cannot simulate block to find coinbase payments")

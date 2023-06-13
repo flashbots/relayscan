@@ -9,6 +9,7 @@ import (
 
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/spf13/cobra"
 )
 
@@ -55,7 +56,7 @@ var updateBuilderStatsCmd = &cobra.Command{
 		}
 
 		// let's go
-		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
 		var timeStart, timeEnd time.Time
 		var entries []*database.DataAPIPayloadDeliveredEntry
@@ -115,7 +116,7 @@ var updateBuilderStatsCmd = &cobra.Command{
 func saveHourBucket(db *database.DatabaseService, entriesBySlot map[uint64]*database.DataAPIPayloadDeliveredEntry) {
 	hourBucket := make(map[string]map[string]*database.BuilderStatsEntry)
 	for _, entry := range entriesBySlot {
-		builderID := common.BuilderNameFromExtraData(entry.ExtraData)
+		builderID := vars.BuilderNameFromExtraData(entry.ExtraData)
 
 		t := common.SlotToTime(entry.Slot)
 		hour := t.Format("2006-01-02 15")
@@ -171,7 +172,7 @@ func saveDayBucket(db *database.DatabaseService, entriesBySlot map[uint64]*datab
 	bucketByPubkey := make(map[string]map[string]*database.BuilderStatsEntry)
 
 	for _, entry := range entriesBySlot {
-		builderID := common.BuilderNameFromExtraData(entry.ExtraData)
+		builderID := vars.BuilderNameFromExtraData(entry.ExtraData)
 
 		t := common.SlotToTime(entry.Slot)
 		day := t.Format("2006-01-02")

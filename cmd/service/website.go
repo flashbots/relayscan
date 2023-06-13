@@ -4,9 +4,9 @@ import (
 	"os"
 
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
-	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
 	"github.com/flashbots/relayscan/services/website"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +29,7 @@ var websiteCmd = &cobra.Command{
 		var err error
 
 		// Connect to Postgres
-		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
 		// Create the website service
 		opts := &website.WebserverOpts{

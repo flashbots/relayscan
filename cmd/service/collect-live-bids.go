@@ -4,11 +4,12 @@ import (
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
 	"github.com/flashbots/relayscan/services/collector"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	liveBidsCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", common.DefaultBeaconURI, "beacon endpoint")
+	liveBidsCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", vars.DefaultBeaconURI, "beacon endpoint")
 }
 
 var liveBidsCmd = &cobra.Command{
@@ -16,7 +17,7 @@ var liveBidsCmd = &cobra.Command{
 	Short: "On every slot, ask for live bids",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Connect to Postgres
-		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
 		// _relay, err := common.RelayURLToEntry(common.RelayURLs[0])
 		// if err != nil {

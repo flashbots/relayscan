@@ -10,6 +10,7 @@ import (
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +59,7 @@ var backfillDataAPICmd = &cobra.Command{
 		}
 
 		// Connect to Postgres
-		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
 		for _, relay := range relays {
 			backfiller := newBackfiller(db, relay, initCursor, minSlot)

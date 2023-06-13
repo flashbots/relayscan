@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/metachris/flashbotsrpc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -30,8 +31,8 @@ func init() {
 	checkPayloadValueCmd.Flags().Uint64Var(&slotMax, "slot-max", 0, "a specific max slot, only check slots below this")
 	checkPayloadValueCmd.Flags().Uint64Var(&limit, "limit", 1000, "how many payloads")
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
-	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", common.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
-	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", common.DefaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
+	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", vars.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
+	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", vars.DefaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
 	// checkPayloadValueCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", defaultBeaconURI, "beacon endpoint")
 	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
 	checkPayloadValueCmd.Flags().BoolVar(&checkMissedOnly, "check-missed", false, "whether to double-check missed slots only")
@@ -54,7 +55,7 @@ var checkPayloadValueCmd = &cobra.Command{
 		}
 
 		// Connect to Postgres
-		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
 		entries := []database.DataAPIPayloadDeliveredEntry{}
 		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered

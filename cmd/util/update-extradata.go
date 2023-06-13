@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/metachris/flashbotsrpc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -15,8 +15,8 @@ var slot uint64
 
 func init() {
 	// rootCmd.AddCommand(backfillExtradataCmd)
-	backfillExtradataCmd.Flags().StringVar(&ethNodeURI, "eth-node", common.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
-	backfillExtradataCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", common.DefaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
+	backfillExtradataCmd.Flags().StringVar(&ethNodeURI, "eth-node", vars.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
+	backfillExtradataCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", vars.DefaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
 }
 
 var backfillExtradataCmd = &cobra.Command{
@@ -35,7 +35,7 @@ var backfillExtradataCmd = &cobra.Command{
 		_, _ = client, client2
 
 		// Connect to Postgres
-		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
 		entries := []database.DataAPIPayloadDeliveredEntry{}
 		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered + ` WHERE slot < 4823872 AND extra_data = ''`

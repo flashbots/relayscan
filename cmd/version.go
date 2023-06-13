@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/flashbots/relayscan/common"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/spf13/cobra"
 )
 
@@ -12,6 +12,6 @@ var versionCmd = &cobra.Command{
 	Short: "Print the version number the relay application",
 	Long:  `All software has versions. This is the boost relay's`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("relayscan %s\n", common.Version)
+		fmt.Printf("relayscan %s\n", vars.Version)
 	},
 }
