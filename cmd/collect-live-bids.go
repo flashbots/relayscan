@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"net/url"
-
 	"github.com/flashbots/relayscan/common"
-	"github.com/flashbots/relayscan/database"
 	"github.com/flashbots/relayscan/services/collector"
 	"github.com/spf13/cobra"
 )
@@ -19,15 +16,7 @@ var liveBidsCmd = &cobra.Command{
 	Short: "On every slot, ask for live bids",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Connect to Postgres
-		dbURL, err := url.Parse(defaultPostgresDSN)
-		if err != nil {
-			log.WithError(err).Fatalf("couldn't read db URL")
-		}
-		log.Infof("Connecting to Postgres database at %s%s ...", dbURL.Host, dbURL.Path)
-		db, err := database.NewDatabaseService(defaultPostgresDSN)
-		if err != nil {
-			log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
-		}
+		db := mustConnectPostgres(defaultPostgresDSN)
 
 		// _relay, err := common.RelayURLToEntry(common.RelayURLs[0])
 		// if err != nil {

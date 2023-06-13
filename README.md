@@ -46,6 +46,12 @@ go run . website --dev
 
 # Start service to query every relay for bids
 go run . collect-live-bids
+
+# Update builder inclusion stats
+go run . update-builder-stats --start 2023-06-04 --end 2023-06-06 --daily
+go run . update-builder-stats --backfill --daily
+go run . update-builder-stats --start 2023-06-04 --end 2023-06-06 --daily --hourly
+go run . update-builder-stats --start "2023-06-04 10:00" --end "2023-06-06 18:00" --hourly
 ```
 
 ### Test & dev

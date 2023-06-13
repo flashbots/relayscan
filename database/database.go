@@ -172,10 +172,40 @@ func (s *DatabaseService) GetDeliveredPayloadsForSlot(slot uint64) (res []*DataA
 	return res, err
 }
 
+func (s *DatabaseService) GetDeliveredPayloadsForSlots(slotStart, slotEnd uint64) (res []*DataAPIPayloadDeliveredEntry, err error) {
+	query := `SELECT
+		id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number, extra_data
+	FROM ` + TableDataAPIPayloadDelivered + ` WHERE slot>=$1 AND slot<=$2 ORDER BY slot ASC;`
+	err = s.DB.Select(&res, query, slotStart, slotEnd)
+	return res, err
+}
+
 func (s *DatabaseService) GetSignedBuilderBidsForSlot(slot uint64) (res []*SignedBuilderBidEntry, err error) {
 	query := `SELECT
 		id, relay, requested_at, received_at, duration_ms, slot, parent_hash, proposer_pubkey, pubkey, signature, value, fee_recipient, block_hash, block_number, gas_limit, gas_used, extra_data, epoch, timestamp, prev_randao
 	FROM ` + TableSignedBuilderBid + ` WHERE slot=$1;`
 	err = s.DB.Select(&res, query, slot)
 	return res, err
+}
+
+func (s *DatabaseService) SaveBuilderStats(entries []*BuilderStatsEntry) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	query := `INSERT INTO ` + TableBlockBuilderInclusionStats + `
+	(type, hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included) VALUES
+	(:type, :hours, :time_start, :time_end, :builder_name, :extra_data, :builder_pubkeys, :blocks_included)
+		ON CONFLICT (type, hours, time_start, time_end, builder_name) DO UPDATE SET
+		builder_pubkeys = EXCLUDED.builder_pubkeys,
+		extra_data = EXCLUDED.extra_data,
+		blocks_included = EXCLUDED.blocks_included;`
+	_, err := s.DB.NamedExec(query, entries)
+	return err
+}
+
+func (s *DatabaseService) GetLastDailyBuilderStatsEntry(filterType string) (*BuilderStatsEntry, error) {
+	query := `SELECT type, hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included FROM ` + TableBlockBuilderInclusionStats + ` WHERE hours=24 AND type=$1 ORDER BY time_end DESC LIMIT 1;`
+	entry := new(BuilderStatsEntry)
+	err := s.DB.Get(entry, query, filterType)
+	return entry, err
 }

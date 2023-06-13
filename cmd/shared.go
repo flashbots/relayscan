@@ -33,13 +33,23 @@ var (
 	errURLEmpty = errors.New("url is empty")
 )
 
-func connectPostgres(dsn string) (*database.DatabaseService, error) {
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func mustConnectPostgres(dsn string) *database.DatabaseService {
 	dbURL, err := url.Parse(dsn)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 	log.Infof("Connecting to Postgres database at %s%s ...", dbURL.Host, dbURL.Path)
-	return database.NewDatabaseService(defaultPostgresDSN)
+	db, err := database.NewDatabaseService(defaultPostgresDSN)
+	if err != nil {
+		log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
+	}
+	return db
 }
 
 type EthNode struct {

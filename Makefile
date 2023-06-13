@@ -32,6 +32,12 @@ lt: lint test
 gofumpt:
 	gofumpt -l -w -extra .
 
+fmt:
+	gofmt -s -w .
+	gofumpt -extra -w .
+	gci write .
+	go mod tidy
+
 cover:
 	go test -coverprofile=/tmp/go-sim-lb.cover.tmp ./...
 	go tool cover -func /tmp/go-sim-lb.cover.tmp
