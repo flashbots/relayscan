@@ -1,23 +1,23 @@
-package cmd
+package service
 
 import (
-	"net/url"
 	"os"
 
-	"github.com/flashbots/mev-boost-relay/common"
+	relaycommon "github.com/flashbots/mev-boost-relay/common"
+	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
 	"github.com/flashbots/relayscan/services/website"
 	"github.com/spf13/cobra"
 )
 
 var (
-	websiteDefaultListenAddr = common.GetEnv("LISTEN_ADDR", "localhost:9060")
+	websiteDefaultListenAddr = relaycommon.GetEnv("LISTEN_ADDR", "localhost:9060")
 	websiteListenAddr        string
 	websiteDev               = os.Getenv("DEV") == "1"
 )
 
 func init() {
-	rootCmd.AddCommand(websiteCmd)
+	// rootCmd.AddCommand(websiteCmd)
 	websiteCmd.Flags().StringVar(&websiteListenAddr, "listen-addr", websiteDefaultListenAddr, "listen address for webserver")
 	websiteCmd.Flags().BoolVar(&websiteDev, "dev", websiteDev, "development mode")
 }
@@ -29,15 +29,7 @@ var websiteCmd = &cobra.Command{
 		var err error
 
 		// Connect to Postgres
-		dbURL, err := url.Parse(defaultPostgresDSN)
-		if err != nil {
-			log.WithError(err).Fatalf("couldn't read db URL")
-		}
-		log.Infof("Connecting to Postgres database at %s%s ...", dbURL.Host, dbURL.Path)
-		db, err := database.NewDatabaseService(defaultPostgresDSN)
-		if err != nil {
-			log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
-		}
+		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
 
 		// Create the website service
 		opts := &website.WebserverOpts{

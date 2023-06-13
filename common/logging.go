@@ -6,6 +6,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var Logger = LogSetup(LogJSON, DefaultLogLevel, LogDebug)
+
 func LogSetup(json bool, logLevel string, logDebug bool) *logrus.Entry {
 	log := logrus.NewEntry(logrus.New())
 	log.Logger.SetOutput(os.Stdout)

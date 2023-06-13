@@ -1,4 +1,4 @@
-package cmd
+package core
 
 import (
 	"database/sql"
@@ -19,43 +19,16 @@ var (
 	builderStatsSaveHourly bool
 	builderStatsVerbose    bool
 	builderStatsBackfill   bool
-
-	genesis = 1_606_824_023
 )
 
 func init() {
-	rootCmd.AddCommand(updateBuilderStatsCmd)
+	// rootCmd.AddCommand(updateBuilderStatsCmd)
 	updateBuilderStatsCmd.Flags().StringVar(&builderStatsDateStart, "start", "", "yyyy-mm-dd hh:mm")
 	updateBuilderStatsCmd.Flags().StringVar(&builderStatsDateEnd, "end", "", "yyyy-mm-dd hh:mm")
 	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsSaveDaily, "daily", false, "save daily stats")
 	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsSaveHourly, "hourly", false, "save hourly stats")
 	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsVerbose, "verbose", false, "verbose output")
 	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsBackfill, "backfill", false, "backfill hourly stats since last saved")
-}
-
-func timeToSlot(t time.Time) uint64 {
-	return uint64((t.Unix() - int64(genesis)) / 12)
-}
-
-func slotToTime(slot uint64) time.Time {
-	timestamp := (slot * 12) + uint64(genesis)
-	return time.Unix(int64(timestamp), 0).UTC()
-}
-
-func parseDateTimeStr(s string) time.Time {
-	layout1 := "2006-01-02"
-	layout2 := "2006-01-02 15:04"
-	t, err := time.Parse(layout1, s)
-	if err != nil {
-		t, err = time.Parse(layout2, s)
-		check(err)
-	}
-	return t
-}
-
-func BeginningOfDay(t time.Time) time.Time {
-	year, month, day := t.Date()
-	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
 }
 
 var updateBuilderStatsCmd = &cobra.Command{
@@ -82,8 +55,7 @@ var updateBuilderStatsCmd = &cobra.Command{
 		}
 
 		// let's go
-		db := mustConnectPostgres(defaultPostgresDSN)
-		log.Info("Connected to database.")
+		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
 
 		var timeStart, timeEnd time.Time
 		var entries []*database.DataAPIPayloadDeliveredEntry
@@ -96,24 +68,24 @@ var updateBuilderStatsCmd = &cobra.Command{
 			check(err)
 			log.Infof("Last daily entry: %s %s - %s", lastEntry.BuilderName, lastEntry.TimeStart.String(), lastEntry.TimeEnd.String())
 			timeStart = lastEntry.TimeStart
-			timeEnd = BeginningOfDay(time.Now().UTC())
+			timeEnd = common.BeginningOfDay(time.Now().UTC())
 			// return
 		} else {
 			// query date range
-			timeStart = parseDateTimeStr(builderStatsDateStart)
-			timeEnd = parseDateTimeStr(builderStatsDateEnd)
+			timeStart = common.MustParseDateTimeStr(builderStatsDateStart)
+			timeEnd = common.MustParseDateTimeStr(builderStatsDateEnd)
 		}
 
 		log.Infof("Updating builder stats: %s -> %s ", timeStart.String(), timeEnd.String())
-		slotStart := timeToSlot(timeStart)
-		slotEnd := timeToSlot(timeEnd)
+		slotStart := common.TimeToSlot(timeStart)
+		slotEnd := common.TimeToSlot(timeEnd)
 
 		// make sure slotStart is at the beginning of the day and not before
-		timeSlotStart := slotToTime(slotStart)
+		timeSlotStart := common.SlotToTime(slotStart)
 		if timeSlotStart.Before(timeStart) {
 			slotStart++
 		}
-		timeSlotEnd := slotToTime(slotEnd)
+		timeSlotEnd := common.SlotToTime(slotEnd)
 		if timeSlotEnd.After(timeEnd) {
 			slotEnd++
 		}
@@ -145,7 +117,7 @@ func saveHourBucket(db *database.DatabaseService, entriesBySlot map[uint64]*data
 	for _, entry := range entriesBySlot {
 		builderID := common.BuilderNameFromExtraData(entry.ExtraData)
 
-		t := slotToTime(entry.Slot)
+		t := common.SlotToTime(entry.Slot)
 		hour := t.Format("2006-01-02 15")
 		if _, ok := hourBucket[hour]; !ok {
 			hourBucket[hour] = make(map[string]*database.BuilderStatsEntry)
@@ -201,7 +173,7 @@ func saveDayBucket(db *database.DatabaseService, entriesBySlot map[uint64]*datab
 	for _, entry := range entriesBySlot {
 		builderID := common.BuilderNameFromExtraData(entry.ExtraData)
 
-		t := slotToTime(entry.Slot)
+		t := common.SlotToTime(entry.Slot)
 		day := t.Format("2006-01-02")
 		bucketStartTime, err := time.Parse("2006-01-02", day)
 		check(err)

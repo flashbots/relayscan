@@ -1,9 +1,8 @@
-package cmd
+package core
 
 import (
 	"fmt"
 	"math/big"
-	"net/url"
 	"strings"
 	"sync"
 
@@ -18,7 +17,6 @@ import (
 var (
 	limit              uint64
 	slotMax            uint64
-	numThreads         uint64 = 10
 	ethNodeURI         string
 	ethNodeBackupURI   string
 	checkIncorrectOnly bool
@@ -28,13 +26,12 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(checkPayloadValueCmd)
 	checkPayloadValueCmd.Flags().Uint64Var(&slot, "slot", 0, "a specific slot")
 	checkPayloadValueCmd.Flags().Uint64Var(&slotMax, "slot-max", 0, "a specific max slot, only check slots below this")
 	checkPayloadValueCmd.Flags().Uint64Var(&limit, "limit", 1000, "how many payloads")
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
-	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", defaultEthNodeURI, "eth node URI (i.e. Infura)")
-	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", defaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
+	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", common.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
+	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", common.DefaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
 	// checkPayloadValueCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", defaultBeaconURI, "beacon endpoint")
 	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
 	checkPayloadValueCmd.Flags().BoolVar(&checkMissedOnly, "check-missed", false, "whether to double-check missed slots only")
@@ -57,15 +54,7 @@ var checkPayloadValueCmd = &cobra.Command{
 		}
 
 		// Connect to Postgres
-		dbURL, err := url.Parse(defaultPostgresDSN)
-		if err != nil {
-			log.WithError(err).Fatalf("couldn't read db URL")
-		}
-		log.Infof("Connecting to Postgres database at %s%s ...", dbURL.Host, dbURL.Path)
-		db, err := database.NewDatabaseService(defaultPostgresDSN)
-		if err != nil {
-			log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
-		}
+		db := database.MustConnectPostgres(log, common.DefaultPostgresDSN)
 
 		entries := []database.DataAPIPayloadDeliveredEntry{}
 		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered
