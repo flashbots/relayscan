@@ -6,15 +6,16 @@
 
 Monitoring, analytics & data for Ethereum MEV-Boost builders and relays
 
-Running on https://relayscan.io
+**Running on https://relayscan.io**
 
+A set of tools to fill and show a postgres database.
 ## Notes
 
 - Work in progress
 - Multiple relays can serve a payload for the same slot (if the winning builder sent the best bid to multiple relays, and the proposer asks for a payload from all of them)
 - Comments and feature requests: [@relayscan_io](https://twitter.com/relayscan_io)
-* Maintainer: [@metachris](https://twitter.com/metachris)
 - License: AGPL
+- Maintainer: [@metachris](https://twitter.com/metachris)
 
 ---
 
