@@ -22,11 +22,15 @@ A set of tools to fill and show a postgres database.
 ## Overview
 
 * Uses PostgreSQL as data store
-* Relays are configured in [`/common/relays.go`](/common/relays.go)
+* Configuration:
+  * Relays in [`/vars/relays.go`](/vars/relays.go)
+  * Builder aliases in [`/vars/builder_aliases.go`](/vars/builder_aliases.go)
+  * Version and common env vars in [`/vars/vars.go`](/vars/vars.go)
 * Some environment variables are required, see [`.env.example`](/.env.example)
 * Saving and checking payloads is split into phases/commands:
-  * [`data-api-backfill`](https://github.com/flashbots/relayscan/blob/cleanup/cmd/data-api-backfill.go) -- queries the data API of all relays and puts that data into the database
-  * [`check-payload-value`](https://github.com/flashbots/relayscan/blob/cleanup/cmd/check-payload-value.go) -- checks all new database entries for payment validity
+  * [`data-api-backfill`](/cmd/core/data-api-backfill.go) -- queries the data API of all relays and puts that data into the database
+  * [`check-payload-value`](/cmd/core/check-payload-value.go) -- checks all new database entries for payment validity
+  * [`update-builder-stats`](/cmd/core/update-builder-stats.go) -- create daily builder stats and save to database
 
 
 ## Getting started
