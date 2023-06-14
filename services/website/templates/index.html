@@ -9,7 +9,7 @@
         <!-- <h2 style="margin-bottom:10px;">24h Stats</h2> -->
 
         <p style="color: #6d6d6d; margin-top:0;">
-            <small>updated {{ .LastUpdateTime }} UTC</small>
+            <small>updated {{ .LastUpdateTime }} UTC (slot {{ .LastUpdateSlot }})</small>
         </p>
         <p id="view-type">
             <a href="/overview?t={{ $time }}" id="a-view-type-overview" {{ if eq $view "overview" }}class="active" {{ end }}>Overview</a>

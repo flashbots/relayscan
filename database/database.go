@@ -172,6 +172,15 @@ func (s *DatabaseService) GetDeliveredPayloadsForSlot(slot uint64) (res []*DataA
 	return res, err
 }
 
+func (s *DatabaseService) GetLatestDeliveredPayload() (*DataAPIPayloadDeliveredEntry, error) {
+	query := `SELECT
+		id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number
+	FROM ` + TableDataAPIPayloadDelivered + ` ORDER BY id DESC LIMIT 1;`
+	entry := new(DataAPIPayloadDeliveredEntry)
+	err := s.DB.Get(entry, query)
+	return entry, err
+}
+
 func (s *DatabaseService) GetDeliveredPayloadsForSlots(slotStart, slotEnd uint64) (res []*DataAPIPayloadDeliveredEntry, err error) {
 	query := `SELECT
 		id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number, extra_data

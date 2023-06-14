@@ -3,6 +3,7 @@ package website
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -203,6 +204,18 @@ func (srv *Webserver) updateHTML() {
 	// htmlData.TimeSpans = []string{"24h", "12h"}
 
 	stats := make(map[string]*Stats)
+
+	srv.log.Info("getting last delivered entry...")
+	entry, err := srv.db.GetLatestDeliveredPayload()
+	if errors.Is(err, sql.ErrNoRows) {
+		srv.log.Info("No last delivered payload entry found")
+	} else if err != nil {
+		srv.log.WithError(err).Error("Failed to get last delivered payload entry")
+		return
+	} else {
+		htmlData.LastUpdateTime = entry.InsertedAt.Format("2006-01-02 15:04")
+		htmlData.LastUpdateSlot = entry.Slot
+	}
 
 	srv.log.Info("updating 24h stats...")
 	stats["24h"], err = srv.getStatsForHours(24 * time.Hour)

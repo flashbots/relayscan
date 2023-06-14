@@ -23,6 +23,7 @@ type HTMLData struct {
 
 	GeneratedAt    time.Time
 	LastUpdateTime string
+	LastUpdateSlot uint64
 	TimeSpans      []string
 
 	TimeSpan string
