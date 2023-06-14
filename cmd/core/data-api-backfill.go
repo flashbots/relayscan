@@ -1,4 +1,4 @@
-package cmd
+package core
 
 import (
 	"context"
@@ -6,11 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +22,6 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(backfillDataAPICmd)
 	backfillDataAPICmd.Flags().StringVar(&cliRelay, "relay", "", "specific relay only")
 	backfillDataAPICmd.Flags().Uint64Var(&initCursor, "cursor", 0, "initial cursor")
 	backfillDataAPICmd.Flags().Uint64Var(&minSlot, "min-slot", 0, "minimum slot (if unset, backfill until the merge)")
@@ -60,15 +59,7 @@ var backfillDataAPICmd = &cobra.Command{
 		}
 
 		// Connect to Postgres
-		dbURL, err := url.Parse(defaultPostgresDSN)
-		if err != nil {
-			log.WithError(err).Fatalf("couldn't read db URL")
-		}
-		log.Infof("Connecting to Postgres database at %s%s ...", dbURL.Host, dbURL.Path)
-		db, err := database.NewDatabaseService(defaultPostgresDSN)
-		if err != nil {
-			log.WithError(err).Fatalf("Failed to connect to Postgres database at %s%s", dbURL.Host, dbURL.Path)
-		}
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
 		for _, relay := range relays {
 			backfiller := newBackfiller(db, relay, initCursor, minSlot)

@@ -1,4 +1,4 @@
-package cmd
+package util
 
 import (
 	"fmt"
@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/metachris/flashbotsrpc"
 	"github.com/metachris/go-ethutils/addresslookup"
 	"github.com/spf13/cobra"
@@ -24,18 +25,19 @@ var (
 	// Printer for pretty printing numbers
 	printer = message.NewPrinter(language.English)
 
-	slotStr       string
-	blockHash     string
-	mevGethURI    string
-	loadAddresses bool
-	scLookup      bool // whether to lookup smart contract details
-	printAllSimTx bool
+	ethNodeURI       string
+	ethNodeBackupURI string
+	slotStr          string
+	blockHash        string
+	mevGethURI       string
+	loadAddresses    bool
+	scLookup         bool // whether to lookup smart contract details
+	printAllSimTx    bool
 )
 
 func init() {
-	rootCmd.AddCommand(inspectBlockCmd)
-	inspectBlockCmd.Flags().StringVar(&ethNodeURI, "eth-node", defaultEthNodeURI, "eth node URI (i.e. Infura)")
-	inspectBlockCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", defaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
+	inspectBlockCmd.Flags().StringVar(&ethNodeURI, "eth-node", vars.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
+	inspectBlockCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", vars.DefaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
 	inspectBlockCmd.Flags().StringVar(&mevGethURI, "mev-geth", os.Getenv("MEV_GETH"), "mev-geth node URI (to find coinbase payments via block simulation)")
 	inspectBlockCmd.Flags().StringVar(&slotStr, "slot", "", "a specific slot")
 	inspectBlockCmd.Flags().StringVar(&blockHash, "hash", "", "a specific block hash")
@@ -72,12 +74,12 @@ var inspectBlockCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Connecting to eth nodes %v ... \n", ethUris)
-		node, err := NewEthNode(ethUris...)
+		node, err := common.NewEthNode(ethUris...)
 		if err != nil {
 			log.WithError(err).Fatalf("failed connecting to eth nodes")
 		}
 
-		db := mustConnectPostgres(defaultPostgresDSN)
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 		var mevGethRPC *flashbotsrpc.FlashbotsRPC
 		if mevGethURI == "" {
 			log.Warn("No mev-geth uri provided, cannot simulate block to find coinbase payments")
@@ -100,18 +102,18 @@ var inspectBlockCmd = &cobra.Command{
 }
 
 type BlockInspector struct {
-	ethNode  *EthNode
+	ethNode  *common.EthNode
 	mevGeth  *flashbotsrpc.FlashbotsRPC
 	db       *database.DatabaseService
 	addrLkup *addresslookup.AddressLookupService
 }
 
-func NewBlockInspector(ethNode *EthNode, mevGeth *flashbotsrpc.FlashbotsRPC, db *database.DatabaseService) *BlockInspector {
+func NewBlockInspector(ethNode *common.EthNode, mevGeth *flashbotsrpc.FlashbotsRPC, db *database.DatabaseService) *BlockInspector {
 	return &BlockInspector{
 		ethNode:  ethNode,
 		mevGeth:  mevGeth,
 		db:       db,
-		addrLkup: addresslookup.NewAddressLookupService(ethNode.clients[0]),
+		addrLkup: addresslookup.NewAddressLookupService(ethNode.Clients[0]),
 	}
 }
 

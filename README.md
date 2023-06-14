@@ -6,15 +6,16 @@
 
 Monitoring, analytics & data for Ethereum MEV-Boost builders and relays
 
-Running on https://relayscan.io
+**Running on https://relayscan.io**
 
+A set of tools to fill and show a postgres database.
 ## Notes
 
 - Work in progress
 - Multiple relays can serve a payload for the same slot (if the winning builder sent the best bid to multiple relays, and the proposer asks for a payload from all of them)
 - Comments and feature requests: [@relayscan_io](https://twitter.com/relayscan_io)
-* Maintainer: [@metachris](https://twitter.com/metachris)
 - License: AGPL
+- Maintainer: [@metachris](https://twitter.com/metachris)
 
 ---
 
@@ -32,27 +33,37 @@ Running on https://relayscan.io
 
 ### Run
 
+You can either get a copy from the repository and build it yourself, or use the Docker image:
+
 ```bash
-# Query relay data APIs for delivered payloads, and store in the database (by default, until the merge!)
-go run . data-api-backfill
+# Build & run
+make build
+./relayscan help
+./relayscan version
 
-# Backfill data only until a specific slot
-go run . data-api-backfill --min-slot=6482170
+# Run with Docker
+docker run flashbots/relayscan
+docker run flashbots/relayscan /app/relayscan version
 
-# Check new entries for valid payments
-go run . check-payload-value
+---
+
+# Grab delivered payloads from relays data API, and fill up database
+./relayscan core data-api-backfill                     #  for all slots since the merge
+./relayscan core data-api-backfill --min-slot 6658658  #  since a given slot (good for dev/testing)
+
+# Double-check new entries for valid payments (and other)
+./relayscan core check-payload-value
+
+# Update daily builder inclusion stats
+./relayscan core update-builder-stats --start 2023-06-04 --end 2023-06-06  # update daily stats for 2023-06-04 and 2023-06-05
+./relayscan core update-builder-stats --start 2023-06-04                   # update daily stats for 2023-06-04 until today
+./relayscan core update-builder-stats --backfill                           # update daily stats since last entry, until today
 
 # Start the website (--dev reloads the template on every page load, for easier iteration)
-go run . website --dev
+./relayscan service website --dev
 
 # Start service to query every relay for bids
-go run . collect-live-bids
-
-# Update builder inclusion stats
-go run . update-builder-stats --start 2023-06-04 --end 2023-06-06 --daily
-go run . update-builder-stats --backfill --daily
-go run . update-builder-stats --start 2023-06-04 --end 2023-06-06 --daily --hourly
-go run . update-builder-stats --start "2023-06-04 10:00" --end "2023-06-06 18:00" --hourly
+./relayscan service website --dev collect-live-bids
 ```
 
 ### Test & dev
@@ -68,31 +79,4 @@ make lint
 make test
 make test-race
 make build
-```
-
-### Help
-
-```bash
-$ go run . --help
-https://github.com/flashbots/relayscan
-
-Usage:
-  relay [flags]
-  relay [command]
-
-Available Commands:
-  backfill-extradata  Backfill extra_data
-  check-payload-value Check payload value for delivered payloads
-  collect-live-bids   On every slot, ask for live bids
-  completion          Generate the autocompletion script for the specified shell
-  data-api-backfill   Backfill all relays data API
-  help                Help about any command
-  inspect-block       Inspect a block
-  version             Print the version number the relay application
-  website             Start the website server
-
-Flags:
-  -h, --help   help for relay
-
-Use "relay [command] --help" for more information about a command.
 ```

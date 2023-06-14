@@ -2,92 +2,18 @@
 package common
 
 import (
-	"fmt"
 	"math/big"
 	"net/url"
-	"regexp"
-	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/flashbots/go-boost-utils/types"
+	"github.com/flashbots/relayscan/vars"
 )
 
-var (
-	ErrMissingRelayPubkey = fmt.Errorf("missing relay public key")
-
-	// Aliases maps a string (the main builder identifier) to a function that
-	// returns if an input string is an alias of that builder identifier.
-	BuilderAliases = map[string]func(string) bool{
-		"builder0x69": func(in string) bool {
-			return strings.Contains(in, "builder0x69")
-		},
-		"bob the builder": func(in string) bool {
-			match, _ := regexp.MatchString("s[0-9]+e[0-9].*(t|f)", in)
-			return match
-		},
-	}
-)
-
-func BuilderNameFromExtraData(extraData string) string {
-	for builder, aliasFunc := range BuilderAliases {
-		if aliasFunc(extraData) {
-			return builder
-		}
-	}
-	return extraData
-}
-
-// RelayEntry represents a relay that mev-boost connects to.
-type RelayEntry struct {
-	PublicKey types.PublicKey
-	URL       *url.URL
-}
-
-func (r *RelayEntry) String() string {
-	return r.URL.String()
-}
-
-func (r *RelayEntry) Hostname() string {
-	return r.URL.Hostname()
-}
-
-// GetURI returns the full request URI with scheme, host, path and args for the relay.
-func (r *RelayEntry) GetURI(path string) string {
-	return GetURI(r.URL, path)
-}
-
-// NewRelayEntry creates a new instance based on an input string
-// relayURL can be IP@PORT, PUBKEY@IP:PORT, https://IP, etc.
-func NewRelayEntry(relayURL string, requireUser bool) (entry RelayEntry, err error) {
-	// Add protocol scheme prefix if it does not exist.
-	if !strings.HasPrefix(relayURL, "http") {
-		relayURL = "https://" + relayURL
-	}
-
-	// Parse the provided relay's URL and save the parsed URL in the RelayEntry.
-	entry.URL, err = url.ParseRequestURI(relayURL)
+func Check(err error) {
 	if err != nil {
-		return entry, err
+		panic(err)
 	}
-
-	// Extract the relay's public key from the parsed URL.
-	if requireUser && entry.URL.User.Username() == "" {
-		return entry, ErrMissingRelayPubkey
-	}
-
-	if entry.URL.User.Username() != "" {
-		err = entry.PublicKey.UnmarshalText([]byte(entry.URL.User.Username()))
-	}
-	return entry, err
-}
-
-// RelayEntriesToStrings returns the string representation of a list of relay entries
-func RelayEntriesToStrings(relays []RelayEntry) []string {
-	ret := make([]string, len(relays))
-	for i, entry := range relays {
-		ret[i] = entry.String()
-	}
-	return ret
 }
 
 // GetURI returns the full request URI with scheme, host, path and args.
@@ -144,4 +70,29 @@ func StringSliceContains(haystack []string, needle string) bool {
 		}
 	}
 	return false
+}
+
+func TimeToSlot(t time.Time) uint64 {
+	return uint64((t.Unix() - int64(vars.Genesis)) / 12)
+}
+
+func SlotToTime(slot uint64) time.Time {
+	timestamp := (slot * 12) + uint64(vars.Genesis)
+	return time.Unix(int64(timestamp), 0).UTC()
+}
+
+func MustParseDateTimeStr(s string) time.Time {
+	layout1 := "2006-01-02"
+	layout2 := "2006-01-02 15:04"
+	t, err := time.Parse(layout1, s)
+	if err != nil {
+		t, err = time.Parse(layout2, s)
+		Check(err)
+	}
+	return t
+}
+
+func BeginningOfDay(t time.Time) time.Time {
+	year, month, day := t.Date()
+	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
 }

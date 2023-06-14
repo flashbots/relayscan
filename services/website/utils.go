@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	"github.com/flashbots/relayscan/vars"
 	"github.com/olekukonko/tablewriter"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -142,7 +142,7 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 	for _, entry := range builders {
 		buildersNumPayloads += entry.NumBlocks
 		updated := false
-		for k, v := range common.BuilderAliases {
+		for k, v := range vars.BuilderAliases {
 			// Check if this is one of the known aliases.
 			if v(entry.ExtraData) {
 				updated = true
@@ -184,7 +184,7 @@ func consolidateBuilderProfitEntries(entries []*database.BuilderProfitEntry) []*
 	for _, entry := range entries {
 		buildersNumPayloads += entry.NumBlocks
 		updated := false
-		for k, v := range common.BuilderAliases {
+		for k, v := range vars.BuilderAliases {
 			// Check if this is one of the known aliases.
 			if v(entry.ExtraData) {
 				updated = true

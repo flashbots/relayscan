@@ -3,8 +3,11 @@ package common
 import (
 	"os"
 
+	"github.com/flashbots/relayscan/vars"
 	"github.com/sirupsen/logrus"
 )
+
+var Logger = LogSetup(vars.LogJSON, vars.DefaultLogLevel, vars.LogDebug)
 
 func LogSetup(json bool, logLevel string, logDebug bool) *logrus.Entry {
 	log := logrus.NewEntry(logrus.New())

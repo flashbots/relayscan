@@ -2,11 +2,12 @@ package main
 
 import (
 	"github.com/flashbots/relayscan/cmd"
+	"github.com/flashbots/relayscan/vars"
 )
 
 var Version = "dev" // is set during build process
 
 func main() {
-	cmd.Version = Version
+	vars.Version = Version
 	cmd.Execute()
 }
