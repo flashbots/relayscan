@@ -26,8 +26,8 @@ func init() {
 	// rootCmd.AddCommand(updateBuilderStatsCmd)
 	updateBuilderStatsCmd.Flags().StringVar(&builderStatsDateStart, "start", "", "yyyy-mm-dd hh:mm")
 	updateBuilderStatsCmd.Flags().StringVar(&builderStatsDateEnd, "end", "", "yyyy-mm-dd hh:mm")
-	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsSaveDaily, "daily", false, "save daily stats")
-	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsSaveHourly, "hourly", false, "save hourly stats")
+	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsSaveDaily, "daily", true, "save daily stats")
+	// updateBuilderStatsCmd.Flags().BoolVar(&builderStatsSaveHourly, "hourly", false, "save hourly stats")
 	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsVerbose, "verbose", false, "verbose output")
 	updateBuilderStatsCmd.Flags().BoolVar(&builderStatsBackfill, "backfill", false, "backfill hourly stats since last saved")
 }
