@@ -37,7 +37,7 @@ A set of tools to fill and show a postgres database.
 
 ### Run
 
-You can either get a copy from the repository and build it yourself, or use the Docker image:
+You can either build relayscan from the repository, or use the Docker image:
 
 ```bash
 # Build & run
@@ -68,6 +68,12 @@ docker run flashbots/relayscan /app/relayscan version
 
 # Start service to query every relay for bids
 ./relayscan service website --dev collect-live-bids
+```
+
+You might want to run Postgres locally for testing:
+
+```
+docker run -d -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
 ```
 
 ### Test & dev
