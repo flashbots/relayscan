@@ -81,8 +81,8 @@ docker run -d -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgr
 ```bash
 # Install dependencies
 go install mvdan.cc/gofumpt@latest
-go install honnef.co/go/tools/cmd/staticcheck@v0.3.3
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.49.0
+go install honnef.co/go/tools/cmd/staticcheck@v0.4.3
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
 
 # Lint, test and build
 make lint
