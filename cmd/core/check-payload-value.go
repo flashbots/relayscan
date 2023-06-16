@@ -1,6 +1,7 @@
 package core
 
 import (
+	"database/sql"
 	"fmt"
 	"math/big"
 	"strings"
@@ -24,6 +25,7 @@ var (
 	checkMissedOnly    bool
 	checkTx            bool
 	checkAll           bool
+	beaconNodeURI      string
 )
 
 func init() {
@@ -33,7 +35,7 @@ func init() {
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", vars.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeBackupURI, "eth-node-backup", vars.DefaultEthBackupNodeURI, "eth node backup URI (i.e. Infura)")
-	// checkPayloadValueCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", defaultBeaconURI, "beacon endpoint")
+	checkPayloadValueCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", vars.DefaultBeaconURI, "beacon endpoint")
 	checkPayloadValueCmd.Flags().BoolVar(&checkIncorrectOnly, "check-incorrect", false, "whether to double-check incorrect values only")
 	checkPayloadValueCmd.Flags().BoolVar(&checkMissedOnly, "check-missed", false, "whether to double-check missed slots only")
 	checkPayloadValueCmd.Flags().BoolVar(&checkTx, "check-tx", false, "whether to check for tx from/to proposer feeRecipient")
@@ -56,6 +58,10 @@ var checkPayloadValueCmd = &cobra.Command{
 
 		// Connect to Postgres
 		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
+
+		// Connect to BN
+		// bn, headSlot := common.MustConnectBeaconNode(log, beaconNodeURI, false)
+		// log.Infof("beacon node connected. headslot: %d", headSlot)
 
 		entries := []database.DataAPIPayloadDeliveredEntry{}
 		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered
@@ -130,6 +136,7 @@ func _getBalanceDiff(ethClient *flashbotsrpc.FlashbotsRPC, address string, block
 	return balanceDiff, nil
 }
 
+// func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *flashbotsrpc.FlashbotsRPC, entryC chan database.DataAPIPayloadDeliveredEntry, bn *beaconclient.ProdBeaconInstance) {
 func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *flashbotsrpc.FlashbotsRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
 	defer wg.Done()
 
@@ -172,8 +179,8 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 				block_coinbase_is_proposer=:block_coinbase_is_proposer,
 				coinbase_diff_wei=:coinbase_diff_wei,
 				coinbase_diff_eth=:coinbase_diff_eth,
-				found_onchain=:found_onchain
-			WHERE slot=:slot`
+				found_onchain=:found_onchain -- should rename field, because getBlockByHash might succeed even though this slot was missed
+				WHERE slot=:slot`
 		_, err := db.DB.NamedExec(query, entry)
 		if err != nil {
 			_log.WithError(err).Fatalf("failed to save entry")
@@ -195,7 +202,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			_log.Fatalf("couldn't convert claimed value to big.Int: %s", entry.ValueClaimedWei)
 		}
 
-		// Check if slot was delivered
+		// // Check if slot was delivered
 		// _log.Infof("%d - %d = %d", headSlot, entry.Slot, headSlot-entry.Slot)
 		// if headSlot-entry.Slot < 30_000 { // before, my BN always returns the error
 		// 	_, err := bn.GetHeaderForSlot(entry.Slot)
@@ -221,7 +228,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			continue
 		}
 
-		entry.FoundOnChain = database.NewNullBool(true)
+		entry.FoundOnChain = sql.NullBool{} //nolint:exhaustruct
 		if !entry.BlockNumber.Valid {
 			entry.BlockNumber = database.NewNullInt64(int64(block.Number))
 		}

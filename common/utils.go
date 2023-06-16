@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/flashbots/mev-boost-relay/beaconclient"
 	"github.com/flashbots/relayscan/vars"
+	"github.com/sirupsen/logrus"
 )
 
 func Check(err error) {
@@ -95,4 +97,14 @@ func MustParseDateTimeStr(s string) time.Time {
 func BeginningOfDay(t time.Time) time.Time {
 	year, month, day := t.Date()
 	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
+}
+
+func MustConnectBeaconNode(log *logrus.Entry, beaconNodeURI string, allowSyncing bool) (bn *beaconclient.ProdBeaconInstance, headSlot uint64) {
+	bn = beaconclient.NewProdBeaconInstance(log, beaconNodeURI)
+	syncStatus, err := bn.SyncStatus()
+	Check(err)
+	if syncStatus.IsSyncing && !allowSyncing {
+		panic("beacon node is syncing")
+	}
+	return bn, syncStatus.HeadSlot
 }
