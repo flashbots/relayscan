@@ -10,6 +10,9 @@ var BuilderAliases = map[string]func(string) bool{
 	"builder0x69": func(in string) bool {
 		return strings.Contains(in, "builder0x69")
 	},
+	"rsync-builder.xyz": func(in string) bool {
+		return strings.Contains(in, "rsync")
+	},
 	"bob the builder": func(in string) bool {
 		match, _ := regexp.MatchString("s[0-9]+e[0-9].*(t|f)", in)
 		return match
