@@ -38,7 +38,7 @@ var backfillDataAPICmd = &cobra.Command{
 		if cliRelay != "" {
 			var relayEntry common.RelayEntry
 			if cliRelay == "fb" {
-				relayEntry, err = common.NewRelayEntry(common.RelayURLs[0], false)
+				relayEntry, err = common.NewRelayEntry(vars.RelayURLs[0], false)
 			} else {
 				relayEntry, err = common.NewRelayEntry(cliRelay, false)
 			}

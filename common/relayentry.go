@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/flashbots/go-boost-utils/types"
+	"github.com/flashbots/relayscan/vars"
 )
 
 // RelayEntry represents a relay that mev-boost connects to.
@@ -58,4 +59,16 @@ func RelayEntriesToStrings(relays []RelayEntry) []string {
 		ret[i] = entry.String()
 	}
 	return ret
+}
+
+func GetRelays() ([]RelayEntry, error) {
+	var err error
+	relays := make([]RelayEntry, len(vars.RelayURLs))
+	for i, relayStr := range vars.RelayURLs {
+		relays[i], err = NewRelayEntry(relayStr, true)
+		if err != nil {
+			return relays, err
+		}
+	}
+	return relays, nil
 }
