@@ -451,7 +451,7 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 		return
 	} else {
 		w.WriteHeader(http.StatusOK)
-		err = srv.templateDailyStats.Execute(w, htmlData)
+		err = srv.templateDailyStats.ExecuteTemplate(w, "base", htmlData)
 		if err != nil {
 			srv.log.WithError(err).Error("error executing template")
 			srv.RespondError(w, http.StatusInternalServerError, err.Error())
