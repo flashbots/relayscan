@@ -8,10 +8,22 @@ Monitoring, analytics & data for Ethereum MEV-Boost builders and relays
 
 **Running on https://relayscan.io**
 
-A set of tools to fill and show a postgres database.
+Additional URLs:
+
+- Builder profit:
+  - Last 24h: https://www.relayscan.io/builder-profit?t=24h
+  - Last 7d: https://www.relayscan.io/builder-profit?t=7d
+- Current stats in markdown:
+  - https://www.relayscan.io/overview/md
+  - https://www.relayscan.io/builder-profit/md
+- Daily stats:
+  - https://www.relayscan.io/stats/day/2023-06-20
+  - https://www.relayscan.io/stats/day/2023-06-20/json
+
 ## Notes
 
 - Work in progress
+- At it's core, a set of tools to fill and show a postgres database
 - Multiple relays can serve a payload for the same slot (if the winning builder sent the best bid to multiple relays, and the proposer asks for a payload from all of them)
 - Comments and feature requests: [@relayscan_io](https://twitter.com/relayscan_io)
 - License: AGPL
