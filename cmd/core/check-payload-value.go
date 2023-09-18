@@ -48,12 +48,18 @@ var checkPayloadValueCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 
-		log.Infof("Using eth node: %s", ethNodeURI)
 		client := flashbotsrpc.New(ethNodeURI)
-		var client2 *flashbotsrpc.FlashbotsRPC
+		if client == nil {
+			log.Fatalf("Failed to create RPC client for '%s'", ethNodeURI)
+		}
+		log.Infof("Using eth node: %s", client.URL())
+		client2 := client
 		if ethNodeBackupURI != "" {
-			log.Infof("Using eth backup node: %s", ethNodeBackupURI)
 			client2 = flashbotsrpc.New(ethNodeBackupURI)
+			if client2 == nil {
+				log.Fatalf("Failed to create backup RPC client for '%s'", ethNodeBackupURI)
+			}
+			log.Infof("Using eth backup node: %s", client2.URL())
 		}
 
 		// Connect to Postgres
