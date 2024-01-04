@@ -16,6 +16,9 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /build/relayscan /app/relayscan
+COPY --from=builder /build/services/website/templates/ /app/services/website/templates/
+COPY --from=builder /build/static/ /app/static/
+
 ENV LISTEN_ADDR=":8080"
 EXPOSE 8080
 CMD ["/app/relayscan"]
