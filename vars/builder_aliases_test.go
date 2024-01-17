@@ -7,6 +7,7 @@ import (
 )
 
 func TestBuilderAliases(t *testing.T) {
+	require.Equal(t, "penguinbuild.org", BuilderNameFromExtraData("@penguinbuild.org"))
 	require.Equal(t, "foobar", BuilderNameFromExtraData("foobar"))
 	require.Equal(t, "builder0x69", BuilderNameFromExtraData("@builder0x69"))
 	require.Equal(t, "bob the builder", BuilderNameFromExtraData("s1e2xf"))
