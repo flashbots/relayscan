@@ -7,6 +7,9 @@ import (
 
 // BuilderAliases maps builder name to a function that returns if an input string (extra_data) is an alias
 var BuilderAliases = map[string]func(string) bool{
+	"penguinbuild.org": func(in string) bool {
+		return strings.Contains(in, "penguinbuild.org")
+	},
 	"builder0x69": func(in string) bool {
 		return strings.Contains(in, "builder0x69")
 	},
