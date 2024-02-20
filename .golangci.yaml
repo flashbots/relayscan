@@ -48,6 +48,13 @@ linters:
     - maligned
     - scopelint
 
+    # disabled with update to Go 1.22
+    - perfsprint
+    - exhaustruct
+    - depguard
+    - tagalign
+    - goconst
+
 linters-settings:
   #
   # The G108 rule throws a false positive. We're not actually vulnerable. If
