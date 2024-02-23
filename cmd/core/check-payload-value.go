@@ -291,7 +291,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			for i, tx := range block.Transactions {
 				if tx.From == entry.ProposerFeeRecipient {
 					_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value.String())
-					proposerValueDiffFromClaim = new(big.Int).Add(proposerValueDiffFromClaim, &tx.Value)
+					proposerValueDiffFromClaim = new(big.Int).Add(proposerValueDiffFromClaim, &tx.Value) //nolint:gosec
 				} else if tx.To == entry.ProposerFeeRecipient {
 					_log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value.String())
 				}

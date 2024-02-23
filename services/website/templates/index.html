@@ -156,6 +156,13 @@
         <div class="copy-table-to-clipboard">
             <a href="/builder-profit/md" onclick="copyBuilderProfit(event); return false;">copy markdown <i id="copy-builderprofit-to-clipboard-icon" class="bi bi-clipboard"></i></a>
         </div>
+
+        ⚠️ Disclaimer: Relayscan uses block.coinbase ETH balance difference to measure builder's profits which could introduce inaccuracies when builders:
+        <ul>
+            <li>pay validator using another address</li>
+            <li>pay for orderflow in other channels (e.g. offchain)</li>
+            <li>have searching profits but use builder wallet funds to add bid value without depositing from searcher addresses</li>
+        </ul>
     </div>
 
 
