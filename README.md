@@ -102,3 +102,10 @@ make test
 make test-race
 make build
 ```
+
+
+### Updating relayscan
+
+Notes for updating relayscan:
+
+- Relay payloads are selected by `inserted_at`. When adding a new relay, you probably want to manually subtract a day from `inserted_at` so they don't show up all for today (`UPDATE mainnet_data_api_payload_delivered SET inserted_at = inserted_at - INTERVAL '1 DAY' WHERE relay='newrelay.xyz';`). See also https://github.com/flashbots/relayscan/issues/28

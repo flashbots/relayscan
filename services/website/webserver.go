@@ -152,20 +152,26 @@ func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, er
 	now := time.Now().UTC()
 	since := now.Add(-1 * duration.Abs())
 
+	startTime := time.Now()
 	topRelays, err := srv.db.GetTopRelays(since, now)
 	if err != nil {
 		return nil, err
 	}
+	srv.log.WithField("duration", time.Since(startTime).String()).Debug("got top relays")
 
+	startTime = time.Now()
 	topBuilders, err := srv.db.GetTopBuilders(since, now, "")
 	if err != nil {
 		return nil, err
 	}
+	srv.log.WithField("duration", time.Since(startTime).String()).Debug("got top builders")
 
+	startTime = time.Now()
 	builderProfits, err := srv.db.GetBuilderProfits(since, now)
 	if err != nil {
 		return nil, err
 	}
+	srv.log.WithField("duration", time.Since(startTime).String()).Debug("got builder profits")
 
 	stats = &Stats{
 		Since: since,
@@ -178,6 +184,7 @@ func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, er
 	}
 
 	// Query builders for each relay
+	startTime = time.Now()
 	for _, relay := range topRelays {
 		topBuildersForRelay, err := srv.db.GetTopBuilders(since, now, relay.Relay)
 		if err != nil {
@@ -185,6 +192,7 @@ func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, er
 		}
 		stats.TopBuildersByRelay[relay.Relay] = consolidateBuilderEntries(topBuildersForRelay)
 	}
+	srv.log.WithField("duration", time.Since(startTime).String()).Debug("got builders per relay")
 
 	return stats, nil
 }
@@ -217,34 +225,42 @@ func (srv *Webserver) updateHTML() {
 		htmlData.LastUpdateSlot = entry.Slot
 	}
 
+	startUpdate := time.Now()
 	srv.log.Info("updating 24h stats...")
 	stats["24h"], err = srv.getStatsForHours(24 * time.Hour)
 	if err != nil {
 		srv.log.WithError(err).Error("Failed to get stats for 24h")
 		return
 	}
+	srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 24h stats")
 
 	if !srv.opts.Only24h {
-		srv.log.Info("updating 7d stats...")
-		stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
-		if err != nil {
-			srv.log.WithError(err).Error("Failed to get stats for 24h")
-			return
-		}
-
+		startUpdate = time.Now()
 		srv.log.Info("updating 12h stats...")
 		stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
 		if err != nil {
 			srv.log.WithError(err).Error("Failed to get stats for 12h")
 			return
 		}
+		srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 12h stats")
 
+		startUpdate = time.Now()
 		srv.log.Info("updating 1h stats...")
 		stats["1h"], err = srv.getStatsForHours(1 * time.Hour)
 		if err != nil {
 			srv.log.WithError(err).Error("Failed to get stats for 1h")
 			return
 		}
+		srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 1h stats")
+
+		startUpdate = time.Now()
+		srv.log.Info("updating 7d stats...")
+		stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
+		if err != nil {
+			srv.log.WithError(err).Error("Failed to get stats for 24h")
+			return
+		}
+		srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 7d stats")
 	}
 
 	// Save the html data
