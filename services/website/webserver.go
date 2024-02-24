@@ -152,26 +152,29 @@ func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, er
 	now := time.Now().UTC()
 	since := now.Add(-1 * duration.Abs())
 
+	srv.log.Debug("- loading top relays...")
 	startTime := time.Now()
 	topRelays, err := srv.db.GetTopRelays(since, now)
 	if err != nil {
 		return nil, err
 	}
-	srv.log.WithField("duration", time.Since(startTime).String()).Debug("got top relays")
+	srv.log.WithField("duration", time.Since(startTime).String()).Debug("- got top relays")
 
+	srv.log.Debug("- loading top builders...")
 	startTime = time.Now()
 	topBuilders, err := srv.db.GetTopBuilders(since, now, "")
 	if err != nil {
 		return nil, err
 	}
-	srv.log.WithField("duration", time.Since(startTime).String()).Debug("got top builders")
+	srv.log.WithField("duration", time.Since(startTime).String()).Debug("- got top builders")
 
+	srv.log.Debug("- loading builder profits...")
 	startTime = time.Now()
 	builderProfits, err := srv.db.GetBuilderProfits(since, now)
 	if err != nil {
 		return nil, err
 	}
-	srv.log.WithField("duration", time.Since(startTime).String()).Debug("got builder profits")
+	srv.log.WithField("duration", time.Since(startTime).String()).Debug("- got builder profits")
 
 	stats = &Stats{
 		Since: since,
@@ -184,6 +187,7 @@ func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, er
 	}
 
 	// Query builders for each relay
+	srv.log.Debug("- loading builders per relay...")
 	startTime = time.Now()
 	for _, relay := range topRelays {
 		topBuildersForRelay, err := srv.db.GetTopBuilders(since, now, relay.Relay)
@@ -192,7 +196,7 @@ func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, er
 		}
 		stats.TopBuildersByRelay[relay.Relay] = consolidateBuilderEntries(topBuildersForRelay)
 	}
-	srv.log.WithField("duration", time.Since(startTime).String()).Debug("got builders per relay")
+	srv.log.WithField("duration", time.Since(startTime).String()).Debug("- got builders per relay")
 
 	return stats, nil
 }
