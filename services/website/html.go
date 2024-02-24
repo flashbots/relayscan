@@ -18,6 +18,15 @@ type Stats struct {
 	TopBuildersByRelay map[string][]*database.TopBuilderEntry
 }
 
+func NewStats() *Stats {
+	return &Stats{
+		TopRelays:          make([]*database.TopRelayEntry, 0),
+		TopBuilders:        make([]*database.TopBuilderEntry, 0),
+		BuilderProfits:     make([]*database.BuilderProfitEntry, 0),
+		TopBuildersByRelay: make(map[string][]*database.TopBuilderEntry),
+	}
+}
+
 type HTMLData struct {
 	Title string
 
