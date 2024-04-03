@@ -116,14 +116,14 @@ func (s *DatabaseService) GetDataAPILatestBid(relay string) (*DataAPIBuilderBidE
 }
 
 func (s *DatabaseService) GetTopRelays(since, until time.Time) (res []*TopRelayEntry, err error) {
-	query := `SELECT relay, count(relay) as payloads FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY relay ORDER BY payloads DESC;`
+	query := `SELECT relay, count(relay) as payloads FROM ` + TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY relay ORDER BY payloads DESC;`
 	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
 	return res, err
 }
 
 func (s *DatabaseService) GetTopBuilders(since, until time.Time, relay string) (res []*TopBuilderEntry, err error) {
 	query := `SELECT extra_data, count(extra_data) as blocks FROM (
-		SELECT distinct(slot), extra_data FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2`
+		SELECT distinct(slot), extra_data FROM ` + TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2`
 	if relay != "" {
 		query += ` AND relay = '` + relay + `'`
 	}
@@ -144,7 +144,7 @@ func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*Buil
 		round(sum(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 4) as total_profit,
 		round(abs(sum(CASE WHEN coinbase_diff_eth < 0 THEN coinbase_diff_eth ELSE 0 END)), 4) as total_subsidies
 	FROM (
-		SELECT distinct(slot), extra_data, coinbase_diff_eth FROM mainnet_data_api_payload_delivered WHERE inserted_at > $1 AND inserted_at < $2
+		SELECT distinct(slot), extra_data, coinbase_diff_eth FROM ` + TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2
 	) AS x
 	GROUP BY extra_data
 	ORDER BY total_profit DESC;`
