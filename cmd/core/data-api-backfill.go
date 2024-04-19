@@ -53,6 +53,7 @@ var backfillDataAPICmd = &cobra.Command{
 			}
 		}
 
+		log.Infof("Relayscan %s", vars.Version)
 		log.Infof("Using %d relays", len(relays))
 		for index, relay := range relays {
 			log.Infof("relay #%d: %s", index+1, relay.Hostname())

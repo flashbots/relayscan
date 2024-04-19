@@ -72,12 +72,25 @@ func (s *DatabaseService) SaveDataAPIPayloadDeliveredBatch(entries []*DataAPIPay
 	if len(entries) == 0 {
 		return nil
 	}
+
 	query := `INSERT INTO ` + TableDataAPIPayloadDelivered + `
 	(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number, extra_data) VALUES
 	(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value_claimed_wei, :value_claimed_eth, :num_tx, :block_number, :extra_data)
 	ON CONFLICT DO NOTHING`
-	_, err := s.DB.NamedExec(query, entries)
-	return err
+
+	// Postgres can do max 65535 parameters at a time (otherwise error: "pq: got ... parameters but PostgreSQL only supports 65535 parameters")
+	for i := 0; i < len(entries); i += 3000 {
+		end := i + 3000
+		if end > len(entries) {
+			end = len(entries)
+		}
+
+		_, err := s.DB.NamedExec(query, entries[i:end])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *DatabaseService) GetDataAPILatestPayloadDelivered(relay string) (*DataAPIPayloadDeliveredEntry, error) {
@@ -116,6 +129,7 @@ func (s *DatabaseService) GetDataAPILatestBid(relay string) (*DataAPIBuilderBidE
 }
 
 func (s *DatabaseService) GetTopRelays(since, until time.Time) (res []*TopRelayEntry, err error) {
+	// slot_start =slotToTime
 	query := `SELECT relay, count(relay) as payloads FROM ` + TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY relay ORDER BY payloads DESC;`
 	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
 	return res, err
