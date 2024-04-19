@@ -45,7 +45,7 @@ var websiteCmd = &cobra.Command{
 		}
 
 		// Start the server
-		log.Infof("Webserver starting on %s ...", websiteListenAddr)
+		log.Infof("Webserver starting on %s (%s) ...", websiteListenAddr, vars.Version)
 		log.Fatal(srv.StartServer())
 	},
 }
