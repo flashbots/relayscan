@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/flashbots/relayscan/database"
 	"github.com/flashbots/relayscan/vars"
@@ -243,4 +244,15 @@ func prepareRelaysEntries(relays []*database.TopRelayEntry) []*database.TopRelay
 		resp[i].Percent = fmt.Sprintf("%.2f", p)
 	}
 	return resp
+}
+
+func getLastWednesday() time.Time {
+	now := time.Now().UTC()
+	dayOffset := now.Weekday() - time.Wednesday
+	targetDate := now.AddDate(0, 0, -int(dayOffset))
+	targetDate = time.Date(targetDate.Year(), targetDate.Month(), targetDate.Day(), 0, 0, 0, 0, targetDate.Location()).UTC()
+	if targetDate.After(now) {
+		targetDate = targetDate.AddDate(0, 0, -7)
+	}
+	return targetDate
 }

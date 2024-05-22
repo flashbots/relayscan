@@ -112,7 +112,7 @@ func (srv *Webserver) StartServer() (err error) {
 
 		ReadTimeout:       600 * time.Millisecond,
 		ReadHeaderTimeout: 400 * time.Millisecond,
-		WriteTimeout:      3 * time.Second,
+		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       3 * time.Second,
 	}
 
@@ -134,6 +134,7 @@ func (srv *Webserver) getRouter() http.Handler {
 	r.HandleFunc("/overview/md", srv.handleOverviewMarkdown).Methods(http.MethodGet)
 	r.HandleFunc("/builder-profit/md", srv.handleBuilderProfitMarkdown).Methods(http.MethodGet)
 
+	r.HandleFunc("/stats/cowstats", srv.handleCowstatsJSON).Methods(http.MethodGet)
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}", srv.handleDailyStats).Methods(http.MethodGet)
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}/json", srv.handleDailyStatsJSON).Methods(http.MethodGet)
 	// r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
@@ -508,5 +509,33 @@ func (srv *Webserver) handleDailyStatsJSON(w http.ResponseWriter, req *http.Requ
 		Builders: consolidateBuilderEntries(builders),
 	}
 
+	srv.RespondOK(w, resp)
+}
+
+func (srv *Webserver) handleCowstatsJSON(w http.ResponseWriter, req *http.Request) {
+	// builder stats for wednesday utc 00:00 to next wednesday 00:00
+	type apiResp struct {
+		DateFrom    string                      `json:"date_from"`
+		DateTo      string                      `json:"date_to"`
+		TopBuilders []*database.TopBuilderEntry `json:"top_builders"`
+	}
+
+	wednesday1 := getLastWednesday()
+	wednesday2 := wednesday1.AddDate(0, 0, -7)
+
+	startTime := time.Now()
+	srv.log.WithField("from", wednesday2).WithField("to", wednesday1).Info("[cowstats] getting top builders...")
+	topBuilders, err := srv.db.GetTopBuilders(wednesday2, wednesday1, "")
+	if err != nil {
+		srv.log.WithError(err).Error("Failed to get top builders")
+		return
+	}
+	srv.log.WithField("duration", time.Since(startTime).String()).WithField("nBuilders", len(topBuilders)).Info("[cowstats] got top builders")
+
+	resp := apiResp{
+		DateFrom:    wednesday2.String(),
+		DateTo:      wednesday1.String(),
+		TopBuilders: consolidateBuilderEntries(topBuilders),
+	}
 	srv.RespondOK(w, resp)
 }
