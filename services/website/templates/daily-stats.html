@@ -34,9 +34,6 @@
                         {{ end }}
                     </tbody>
                 </table>
-                <div class="copy-table-to-clipboard">
-                    <a href="/overview/md" onclick="copyRelays(event); return false;">copy markdown <i id="copy-relays-to-clipboard-icon" class="bi bi-clipboard"></i></a>
-                </div>
             </div>
         </div>
 
@@ -77,14 +74,11 @@
                         {{ end }}
                     </tbody>
                 </table>
-                <div class="copy-table-to-clipboard">
-                    <a href="/overview/md" onclick="copyBuilders(event); return false;">copy markdown <i id="copy-builders-to-clipboard-icon" class="bi bi-clipboard"></i></a>
-                </div>
             </div>
         </div>
 
-        <div class="pure-u-1 pure-u-md-1 stats-table" id="content-profitability">
-            <table id="table-builderprofit" class="table-builderprofit sortable pure-table pure-table-horizontal">
+        <div class="pure-u-1 pure-u-md-1 stats-table" id="content-profitability" style="margin-top:40px;">
+            <table id=" table-builderprofit" class="table-builderprofit sortable pure-table pure-table-horizontal">
                 <thead>
                     <tr>
                         <th>Builder extra_data</th>
@@ -125,6 +119,15 @@
                 </tbody>
             </table>
         </div>
+        <div class="pure-u-1 pure-u-md-1">
+            <p>⚠️ Disclaimer: Relayscan uses block.coinbase ETH balance difference to measure builder's profits which could introduce inaccuracies when builders:</p>
+
+            <ul>
+                <li>pay validator using another address</li>
+                <li>pay for orderflow in other channels (e.g. offchain)</li>
+                <li>have searching profits but use builder wallet funds to add bid value without depositing from searcher addresses</li>
+            </ul>
+        </div>
     </div>
 
 </div>
@@ -156,64 +159,6 @@
         hideEvents.forEach((event) => {
             elTrigger.addEventListener(event, hideTooltip);
         });
-    }
-
-    showBuildersForRelay = function (relay) {
-        // hide all builders
-        for (const topBuildersTbody of document.getElementsByClassName("tbody-builders")) {
-            topBuildersTbody.style.display = "none";
-        }
-
-        // show specific builder
-        if (relay == "") {
-            document.getElementById("tbody-builders-all").style.display = "table-row-group";
-        } else {
-            document.getElementById("tbody-builders-" + relay).style.display = "table-row-group";
-        }
-    }
-
-    relayMouseOver = function (relay) {
-        showBuildersForRelay(relay)
-    }
-
-    relayMouseOut = function (relay) {
-        showBuildersForRelay("")
-    }
-
-    // COPY TABLES AS MARKDOWN TO CLIPBOARD
-    copyBuilders = function (e) {
-        e.stopPropagation();
-        var md = document.getElementById("md-builders").innerHTML;
-        navigator.clipboard.writeText(md);
-        document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard");
-        document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard-check");
-        setTimeout(function () {
-            document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard-check");
-            document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard");
-        }, 1000);
-    }
-
-    copyBuilderProfit = function (e) {
-        var md = document.getElementById("md-builderprofit").innerHTML.replace(/&amp;/g, '&');;
-        navigator.clipboard.writeText(md);
-        document.getElementById("copy-builderprofit-to-clipboard-icon").classList.remove("bi-clipboard");
-        document.getElementById("copy-builderprofit-to-clipboard-icon").classList.add("bi-clipboard-check");
-        setTimeout(function () {
-            document.getElementById("copy-builderprofit-to-clipboard-icon").classList.remove("bi-clipboard-check");
-            document.getElementById("copy-builderprofit-to-clipboard-icon").classList.add("bi-clipboard");
-        }, 1000);
-    }
-
-    copyRelays = function (e) {
-        e.stopPropagation();
-        var md = document.getElementById("md-relays").innerHTML;
-        navigator.clipboard.writeText(md);
-        document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard");
-        document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard-check");
-        setTimeout(function () {
-            document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard-check");
-            document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard");
-        }, 1000);
     }
 
     window.onload = (event) => {
