@@ -166,16 +166,21 @@ func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*Buil
 	return res, err
 }
 
-func (s *DatabaseService) GetStatsForTimerange(since, until time.Time, relay string) (relays []*TopRelayEntry, builders []*TopBuilderEntry, err error) {
+func (s *DatabaseService) GetStatsForTimerange(since, until time.Time, relay string) (relays []*TopRelayEntry, builders []*TopBuilderEntry, builderProfits []*BuilderProfitEntry, err error) {
 	relays, err = s.GetTopRelays(since, until)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	builders, err = s.GetTopBuilders(since, until, relay)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return relays, builders, nil
+	builderProfits, err = s.GetBuilderProfits(since, until)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return relays, builders, builderProfits, nil
 }
 
 func (s *DatabaseService) GetDeliveredPayloadsForSlot(slot uint64) (res []*DataAPIPayloadDeliveredEntry, err error) {

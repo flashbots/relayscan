@@ -411,17 +411,17 @@ func (srv *Webserver) handleBuilderProfitMarkdown(w http.ResponseWriter, req *ht
 	_, _ = w.Write(*srv.markdownBuilderProfit)
 }
 
-func (srv *Webserver) _getDailyStats(t time.Time) (since, until, minDate time.Time, relays []*database.TopRelayEntry, builders []*database.TopBuilderEntry, err error) {
+func (srv *Webserver) _getDailyStats(t time.Time) (since, until, minDate time.Time, relays []*database.TopRelayEntry, builders []*database.TopBuilderEntry, builderProfits []*database.BuilderProfitEntry, err error) {
 	now := time.Now().UTC()
 	minDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Add(-24 * time.Hour).UTC()
 	if t.UTC().After(minDate.UTC()) {
-		return now, now, minDate, nil, nil, fmt.Errorf("date is too recent") //nolint:goerr113
+		return now, now, minDate, nil, nil, nil, fmt.Errorf("date is too recent") //nolint:goerr113
 	}
 
 	since = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
 	until = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, time.UTC)
-	relays, builders, err = srv.db.GetStatsForTimerange(since, until, "")
-	return since, until, minDate, relays, builders, err
+	relays, builders, builderProfits, err = srv.db.GetStatsForTimerange(since, until, "")
+	return since, until, minDate, relays, builders, builderProfits, err
 }
 
 func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request) {
@@ -434,11 +434,13 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	since, until, minDate, relays, builders, err := srv._getDailyStats(t)
+	srv.log.Infof("Loading daily stats for %s ...", t.Format("2006-01-02"))
+	since, until, minDate, relays, builders, builderProfits, err := srv._getDailyStats(t)
 	if err != nil {
 		srv.RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	srv.log.Infof("Loading daily stats for %s completed. builderProfits: %d", t.Format("2006-01-02"), len(builderProfits))
 
 	dateNext := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC).Add(24 * time.Hour).UTC()
 	dayNext := dateNext.Format("2006-01-02")
@@ -455,6 +457,7 @@ func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request)
 		TimeUntil:            until.Format("2006-01-02 15:04"),
 		TopRelays:            prepareRelaysEntries(relays),
 		TopBuildersBySummary: consolidateBuilderEntries(builders),
+		BuilderProfits:       consolidateBuilderProfitEntries(builderProfits),
 	}
 
 	if srv.opts.Dev {
@@ -491,7 +494,7 @@ func (srv *Webserver) handleDailyStatsJSON(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	_, _, _, relays, builders, err := srv._getDailyStats(t) //nolint:dogsled
+	_, _, _, relays, builders, _, err := srv._getDailyStats(t) //nolint:dogsled
 	if err != nil {
 		srv.RespondError(w, http.StatusBadRequest, err.Error())
 		return

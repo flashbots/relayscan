@@ -82,8 +82,147 @@
                 </div>
             </div>
         </div>
+
+        <div class="pure-u-1 pure-u-md-1 stats-table" id="content-profitability">
+            <table id="table-builderprofit" class="table-builderprofit sortable pure-table pure-table-horizontal">
+                <thead>
+                    <tr>
+                        <th>Builder extra_data</th>
+                        <th>Blocks</th>
+                        <th>Blocks with profit</th>
+                        <th>Blocks with subsidy</th>
+                        <th id="th-builderprofit-profittotal">Overall profit (ETH)</th>
+                        <th>Subsidies (ETH)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .BuilderProfits }}
+                    <tr>
+                        <td class="builder-extradata">
+                            {{ if .ExtraData }}<span style="white-space: pre;">{{ .ExtraData }}</span>{{ else }}&nbsp;{{ end }}
+                            {{ if ne (len .Aliases) 0 }}
+                            <span class="tooltip-wrapper">
+                                <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builderprofit-alias"></i>
+                                <div class="tooltip builder-aliases" role="tooltip">
+                                    <b>extra_data values:</b>
+                                    <ul>
+                                        {{ range .Aliases }}
+                                        <li>{{ . }}</li>
+                                        {{ end }}
+                                    </ul>
+                                    <div class="arrow" data-popper-arrow></div>
+                                </div>
+                            </span>
+                            {{ end }}
+                        </td>
+                        <td class="td-num-blocks" data-sort="{{ .NumBlocks }}">{{ .NumBlocks | prettyInt }}</td>
+                        <td class="td-num-blocks-profit" data-sort="{{ .NumBlocksProfit }}">{{ .NumBlocksProfit | prettyInt }}</td>
+                        <td class="td-num-blocks-subs" data-sort="{{ .NumBlocksSubsidised }}">{{ .NumBlocksSubsidised | prettyInt }}</td>
+                        <td>{{ .ProfitTotal }}</td>
+                        <td>{{ .SubsidiesTotal }}</td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>
+
+
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script>
+    const showEvents = ['mouseenter', 'focus'];
+    const hideEvents = ['mouseleave', 'blur'];
+
+    // Tooltip setup
+    for (const tooltip of document.getElementsByClassName("tooltip-wrapper")) {
+        const elTrigger = tooltip.querySelector(".tooltip-icon");
+        const elTooltip = tooltip.querySelector(".tooltip");
+        const popperInstance = Popper.createPopper(elTrigger, elTooltip, { modifiers: [{ name: 'offset', options: { offset: [0, 8] } }], });
+        function showTooltip() {
+            elTooltip.setAttribute('data-show', ''); // Show the tooltip
+            popperInstance.setOptions((options) => ({ ...options, modifiers: [...options.modifiers, { name: 'eventListeners', enabled: true },] }));
+            popperInstance.update(); // Update its position
+        }
+        function hideTooltip() {
+            elTooltip.removeAttribute('data-show'); // Hide the tooltip
+            popperInstance.setOptions((options) => ({ ...options, modifiers: [...options.modifiers, { name: 'eventListeners', enabled: false }] }));
+        }
+        showEvents.forEach((event) => {
+            elTrigger.addEventListener(event, showTooltip);
+        });
+
+        hideEvents.forEach((event) => {
+            elTrigger.addEventListener(event, hideTooltip);
+        });
+    }
+
+    showBuildersForRelay = function (relay) {
+        // hide all builders
+        for (const topBuildersTbody of document.getElementsByClassName("tbody-builders")) {
+            topBuildersTbody.style.display = "none";
+        }
+
+        // show specific builder
+        if (relay == "") {
+            document.getElementById("tbody-builders-all").style.display = "table-row-group";
+        } else {
+            document.getElementById("tbody-builders-" + relay).style.display = "table-row-group";
+        }
+    }
+
+    relayMouseOver = function (relay) {
+        showBuildersForRelay(relay)
+    }
+
+    relayMouseOut = function (relay) {
+        showBuildersForRelay("")
+    }
+
+    // COPY TABLES AS MARKDOWN TO CLIPBOARD
+    copyBuilders = function (e) {
+        e.stopPropagation();
+        var md = document.getElementById("md-builders").innerHTML;
+        navigator.clipboard.writeText(md);
+        document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard");
+        document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard-check");
+        setTimeout(function () {
+            document.getElementById("copy-builders-to-clipboard-icon").classList.remove("bi-clipboard-check");
+            document.getElementById("copy-builders-to-clipboard-icon").classList.add("bi-clipboard");
+        }, 1000);
+    }
+
+    copyBuilderProfit = function (e) {
+        var md = document.getElementById("md-builderprofit").innerHTML.replace(/&amp;/g, '&');;
+        navigator.clipboard.writeText(md);
+        document.getElementById("copy-builderprofit-to-clipboard-icon").classList.remove("bi-clipboard");
+        document.getElementById("copy-builderprofit-to-clipboard-icon").classList.add("bi-clipboard-check");
+        setTimeout(function () {
+            document.getElementById("copy-builderprofit-to-clipboard-icon").classList.remove("bi-clipboard-check");
+            document.getElementById("copy-builderprofit-to-clipboard-icon").classList.add("bi-clipboard");
+        }, 1000);
+    }
+
+    copyRelays = function (e) {
+        e.stopPropagation();
+        var md = document.getElementById("md-relays").innerHTML;
+        navigator.clipboard.writeText(md);
+        document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard");
+        document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard-check");
+        setTimeout(function () {
+            document.getElementById("copy-relays-to-clipboard-icon").classList.remove("bi-clipboard-check");
+            document.getElementById("copy-relays-to-clipboard-icon").classList.add("bi-clipboard");
+        }, 1000);
+    }
+
+    window.onload = (event) => {
+        // fix for table sorting (it's already sorted, and this click makes the sortable plugin think it has done it)
+        document.getElementById("th-builderprofit-profittotal").click()
+    }
+</script>
+
+<script src="/static/sortable.min.js"></script>
+
 
 {{ end }}

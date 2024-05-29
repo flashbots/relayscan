@@ -51,6 +51,7 @@ type HTMLDataDailyStats struct {
 
 	TopRelays            []*database.TopRelayEntry
 	TopBuildersBySummary []*database.TopBuilderEntry
+	BuilderProfits       []*database.BuilderProfitEntry
 }
 
 var funcMap = template.FuncMap{
