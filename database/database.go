@@ -129,25 +129,34 @@ func (s *DatabaseService) GetDataAPILatestBid(relay string) (*DataAPIBuilderBidE
 }
 
 func (s *DatabaseService) GetTopRelays(since, until time.Time) (res []*TopRelayEntry, err error) {
-	// slot_start =slotToTime
-	query := `SELECT relay, count(relay) as payloads FROM ` + TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY relay ORDER BY payloads DESC;`
-	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
+	startSlot := timeToSlot(since)
+	endSlot := timeToSlot(until)
+
+	// query := `SELECT relay, count(relay) as payloads FROM ` + TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY relay ORDER BY payloads DESC;`
+	query := `SELECT relay, count(relay) as payloads FROM ` + TableDataAPIPayloadDelivered + ` WHERE slot >= $1 AND slot <= $2 GROUP BY relay ORDER BY payloads DESC;`
+	err = s.DB.Select(&res, query, startSlot, endSlot)
 	return res, err
 }
 
 func (s *DatabaseService) GetTopBuilders(since, until time.Time, relay string) (res []*TopBuilderEntry, err error) {
+	startSlot := timeToSlot(since)
+	endSlot := timeToSlot(until)
+
 	query := `SELECT extra_data, count(extra_data) as blocks FROM (
-		SELECT distinct(slot), extra_data FROM ` + TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2`
+		SELECT distinct(slot), extra_data FROM ` + TableDataAPIPayloadDelivered + ` WHERE slot >= $1 AND slot <= $2`
 	if relay != "" {
 		query += ` AND relay = '` + relay + `'`
 	}
 	query += ` GROUP BY slot, extra_data
 	) as x GROUP BY extra_data ORDER BY blocks DESC;`
-	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
+	err = s.DB.Select(&res, query, startSlot, endSlot)
 	return res, err
 }
 
 func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*BuilderProfitEntry, err error) {
+	startSlot := timeToSlot(since)
+	endSlot := timeToSlot(until)
+
 	query := `SELECT
 		extra_data,
 		count(extra_data) as blocks,
@@ -158,11 +167,11 @@ func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*Buil
 		round(sum(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 4) as total_profit,
 		round(abs(sum(CASE WHEN coinbase_diff_eth < 0 THEN coinbase_diff_eth ELSE 0 END)), 4) as total_subsidies
 	FROM (
-		SELECT distinct(slot), extra_data, coinbase_diff_eth FROM ` + TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2
+		SELECT distinct(slot), extra_data, coinbase_diff_eth FROM ` + TableDataAPIPayloadDelivered + ` WHERE slot >= $1 AND slot <= $2
 	) AS x
 	GROUP BY extra_data
 	ORDER BY total_profit DESC;`
-	err = s.DB.Select(&res, query, since.UTC(), until.UTC())
+	err = s.DB.Select(&res, query, startSlot, endSlot)
 	return res, err
 }
 
