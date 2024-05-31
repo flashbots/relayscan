@@ -27,12 +27,24 @@ func NewDataAPIPoller(opts *DataAPIPollerOpts) *DataAPIPoller {
 func (poller *DataAPIPoller) Start() {
 	poller.Log.Info("Starting DataAPIPoller ...")
 
-	t := time.Now().UTC()
-	slot := common.TimeToSlot(t)
+	for {
+		t := time.Now().UTC()
+		slot := common.TimeToSlot(t)
 
-	nextSlot := slot + 1
-	tNextSlot := common.SlotToTime(nextSlot)
+		nextSlot := slot + 1
+		tNextSlot := common.SlotToTime(nextSlot)
 
-	untilNextSlot := tNextSlot.Sub(t)
-	poller.Log.Infof("current slot: %d / next slot: %d (%s) / time until: %s", slot, nextSlot, tNextSlot.String(), untilNextSlot.String())
+		untilNextSlot := tNextSlot.Sub(t)
+		poller.Log.Infof("[data-api poller] current slot: %d / next slot: %d (%s) / time until: %s", slot, nextSlot, tNextSlot.String(), untilNextSlot.String())
+
+		// wait until t=0ms of next slot
+		time.Sleep(untilNextSlot)
+		poller.pollRelaysForBids(nextSlot)
+	}
+}
+
+func (poller *DataAPIPoller) pollRelaysForBids(slot uint64) {
+	tSlotStart := common.SlotToTime(slot)
+	untilSlot := tSlotStart.Sub(time.Now().UTC())
+	poller.Log.Infof("[data-api poller] - polling data api for slot %d (t=%s)", slot, untilSlot.String())
 }
