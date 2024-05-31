@@ -1,8 +1,12 @@
 package bidstream
 
 import (
+	"context"
+	"fmt"
+	"net/http"
 	"time"
 
+	relaycommon "github.com/flashbots/mev-boost-relay/common"
 	"github.com/flashbots/relayscan/common"
 	"github.com/sirupsen/logrus"
 )
@@ -76,5 +80,23 @@ func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, t int64) {
 }
 
 func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEntry) {
-	poller.Log.Infof("[data-api poller] - polling relay %s for slot %d", relay.Hostname(), slot)
+	log := poller.Log.WithField("relay", relay.Hostname()).WithField("slot", slot)
+	log.Infof("[data-api poller] - polling relay %s for slot %d", relay.Hostname(), slot)
+
+	// build query URL
+	path := "/relay/v1/data/bidtraces/builder_blocks_received"
+	url := common.GetURIWithQuery(relay.URL, path, map[string]string{"slot": fmt.Sprintf("%d", slot)})
+	log.Infof("[data-api poller] Querying %s", url)
+
+	// start query
+	var data []relaycommon.BidTraceV2JSON
+	timeRequestStart := time.Now().UTC()
+	code, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
+	timeRequestEnd := time.Now().UTC()
+	if err != nil {
+		log.WithError(err).Error("[data-api poller] - failed to get data")
+		return
+	}
+	log = log.WithFields(logrus.Fields{"code": code, "entries": len(data), "duration": timeRequestEnd.Sub(timeRequestStart).String()})
+	log.Info("[data-api poller] data API request complete")
 }

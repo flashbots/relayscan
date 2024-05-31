@@ -26,6 +26,18 @@ func GetURI(url *url.URL, path string) string {
 	return u2.String()
 }
 
+func GetURIWithQuery(url *url.URL, path string, queryArgs map[string]string) string {
+	u2 := *url
+	u2.User = nil
+	u2.Path = path
+	q := u2.Query()
+	for key, value := range queryArgs {
+		q.Add(key, value)
+	}
+	u2.RawQuery = q.Encode()
+	return u2.String()
+}
+
 func EthToWei(eth *big.Int) *big.Float {
 	if eth == nil {
 		return big.NewFloat(0)

@@ -72,7 +72,9 @@ var bidCollectCmd = &cobra.Command{
 
 		var relays []common.RelayEntry
 		if collectGetHeader || collectDataAPI {
-			relays, err = common.GetRelays()
+			relay, err := common.NewRelayEntry(vars.RelayUltrasound, false)
+			relays = []common.RelayEntry{relay}
+			// relays, err = common.GetRelays()
 			if err != nil {
 				log.WithError(err).Fatal("failed to get relays")
 			}
