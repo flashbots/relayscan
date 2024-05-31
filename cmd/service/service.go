@@ -22,5 +22,5 @@ var ServiceCmd = &cobra.Command{
 func init() {
 	ServiceCmd.AddCommand(websiteCmd)
 	ServiceCmd.AddCommand(liveBidsCmd)
-	ServiceCmd.AddCommand(bidStreamCmd)
+	ServiceCmd.AddCommand(bidCollectCmd)
 }

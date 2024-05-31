@@ -14,7 +14,7 @@ func init() {
 
 var liveBidsCmd = &cobra.Command{
 	Use:   "collect-live-bids",
-	Short: "On every slot, ask for live bids",
+	Short: "On every slot, ask for live bids (using getHeader)",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Connect to Postgres
 		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
