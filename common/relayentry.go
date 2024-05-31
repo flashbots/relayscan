@@ -61,6 +61,15 @@ func RelayEntriesToStrings(relays []RelayEntry) []string {
 	return ret
 }
 
+// RelayEntriesToHostnameStrings returns the hostnames of a list of relay entries
+func RelayEntriesToHostnameStrings(relays []RelayEntry) []string {
+	ret := make([]string, len(relays))
+	for i, entry := range relays {
+		ret[i] = entry.Hostname()
+	}
+	return ret
+}
+
 func GetRelays() ([]RelayEntry, error) {
 	var err error
 	relays := make([]RelayEntry, len(vars.RelayURLs))

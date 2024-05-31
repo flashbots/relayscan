@@ -70,14 +70,28 @@ var bidCollectCmd = &cobra.Command{
 			}
 		}
 
+		var relays []common.RelayEntry
+		if collectGetHeader || collectDataAPI {
+			relays, err = common.GetRelays()
+			if err != nil {
+				log.WithError(err).Fatal("failed to get relays")
+			}
+
+			log.Infof("Using %d relays", len(relays))
+			for index, relay := range relays {
+				log.Infof("- relay #%d: %s", index+1, relay.Hostname())
+			}
+		}
+
 		if collectGetHeader {
 			log.Fatal("not yet implemented")
 		}
 
 		if collectDataAPI {
 			poller := bidstream.NewDataAPIPoller(&bidstream.DataAPIPollerOpts{
-				Log:  log,
-				BidC: bidC,
+				Log:    log,
+				BidC:   bidC,
+				Relays: relays,
 			})
 			go poller.Start()
 			// log.Fatal("not yet implemented")
@@ -96,7 +110,7 @@ var bidCollectCmd = &cobra.Command{
 		done := make(chan os.Signal, 1)
 		signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 
-		log.Info("Waiting...")
+		log.Info("Starting bid collection ...")
 
 		for {
 			select {

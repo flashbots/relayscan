@@ -8,24 +8,27 @@ import (
 )
 
 type DataAPIPollerOpts struct {
-	Log  *logrus.Entry
-	BidC chan common.UltrasoundStreamBid
+	Log    *logrus.Entry
+	BidC   chan common.UltrasoundStreamBid
+	Relays []common.RelayEntry
 }
 
 type DataAPIPoller struct {
-	Log  *logrus.Entry
-	BidC chan common.UltrasoundStreamBid
+	Log    *logrus.Entry
+	BidC   chan common.UltrasoundStreamBid
+	Relays []common.RelayEntry
 }
 
 func NewDataAPIPoller(opts *DataAPIPollerOpts) *DataAPIPoller {
 	return &DataAPIPoller{
-		Log:  opts.Log,
-		BidC: opts.BidC,
+		Log:    opts.Log,
+		BidC:   opts.BidC,
+		Relays: opts.Relays,
 	}
 }
 
 func (poller *DataAPIPoller) Start() {
-	poller.Log.Info("Starting DataAPIPoller ...")
+	poller.Log.WithField("relays", common.RelayEntriesToHostnameStrings(poller.Relays)).Info("Starting DataAPIPoller ...")
 
 	for {
 		t := time.Now().UTC()
@@ -48,6 +51,7 @@ func (poller *DataAPIPoller) Start() {
 	}
 }
 
+// pollRelaysForBids will poll data api for given slot with t seconds offset
 func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, t int64) {
 	tSlotStart := common.SlotToTime(slot)
 	tStart := tSlotStart.Add(time.Duration(t) * time.Second)
@@ -66,5 +70,11 @@ func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, t int64) {
 	untilSlot := tSlotStart.Sub(time.Now().UTC())
 	poller.Log.Infof("[data-api poller] - polling for slot %d at %d (tNow=%s)", slot, t, untilSlot.String())
 
-	poller.Log.Warn("not yet implemented: actually polling the relays for bids")
+	for _, relay := range poller.Relays {
+		go poller._pollRelayForBids(slot, relay)
+	}
+}
+
+func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEntry) {
+	poller.Log.Infof("[data-api poller] - polling relay %s for slot %d", relay.Hostname(), slot)
 }
