@@ -29,7 +29,7 @@ var (
 )
 
 func init() {
-	bidCollectCmd.Flags().BoolVar(&collectUltrasoundStream, "ultrasound-stream", true, "use ultrasound top-bid stream")
+	bidCollectCmd.Flags().BoolVar(&collectUltrasoundStream, "ultrasound-stream", false, "use ultrasound top-bid stream")
 	bidCollectCmd.Flags().BoolVar(&collectGetHeader, "get-header", false, "use getHeader API")
 	bidCollectCmd.Flags().BoolVar(&collectDataAPI, "data-api", false, "use data API")
 
@@ -75,7 +75,12 @@ var bidCollectCmd = &cobra.Command{
 		}
 
 		if collectDataAPI {
-			log.Fatal("not yet implemented")
+			poller := bidstream.NewDataAPIPoller(&bidstream.DataAPIPollerOpts{
+				Log:  log,
+				BidC: bidC,
+			})
+			go poller.Start()
+			// log.Fatal("not yet implemented")
 		}
 
 		if collectUltrasoundStream {

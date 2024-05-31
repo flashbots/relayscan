@@ -17,8 +17,8 @@ const (
 )
 
 type UltrasoundStreamOpts struct {
-	BidC chan common.UltrasoundStreamBid
 	Log  *logrus.Entry
+	BidC chan common.UltrasoundStreamBid
 	URL  string // optional override, default: ultrasoundStreamDefaultURL
 }
 
@@ -49,39 +49,39 @@ func NewUltrasoundStreamConnection(opts UltrasoundStreamOpts) *UltrasoundStreamC
 	}
 }
 
-func (nc *UltrasoundStreamConnection) Start() {
-	nc.connect()
+func (ustream *UltrasoundStreamConnection) Start() {
+	ustream.connect()
 }
 
-func (nc *UltrasoundStreamConnection) reconnect() {
-	backoffDuration := time.Duration(nc.backoffSec) * time.Second
-	nc.log.Infof("reconnecting to ultrasound stream in %s sec ...", backoffDuration.String())
+func (ustream *UltrasoundStreamConnection) reconnect() {
+	backoffDuration := time.Duration(ustream.backoffSec) * time.Second
+	ustream.log.Infof("reconnecting to ultrasound stream in %s sec ...", backoffDuration.String())
 	time.Sleep(backoffDuration)
 
 	// increase backoff timeout for next try
-	nc.backoffSec *= 2
-	if nc.backoffSec > maxBackoffSec {
-		nc.backoffSec = maxBackoffSec
+	ustream.backoffSec *= 2
+	if ustream.backoffSec > maxBackoffSec {
+		ustream.backoffSec = maxBackoffSec
 	}
 
-	nc.connect()
+	ustream.connect()
 }
 
-func (nc *UltrasoundStreamConnection) connect() {
-	nc.log.WithField("uri", nc.url).Info("connecting...")
+func (ustream *UltrasoundStreamConnection) connect() {
+	ustream.log.WithField("uri", ustream.url).Info("connecting...")
 
 	dialer := websocket.DefaultDialer
-	wsSubscriber, resp, err := dialer.Dial(nc.url, nil)
+	wsSubscriber, resp, err := dialer.Dial(ustream.url, nil)
 	if err != nil {
-		nc.log.WithError(err).Error("failed to connect to bloxroute, reconnecting in a bit...")
-		go nc.reconnect()
+		ustream.log.WithError(err).Error("failed to connect to bloxroute, reconnecting in a bit...")
+		go ustream.reconnect()
 		return
 	}
 	defer wsSubscriber.Close()
 	defer resp.Body.Close()
 
-	nc.log.Info("ultrasound stream connection successful")
-	nc.backoffSec = initialBackoffSec // reset backoff timeout
+	ustream.log.Info("ultrasound stream connection successful")
+	ustream.backoffSec = initialBackoffSec // reset backoff timeout
 
 	bid := new(common.UltrasoundStreamBid)
 
@@ -89,8 +89,8 @@ func (nc *UltrasoundStreamConnection) connect() {
 		_, nextNotification, err := wsSubscriber.ReadMessage()
 		if err != nil {
 			// Handle websocket errors, by closing and reconnecting. Errors seen previously:
-			nc.log.WithError(err).Error("ultrasound stream websocket error")
-			go nc.reconnect()
+			ustream.log.WithError(err).Error("ultrasound stream websocket error")
+			go ustream.reconnect()
 			return
 		}
 
@@ -99,10 +99,10 @@ func (nc *UltrasoundStreamConnection) connect() {
 		// Unmarshal SSZ
 		err = bid.UnmarshalSSZ(nextNotification)
 		if err != nil {
-			nc.log.WithError(err).WithField("msg", hexutil.Encode(nextNotification)).Error("failed to unmarshal ultrasound stream message")
+			ustream.log.WithError(err).WithField("msg", hexutil.Encode(nextNotification)).Error("failed to unmarshal ultrasound stream message")
 			continue
 		}
 
-		nc.bidC <- *bid
+		ustream.bidC <- *bid
 	}
 }

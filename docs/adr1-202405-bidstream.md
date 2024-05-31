@@ -18,19 +18,23 @@ It should expose these as:
 Run:
 
 ```
-go run . service bidcollect --out test.csv
+go run . service bidcollect --out test.csv --ultrasound-stream
 ```
 
 Done:
 
-- Ultrasound bid stream works
-- Writing to single CSV works
+- Ultrasound bid stream
+- Writing to single CSV
 
 Next up:
 
-- dynamic + rotating csv files (like mempool dumpster, for daily files/rollover + combination of multiple collectors)
-- getHeader
+- outputs
+  - CSV: dynamic + rotating csv files (like mempool dumpster, for daily files/rollover + combination of multiple collectors)
+  - stream
+- getHeader polling
   - some already implemented in [collect-live-bids.go](/cmd/service/collect-live-bids.go))
   - define query times
-- data API queries
+- data API polling
   - relay-specific rate limits
+- Collect which source the data is coming from
+- Cache: ignoring duplicates
