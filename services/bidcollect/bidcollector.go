@@ -28,7 +28,7 @@ type BidCollector struct {
 	log  *logrus.Entry
 	outF *os.File
 
-	ultrasoundBidC chan common.UltrasoundStreamBid
+	ultrasoundBidC chan UltrasoundStreamBidsMsg
 	dataAPIBidC    chan DataAPIPollerBidsMsg
 	// getHeaderBidC  chan DataAPIPollerBidsMsg
 }
@@ -40,7 +40,7 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	}
 
 	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, 100)
-	c.ultrasoundBidC = make(chan common.UltrasoundStreamBid, 100)
+	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, 100)
 	return c
 }
 

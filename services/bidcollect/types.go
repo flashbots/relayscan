@@ -3,10 +3,8 @@ package bidcollect
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/flashbots/relayscan/common"
 )
 
 // iota
@@ -79,24 +77,25 @@ func boolToString(b bool) string {
 	return "false"
 }
 
-func UltrasoundStreamToCommonBid(bid *common.UltrasoundStreamBid) *CommonBid {
-	blockHash := hexutil.Encode(bid.BlockHash[:])
-	parentHash := hexutil.Encode(bid.ParentHash[:])
-	builderPubkey := hexutil.Encode(bid.BuilderPubkey[:])
-	blockFeeRecipient := hexutil.Encode(bid.FeeRecipient[:])
+func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *CommonBid {
+	blockHash := hexutil.Encode(bid.Bid.BlockHash[:])
+	parentHash := hexutil.Encode(bid.Bid.ParentHash[:])
+	builderPubkey := hexutil.Encode(bid.Bid.BuilderPubkey[:])
+	blockFeeRecipient := hexutil.Encode(bid.Bid.FeeRecipient[:])
 
 	return &CommonBid{
 		Source:     CollectUltrasoundStream,
-		ReceivedAt: time.Now().UTC().Unix(),
+		ReceivedAt: bid.ReceivedAt.Unix(),
 
-		Timestamp:         int64(bid.Timestamp),
-		Slot:              bid.Slot,
-		BlockNumber:       bid.BlockNumber,
+		Timestamp:         int64(bid.Bid.Timestamp),
+		Slot:              bid.Bid.Slot,
+		BlockNumber:       bid.Bid.BlockNumber,
 		BlockHash:         blockHash,
 		ParentHash:        parentHash,
 		BuilderPubkey:     builderPubkey,
-		Value:             bid.Value.String(),
+		Value:             bid.Bid.Value.String(),
 		BlockFeeRecipient: blockFeeRecipient,
+		Relay:             bid.Relay,
 	}
 }
 

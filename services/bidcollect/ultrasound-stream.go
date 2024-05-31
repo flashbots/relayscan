@@ -15,28 +15,28 @@ const (
 	maxBackoffSec              = 120
 )
 
+type UltrasoundStreamBidsMsg struct {
+	Bid        common.UltrasoundStreamBid
+	Relay      string
+	ReceivedAt time.Time
+}
+
 type UltrasoundStreamOpts struct {
 	Log  *logrus.Entry
-	BidC chan common.UltrasoundStreamBid
-	URL  string // optional override, default: ultrasoundStreamDefaultURL
+	BidC chan UltrasoundStreamBidsMsg
 }
 
 type UltrasoundStreamConnection struct {
 	log        *logrus.Entry
 	url        string
-	bidC       chan common.UltrasoundStreamBid
+	bidC       chan UltrasoundStreamBidsMsg
 	backoffSec int
 }
 
 func NewUltrasoundStreamConnection(opts UltrasoundStreamOpts) *UltrasoundStreamConnection {
-	url := opts.URL
-	if url == "" {
-		url = ultrasoundStreamDefaultURL
-	}
-
 	return &UltrasoundStreamConnection{
 		log:        opts.Log,
-		url:        url,
+		url:        ultrasoundStreamDefaultURL,
 		bidC:       opts.BidC,
 		backoffSec: initialBackoffSec,
 	}
@@ -96,6 +96,10 @@ func (ustream *UltrasoundStreamConnection) connect() {
 			continue
 		}
 
-		ustream.bidC <- *bid
+		ustream.bidC <- UltrasoundStreamBidsMsg{
+			Bid:        *bid,
+			Relay:      "relay.ultrasound.money",
+			ReceivedAt: time.Now().UTC(),
+		}
 	}
 }
