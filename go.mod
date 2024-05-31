@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ethereum/go-ethereum v1.11.6
+	github.com/ferranbt/fastssz v0.1.3
 	github.com/flashbots/go-boost-utils v1.6.0
 	github.com/flashbots/go-utils v0.4.9
 	github.com/flashbots/mev-boost-relay v1.0.0-alpha4.0.20230519091033-0453fc247553
@@ -42,7 +43,6 @@ require (
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/fatih/color v1.15.0 // indirect
-	github.com/ferranbt/fastssz v0.1.3 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/getsentry/sentry-go v0.21.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect

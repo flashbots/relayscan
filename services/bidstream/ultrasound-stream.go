@@ -1,8 +1,11 @@
+// Package bidstream contains code for the ultrasound stream
 package bidstream
 
 import (
 	"time"
 
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/flashbots/relayscan/common"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
@@ -13,25 +16,8 @@ const (
 	maxBackoffSec              = 120
 )
 
-type UltrasoundStreamBid struct {
-	// pub slot: u64,
-	// pub block_number: u64,
-	// pub block_hash: B256,
-	// pub parent_hash: B256,
-	// pub builder_pubkey: BlsPublicKey,
-	// pub fee_recipient: Address,
-	// pub value: U256,
-	Timestamp     uint64 `json:"timestamp"`
-	BlockNumber   uint64 `json:"block_number"`
-	BlockHash     string `json:"block_hash"`
-	ParentHash    string `json:"parent_hash"`
-	BuilderPubkey string `json:"builder_pubkey"`
-	FeeRecipient  string `json:"fee_recipient"`
-	Value         string `json:"value"`
-}
-
 type UltrasoundStreamOpts struct {
-	BidC chan UltrasoundStreamBid
+	BidC chan common.UltrasoundStreamBid
 	Log  *logrus.Entry
 	URL  string // optional override, default: ultrasoundStreamDefaultURL
 }
@@ -45,7 +31,7 @@ func StartUltrasoundStreamConnection(opts UltrasoundStreamOpts) {
 type UltrasoundStreamConnection struct {
 	log        *logrus.Entry
 	url        string
-	bidC       chan UltrasoundStreamBid
+	bidC       chan common.UltrasoundStreamBid
 	backoffSec int
 }
 
@@ -58,6 +44,7 @@ func NewUltrasoundStreamConnection(opts UltrasoundStreamOpts) *UltrasoundStreamC
 	return &UltrasoundStreamConnection{
 		log:        opts.Log,
 		url:        url,
+		bidC:       opts.BidC,
 		backoffSec: initialBackoffSec,
 	}
 }
@@ -96,6 +83,8 @@ func (nc *UltrasoundStreamConnection) connect() {
 	nc.log.Info("ultrasound stream connection successful")
 	nc.backoffSec = initialBackoffSec // reset backoff timeout
 
+	bid := new(common.UltrasoundStreamBid)
+
 	for {
 		_, nextNotification, err := wsSubscriber.ReadMessage()
 		if err != nil {
@@ -105,6 +94,15 @@ func (nc *UltrasoundStreamConnection) connect() {
 			return
 		}
 
-		nc.log.WithField("msg", string(nextNotification)).Info("got message")
+		// nc.log.WithField("msg", hexutil.Encode(nextNotification)).Info("got message from ultrasound stream")
+
+		// Unmarshal SSZ
+		err = bid.UnmarshalSSZ(nextNotification)
+		if err != nil {
+			nc.log.WithError(err).WithField("msg", hexutil.Encode(nextNotification)).Error("failed to unmarshal ultrasound stream message")
+			continue
+		}
+
+		nc.bidC <- *bid
 	}
 }
