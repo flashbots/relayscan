@@ -5,17 +5,9 @@ package service
  */
 
 import (
-	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/flashbots/relayscan/common"
-	"github.com/flashbots/relayscan/services/bidstream"
+	"github.com/flashbots/relayscan/services/bidcollect"
 	"github.com/flashbots/relayscan/vars"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -24,8 +16,6 @@ var (
 	collectGetHeader        bool
 	collectDataAPI          bool
 	outFileCSV              string
-
-	csvHeader = "local_timestamp\ttimestamp\tslot\tblock_number\tblock_hash\tparent_hash\tbuilder_pubkey\tfee_recipient\tvalue\n"
 )
 
 func init() {
@@ -44,107 +34,30 @@ var bidCollectCmd = &cobra.Command{
 	Use:   "bidcollect",
 	Short: "Collect bids",
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		var outF *os.File
-		bidC := make(chan common.UltrasoundStreamBid, 100)
-
-		log.WithField("version", vars.Version).Info("starting bidcollect ...")
-
-		if outFileCSV != "" {
-			log.Infof("writing to %s", outFileCSV)
-			outF, err = os.OpenFile(outFileCSV, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
-			if err != nil {
-				log.WithError(err).WithField("filename", outFileCSV).Fatal("failed to open output file")
-			}
-
-			fi, err := outF.Stat()
-			if err != nil {
-				log.WithError(err).Fatal("failed stat on output file")
-			}
-
-			if fi.Size() == 0 {
-				_, err = fmt.Fprint(outF, csvHeader)
-				if err != nil {
-					log.WithError(err).Fatal("failed to write header to output file")
-				}
-			}
-		}
-
-		var relays []common.RelayEntry
-		if collectGetHeader || collectDataAPI {
-			relay, err := common.NewRelayEntry(vars.RelayUltrasound, false)
-			relays = []common.RelayEntry{relay}
-			// relays, err = common.GetRelays()
-			if err != nil {
-				log.WithError(err).Fatal("failed to get relays")
-			}
-
-			log.Infof("Using %d relays", len(relays))
-			for index, relay := range relays {
-				log.Infof("- relay #%d: %s", index+1, relay.Hostname())
-			}
-		}
-
-		if collectGetHeader {
-			log.Fatal("not yet implemented")
-		}
-
-		if collectDataAPI {
-			poller := bidstream.NewDataAPIPoller(&bidstream.DataAPIPollerOpts{
-				Log:    log,
-				BidC:   bidC,
-				Relays: relays,
-			})
-			go poller.Start()
-			// log.Fatal("not yet implemented")
-		}
-
-		if collectUltrasoundStream {
-			log.Info("using ultrasound stream")
-
-			opts := bidstream.UltrasoundStreamOpts{
-				Log:  log,
-				BidC: bidC,
-			}
-			bidstream.StartUltrasoundStreamConnection(opts)
-		}
-
-		done := make(chan os.Signal, 1)
-		signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
-
-		log.Info("Starting bid collection ...")
-
-		for {
-			select {
-			case bid := <-bidC:
-				processBid(log, outF, bid)
-
-			case <-done:
-				log.Info("bye ...")
-				return
-			}
-		}
-	},
-}
-
-func processBid(log *logrus.Entry, outF *os.File, bid common.UltrasoundStreamBid) {
-	blockHash := hexutil.Encode(bid.BlockHash[:])
-	parentHash := hexutil.Encode(bid.ParentHash[:])
-	builderPubkey := hexutil.Encode(bid.BuilderPubkey[:])
-	feeRecipient := hexutil.Encode(bid.FeeRecipient[:])
-	value := bid.Value.String()
-
-	log.WithFields(logrus.Fields{
-		"slot":       bid.Slot,
-		"block_hash": blockHash,
-		"value":      value,
-	}).Info("received bid")
-
-	if outF != nil {
-		t := time.Now().UTC()
-		_, err := fmt.Fprintf(outF, "%d\t%d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n", t.UnixMilli(), bid.Timestamp, bid.Slot, bid.BlockNumber, blockHash, parentHash, builderPubkey, feeRecipient, value)
+		// Prepare relays
+		relay, err := common.NewRelayEntry(vars.RelayUltrasound, false)
+		relays := []common.RelayEntry{relay}
+		// relays, err = common.GetRelays()
 		if err != nil {
-			log.WithError(err).Error("couldn't write bid to file")
+			log.WithError(err).Fatal("failed to get relays")
 		}
-	}
+
+		log.Infof("Using %d relays", len(relays))
+		for index, relay := range relays {
+			log.Infof("- relay #%d: %s", index+1, relay.Hostname())
+		}
+
+		opts := bidcollect.BidCollectorOpts{
+			Log:                     log,
+			Relays:                  relays,
+			CollectUltrasoundStream: collectUltrasoundStream,
+			CollectGetHeader:        collectGetHeader,
+			CollectDataAPI:          collectDataAPI,
+			BeaconNodeURI:           beaconNodeURI,
+			OutFile:                 outFileCSV,
+		}
+
+		bidCollector := bidcollect.NewBidCollector(&opts)
+		bidCollector.MustStart()
+	},
 }

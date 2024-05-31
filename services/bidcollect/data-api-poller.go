@@ -1,4 +1,4 @@
-package bidstream
+package bidcollect
 
 import (
 	"context"
@@ -11,15 +11,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type DataAPIPollerBidsMsg struct {
+	Bids       []relaycommon.BidTraceV2WithTimestampJSON
+	Relay      common.RelayEntry
+	ReceivedAt time.Time
+}
+
 type DataAPIPollerOpts struct {
 	Log    *logrus.Entry
-	BidC   chan common.UltrasoundStreamBid
+	BidC   chan DataAPIPollerBidsMsg
 	Relays []common.RelayEntry
 }
 
 type DataAPIPoller struct {
 	Log    *logrus.Entry
-	BidC   chan common.UltrasoundStreamBid
+	BidC   chan DataAPIPollerBidsMsg
 	Relays []common.RelayEntry
 }
 
@@ -89,7 +95,7 @@ func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEn
 	log.Infof("[data-api poller] Querying %s", url)
 
 	// start query
-	var data []relaycommon.BidTraceV2JSON
+	var data []relaycommon.BidTraceV2WithTimestampJSON
 	timeRequestStart := time.Now().UTC()
 	code, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
 	timeRequestEnd := time.Now().UTC()
@@ -99,4 +105,7 @@ func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEn
 	}
 	log = log.WithFields(logrus.Fields{"code": code, "entries": len(data), "duration": timeRequestEnd.Sub(timeRequestStart).String()})
 	log.Info("[data-api poller] data API request complete")
+
+	// send data to channel
+	poller.BidC <- DataAPIPollerBidsMsg{Bids: data, Relay: relay, ReceivedAt: time.Now().UTC()}
 }

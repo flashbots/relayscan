@@ -1,5 +1,4 @@
-// Package bidstream contains code for the ultrasound stream
-package bidstream
+package bidcollect
 
 import (
 	"time"
@@ -20,12 +19,6 @@ type UltrasoundStreamOpts struct {
 	Log  *logrus.Entry
 	BidC chan common.UltrasoundStreamBid
 	URL  string // optional override, default: ultrasoundStreamDefaultURL
-}
-
-// StartUltrasoundStreamConnection starts a Websocket or gRPC subscription (depending on URL) in the background
-func StartUltrasoundStreamConnection(opts UltrasoundStreamOpts) {
-	ultrasoundStream := NewUltrasoundStreamConnection(opts)
-	go ultrasoundStream.Start()
 }
 
 type UltrasoundStreamConnection struct {
@@ -68,7 +61,7 @@ func (ustream *UltrasoundStreamConnection) reconnect() {
 }
 
 func (ustream *UltrasoundStreamConnection) connect() {
-	ustream.log.WithField("uri", ustream.url).Info("connecting...")
+	ustream.log.WithField("uri", ustream.url).Info("Starting Ultrasound bid stream...")
 
 	dialer := websocket.DefaultDialer
 	wsSubscriber, resp, err := dialer.Dial(ustream.url, nil)
