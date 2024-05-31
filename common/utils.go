@@ -4,8 +4,11 @@ package common
 import (
 	"math/big"
 	"net/url"
+	"runtime"
+	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/flashbots/mev-boost-relay/beaconclient"
 	"github.com/flashbots/relayscan/vars"
@@ -23,6 +26,18 @@ func GetURI(url *url.URL, path string) string {
 	u2 := *url
 	u2.User = nil
 	u2.Path = path
+	return u2.String()
+}
+
+func GetURIWithQuery(url *url.URL, path string, queryArgs map[string]string) string {
+	u2 := *url
+	u2.User = nil
+	u2.Path = path
+	q := u2.Query()
+	for key, value := range queryArgs {
+		q.Add(key, value)
+	}
+	u2.RawQuery = q.Encode()
 	return u2.String()
 }
 
@@ -107,4 +122,29 @@ func MustConnectBeaconNode(log *logrus.Entry, beaconNodeURI string, allowSyncing
 		panic("beacon node is syncing")
 	}
 	return bn, syncStatus.HeadSlot
+}
+
+func ReverseBytes(src []byte) []byte {
+	dst := make([]byte, len(src))
+	copy(dst, src)
+	for i := len(dst)/2 - 1; i >= 0; i-- {
+		opp := len(dst) - 1 - i
+		dst[i], dst[opp] = dst[opp], dst[i]
+	}
+	return dst
+}
+
+func GetMemMB() uint64 {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return m.Alloc / 1024 / 1024
+}
+
+// HumanBytes returns size in the same format as AWS S3
+func HumanBytes(n uint64) string {
+	s := humanize.IBytes(n)
+	s = strings.Replace(s, "KiB", "KB", 1)
+	s = strings.Replace(s, "MiB", "MB", 1)
+	s = strings.Replace(s, "GiB", "GB", 1)
+	return s
 }

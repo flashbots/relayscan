@@ -22,3 +22,6 @@
 /static_dev/
 /relayscan
 /deploy*
+/test.csv
+/csv/
+/build/
