@@ -18,7 +18,11 @@ It should expose these as:
 Run:
 
 ```
-go run . service bidcollect --out test.csv --ultrasound-stream
+# works: Ultrasound top-bid stream
+<!-- go run . service bidcollect --out test.csv --ultrasound-stream -->
+
+# wip: Data API polling
+go run . service bidcollect --out test.csv --data-api
 ```
 
 Done:
