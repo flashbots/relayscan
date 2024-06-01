@@ -104,11 +104,11 @@ func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *CommonBid {
 		TimestampMs:       int64(bid.Bid.Timestamp),
 		Slot:              bid.Bid.Slot,
 		BlockNumber:       bid.Bid.BlockNumber,
-		BlockHash:         blockHash,
-		ParentHash:        parentHash,
-		BuilderPubkey:     builderPubkey,
+		BlockHash:         strings.ToLower(blockHash),
+		ParentHash:        strings.ToLower(parentHash),
+		BuilderPubkey:     strings.ToLower(builderPubkey),
 		Value:             bid.Bid.Value.String(),
-		BlockFeeRecipient: blockFeeRecipient,
+		BlockFeeRecipient: strings.ToLower(blockFeeRecipient),
 		Relay:             bid.Relay,
 	}
 }
@@ -121,16 +121,16 @@ func DataAPIToCommonBids(bids DataAPIPollerBidsMsg) []*CommonBid {
 			ReceivedAt: bids.ReceivedAt.Unix(),
 
 			Timestamp:            bid.Timestamp,
+			TimestampMs:          bid.TimestampMs,
 			Slot:                 bid.Slot,
 			BlockNumber:          bid.BlockNumber,
-			BlockHash:            bid.BlockHash,
-			ParentHash:           bid.ParentHash,
-			BuilderPubkey:        bid.BuilderPubkey,
+			BlockHash:            strings.ToLower(bid.BlockHash),
+			ParentHash:           strings.ToLower(bid.ParentHash),
+			BuilderPubkey:        strings.ToLower(bid.BuilderPubkey),
 			Value:                bid.Value,
 			Relay:                bids.Relay.Hostname(),
-			TimestampMs:          bid.TimestampMs,
-			ProposerPubkey:       bid.ProposerPubkey,
-			ProposerFeeRecipient: bid.ProposerFeeRecipient,
+			ProposerPubkey:       strings.ToLower(bid.ProposerPubkey),
+			ProposerFeeRecipient: strings.ToLower(bid.ProposerFeeRecipient),
 			OptimisticSubmission: bid.OptimisticSubmission,
 		})
 	}

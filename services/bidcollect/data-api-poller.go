@@ -55,8 +55,9 @@ func (poller *DataAPIPoller) Start() {
 		slot := common.TimeToSlot(t)
 		nextSlot := slot + 1
 		tNextSlot := common.SlotToTime(nextSlot)
+		untilNextSlot := tNextSlot.Sub(t)
 
-		poller.Log.Infof("[data-api poller] current slot: %d / next slot: %d (%s)", slot, nextSlot, tNextSlot.String())
+		poller.Log.Infof("[data-api poller] current slot: %d / next slot: %d (%s), waitTime: %s", slot, nextSlot, tNextSlot.String(), untilNextSlot.String())
 
 		// Schedule polling at t-4, t-2, t=0, t=2
 		go poller.pollRelaysForBids(nextSlot, -4)
@@ -65,7 +66,6 @@ func (poller *DataAPIPoller) Start() {
 		go poller.pollRelaysForBids(nextSlot, 2)
 
 		// wait until next slot
-		untilNextSlot := tNextSlot.Sub(t)
 		time.Sleep(untilNextSlot)
 	}
 }
