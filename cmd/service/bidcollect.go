@@ -35,12 +35,14 @@ var bidCollectCmd = &cobra.Command{
 	Short: "Collect bids",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Prepare relays
-		relay, err := common.NewRelayEntry(vars.RelayUltrasound, false)
-		relays := []common.RelayEntry{relay}
-		// relays, err = common.GetRelays()
-		if err != nil {
-			log.WithError(err).Fatal("failed to get relays")
+		relays := []common.RelayEntry{
+			common.MustNewRelayEntry(vars.RelayFlashbots, false),
+			common.MustNewRelayEntry(vars.RelayUltrasound, false),
 		}
+		// relays, err = common.GetRelays()
+		// if err != nil {
+		// 	log.WithError(err).Fatal("failed to get relays")
+		// }
 
 		log.Infof("Using %d relays", len(relays))
 		for index, relay := range relays {

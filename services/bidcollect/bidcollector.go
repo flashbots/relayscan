@@ -49,7 +49,7 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	c.processorC = make(chan []CommonBid, 100)
 	c.processor = NewBidProcessor(&BidProcessorOpts{
 		Log:    opts.Log,
-		OutDir: c.opts.OutDir,
+		OutDir: "csv",
 	})
 	return c
 }

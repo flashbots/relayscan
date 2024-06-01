@@ -29,7 +29,9 @@ Done:
 
 - Ultrasound bid stream
 - Data API polling
-- Writing to single CSV
+- Output
+  - Writing to csv for top and all bids
+  - Cache for deduplication
 
 Next up:
 
@@ -43,7 +45,6 @@ Next up:
   - define query times
 
 - data API polling
-  - Cache: ignoring duplicates
   - relay-specific rate limits
 
 - Collect which source the data is coming from

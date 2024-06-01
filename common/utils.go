@@ -4,6 +4,7 @@ package common
 import (
 	"math/big"
 	"net/url"
+	"runtime"
 	"time"
 
 	"github.com/ethereum/go-ethereum/params"
@@ -129,4 +130,10 @@ func ReverseBytes(src []byte) []byte {
 		dst[i], dst[opp] = dst[opp], dst[i]
 	}
 	return dst
+}
+
+func GetMemMB() uint64 {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	return m.Alloc / 1024 / 1024
 }

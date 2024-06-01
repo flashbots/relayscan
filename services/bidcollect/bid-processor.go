@@ -54,8 +54,8 @@ func NewBidProcessor(opts *BidProcessorOpts) *BidProcessor {
 
 func (c *BidProcessor) Start() {
 	for {
-		c.cleanupBids()
-		time.Sleep(12 * time.Second)
+		time.Sleep(30 * time.Second)
+		c.housekeeping()
 	}
 }
 
@@ -86,11 +86,12 @@ func (c *BidProcessor) processBids(bids []*CommonBid) {
 	}
 }
 
-func (c *BidProcessor) cleanupBids() {
-	c.log.Info("[BidOutput] cleanupBids ...")
+func (c *BidProcessor) housekeeping() {
 	currentSlot := common.TimeToSlot(time.Now().UTC())
 	maxSlotInCache := currentSlot - 2
+
 	nDeleted := 0
+	nBids := 0
 
 	c.bidCacheLock.Lock()
 	defer c.bidCacheLock.Unlock()
@@ -98,20 +99,25 @@ func (c *BidProcessor) cleanupBids() {
 		if slot < maxSlotInCache {
 			delete(c.bidCache, slot)
 			nDeleted += 1
+		} else {
+			nBids += len(c.bidCache[slot])
 		}
 	}
 
-	c.log.Infof("[BidOutput] cleanupBids - deleted %d slots, total cache slots: %d", nDeleted, len(c.bidCache))
+	// todo: delete old files
+	c.log.Infof("[bid-processor] cleanupBids - deleted slots: %d / total slots: %d / total bids: %d / memUsedMB: %d", nDeleted, len(c.bidCache), nBids, common.GetMemMB())
 }
 
 func (c *BidProcessor) exportBid(bid *CommonBid) {
 	outF, _, err := c.getFiles(bid)
 	if err != nil {
 		c.log.WithError(err).Error("get get output file")
+		return
 	}
 	_, err = fmt.Fprint(outF, bid.ToCSVLine("\t")+"\n")
 	if err != nil {
 		c.log.WithError(err).Error("couldn't write bid to file")
+		return
 	}
 }
 
@@ -119,10 +125,12 @@ func (c *BidProcessor) exportTopBid(bid *CommonBid) {
 	_, outF, err := c.getFiles(bid)
 	if err != nil {
 		c.log.WithError(err).Error("get get output file")
+		return
 	}
 	_, err = fmt.Fprint(outF, bid.ToCSVLine("\t")+"\n")
 	if err != nil {
 		c.log.WithError(err).Error("couldn't write bid to file")
+		return
 	}
 }
 
@@ -189,8 +197,8 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 	c.outFiles[bucketTS] = outFiles
 	c.outFilesLock.Unlock()
 
-	c.log.Infof("[BidOutput] created new output file: %s", fnAll)
-	c.log.Infof("[BidOutput] created new output file: %s", fnTop)
+	c.log.Infof("[bid-processor] created output file: %s", fnAll)
+	c.log.Infof("[bid-processor] created output file: %s", fnTop)
 	return fAll, fTop, nil
 }
 

@@ -52,6 +52,12 @@ func NewRelayEntry(relayURL string, requireUser bool) (entry RelayEntry, err err
 	return entry, err
 }
 
+func MustNewRelayEntry(relayURL string, requireUser bool) (entry RelayEntry) {
+	entry, err := NewRelayEntry(relayURL, requireUser)
+	Check(err)
+	return entry
+}
+
 // RelayEntriesToStrings returns the string representation of a list of relay entries
 func RelayEntriesToStrings(relays []RelayEntry) []string {
 	ret := make([]string, len(relays))
