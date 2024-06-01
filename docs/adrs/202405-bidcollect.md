@@ -35,7 +35,6 @@ go run . service bidcollect --out csv  --data-api --ultrasound-stream
 
 - Diagram showing the flow of data and the components involved
 - File Output
-  - Use date in output directory
   - Combine all individual files into a big file
   - Consider gzipped CSV output: https://gist.github.com/mchirico/6147687 (currently, an hour of bids is about 300MB)
   - Consider Parquet output files

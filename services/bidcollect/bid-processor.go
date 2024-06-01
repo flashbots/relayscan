@@ -118,7 +118,7 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 	// hourlybucket
 	sec := int64(bucketMinutes * 60)
 	bucketTS := bid.ReceivedAt / sec * sec // timestamp down-round to start of bucket
-	// t := time.Unix(bucketTS, 0).UTC()
+	t := time.Unix(bucketTS, 0).UTC()
 
 	// files may already be opened
 	c.outFilesLock.RLock()
@@ -130,13 +130,14 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 	}
 
 	// Create output files
-	err = os.MkdirAll(c.opts.OutDir, os.ModePerm)
+	dir := filepath.Join(c.opts.OutDir, t.Format(time.DateOnly))
+	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// Open ALL BIDS CSV
-	fnAll := filepath.Join(c.opts.OutDir, c.getFilename("all", bucketTS))
+	fnAll := filepath.Join(dir, c.getFilename("all", bucketTS))
 	fAll, err = os.OpenFile(fnAll, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return nil, nil, err
@@ -153,7 +154,7 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 	}
 
 	// Open TOP BIDS CSV
-	fnTop := filepath.Join(c.opts.OutDir, c.getFilename("top", bucketTS))
+	fnTop := filepath.Join(dir, c.getFilename("top", bucketTS))
 	fTop, err = os.OpenFile(fnTop, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return nil, nil, err
