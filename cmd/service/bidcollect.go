@@ -15,6 +15,7 @@ var (
 	collectUltrasoundStream bool
 	collectGetHeader        bool
 	collectDataAPI          bool
+	useAllRelays            bool
 	outDir                  string
 )
 
@@ -22,9 +23,10 @@ func init() {
 	bidCollectCmd.Flags().BoolVar(&collectUltrasoundStream, "ultrasound-stream", false, "use ultrasound top-bid stream")
 	bidCollectCmd.Flags().BoolVar(&collectGetHeader, "get-header", false, "use getHeader API")
 	bidCollectCmd.Flags().BoolVar(&collectDataAPI, "data-api", false, "use data API")
+	bidCollectCmd.Flags().BoolVar(&useAllRelays, "all-relays", false, "use all relays")
 
 	// for getHeader
-	bidCollectCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", vars.DefaultBeaconURI, "beacon endpoint")
+	// bidCollectCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", vars.DefaultBeaconURI, "beacon endpoint")
 
 	// for saving to file
 	bidCollectCmd.Flags().StringVar(&outDir, "out", "csv", "output directory for CSV")
@@ -41,10 +43,9 @@ var bidCollectCmd = &cobra.Command{
 			common.MustNewRelayEntry(vars.RelayFlashbots, false),
 			common.MustNewRelayEntry(vars.RelayUltrasound, false),
 		}
-		// relays, err = common.GetRelays()
-		// if err != nil {
-		// 	log.WithError(err).Fatal("failed to get relays")
-		// }
+		if useAllRelays {
+			relays = common.MustGetRelays()
+		}
 
 		log.Infof("Using %d relays", len(relays))
 		for index, relay := range relays {

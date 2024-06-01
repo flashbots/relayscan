@@ -78,7 +78,7 @@ func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, t int64) {
 
 	// poller.Log.Debugf("[data-api poller] - prepare polling for slot %d t %d (tSlotStart: %s, tStart: %s, waitTime: %s)", slot, t, tSlotStart.String(), tStart.String(), waitTime.String())
 	if waitTime < 0 {
-		poller.Log.Debugf("[data-api poller] - waitTime is negative: %s", waitTime.String())
+		poller.Log.Debugf("[data-api poller] waitTime is negative: %s", waitTime.String())
 		return
 	}
 
@@ -87,7 +87,7 @@ func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, t int64) {
 
 	// Poll for bids now
 	untilSlot := tSlotStart.Sub(time.Now().UTC())
-	poller.Log.Debugf("[data-api poller] - polling for slot %d at %d (tNow=%s)", slot, t, untilSlot.String())
+	poller.Log.Debugf("[data-api poller] polling for slot %d at %d (tNow=%s)", slot, t, untilSlot.String())
 
 	for _, relay := range poller.Relays {
 		go poller._pollRelayForBids(slot, relay, t)
@@ -101,7 +101,7 @@ func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEn
 		"slot":  slot,
 		"t":     t,
 	})
-	// log.Debugf("[data-api poller] - polling relay %s for slot %d", relay.Hostname(), slot)
+	// log.Debugf("[data-api poller] polling relay %s for slot %d", relay.Hostname(), slot)
 
 	// build query URL
 	path := "/relay/v1/data/bidtraces/builder_blocks_received"
@@ -114,7 +114,7 @@ func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEn
 	code, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
 	timeRequestEnd := time.Now().UTC()
 	if err != nil {
-		log.WithError(err).Error("[data-api poller] - failed to get data")
+		log.WithError(err).Error("[data-api poller] failed to get data")
 		return
 	}
 	log = log.WithFields(logrus.Fields{"code": code, "entries": len(data), "durationMs": timeRequestEnd.Sub(timeRequestStart).Milliseconds()})

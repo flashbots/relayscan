@@ -87,3 +87,9 @@ func GetRelays() ([]RelayEntry, error) {
 	}
 	return relays, nil
 }
+
+func MustGetRelays() []RelayEntry {
+	relays, err := GetRelays()
+	Check(err)
+	return relays
+}
