@@ -3,7 +3,6 @@ package bidcollect
 
 import (
 	"github.com/flashbots/relayscan/common"
-	"github.com/flashbots/relayscan/vars"
 	"github.com/sirupsen/logrus"
 )
 
@@ -53,7 +52,6 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 }
 
 func (c *BidCollector) MustStart() {
-	c.log.WithField("version", vars.Version).Info("Starting BidCollector ...")
 	go c.processor.Start()
 
 	if c.opts.CollectGetHeader {
