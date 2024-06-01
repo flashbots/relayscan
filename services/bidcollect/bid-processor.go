@@ -86,28 +86,6 @@ func (c *BidProcessor) processBids(bids []*CommonBid) {
 	}
 }
 
-func (c *BidProcessor) housekeeping() {
-	currentSlot := common.TimeToSlot(time.Now().UTC())
-	maxSlotInCache := currentSlot - 2
-
-	nDeleted := 0
-	nBids := 0
-
-	c.bidCacheLock.Lock()
-	defer c.bidCacheLock.Unlock()
-	for slot := range c.bidCache {
-		if slot < maxSlotInCache {
-			delete(c.bidCache, slot)
-			nDeleted += 1
-		} else {
-			nBids += len(c.bidCache[slot])
-		}
-	}
-
-	// todo: delete old files
-	c.log.Infof("[bid-processor] cleanupBids - deleted slots: %d / total slots: %d / total bids: %d / memUsedMB: %d", nDeleted, len(c.bidCache), nBids, common.GetMemMB())
-}
-
 func (c *BidProcessor) exportBid(bid *CommonBid) {
 	outF, _, err := c.getFiles(bid)
 	if err != nil {
@@ -136,7 +114,7 @@ func (c *BidProcessor) exportTopBid(bid *CommonBid) {
 
 func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error) {
 	// hourlybucket
-	sec := int64(60 * 60)
+	sec := int64(bucketMinutes * 60)
 	bucketTS := bid.ReceivedAt / sec * sec // timestamp down-round to start of bucket
 	// t := time.Unix(bucketTS, 0).UTC()
 
@@ -208,4 +186,42 @@ func (c *BidProcessor) getFilename(prefix string, timestamp int64) string {
 		prefix += "_"
 	}
 	return fmt.Sprintf("%s%s.csv", prefix, t.Format("2006-01-02_15-04"))
+}
+
+func (c *BidProcessor) housekeeping() {
+	currentSlot := common.TimeToSlot(time.Now().UTC())
+	maxSlotInCache := currentSlot - 3
+
+	nDeleted := 0
+	nBids := 0
+
+	c.bidCacheLock.Lock()
+	defer c.bidCacheLock.Unlock()
+	for slot := range c.bidCache {
+		if slot < maxSlotInCache {
+			delete(c.bidCache, slot)
+			nDeleted += 1
+		} else {
+			nBids += len(c.bidCache[slot])
+		}
+	}
+
+	// Close and remove old files
+	now := time.Now().UTC().Unix()
+	filesBefore := len(c.outFiles)
+	c.outFilesLock.Lock()
+	for timestamp, outFiles := range c.outFiles {
+		usageSec := bucketMinutes * 60 * 2
+		if now-timestamp > int64(usageSec) { // remove all handles from 2x usage seconds ago
+			c.log.Info("closing output files", timestamp)
+			delete(c.outFiles, timestamp)
+			_ = outFiles.FAll.Close()
+			_ = outFiles.FTop.Close()
+		}
+	}
+	nFiles := len(c.outFiles)
+	filesClosed := len(c.outFiles) - filesBefore
+	c.outFilesLock.Unlock()
+
+	c.log.Infof("[bid-processor] cleanupBids - deleted slots: %d / total slots: %d / total bids: %d / files closed: %d, current: %d / memUsedMB: %d", nDeleted, len(c.bidCache), nBids, filesClosed, nFiles, common.GetMemMB())
 }

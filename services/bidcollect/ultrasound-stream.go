@@ -9,12 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	ultrasoundStreamDefaultURL = "ws://relay-builders-eu.ultrasound.money/ws/v1/top_bid"
-	initialBackoffSec          = 5
-	maxBackoffSec              = 120
-)
-
 type UltrasoundStreamBidsMsg struct {
 	Bid        common.UltrasoundStreamBid
 	Relay      string
@@ -48,7 +42,7 @@ func (ustream *UltrasoundStreamConnection) Start() {
 
 func (ustream *UltrasoundStreamConnection) reconnect() {
 	backoffDuration := time.Duration(ustream.backoffSec) * time.Second
-	ustream.log.Infof("reconnecting to ultrasound stream in %s sec ...", backoffDuration.String())
+	ustream.log.Infof("[ultrasounds-stream] reconnecting to ultrasound stream in %s sec ...", backoffDuration.String())
 	time.Sleep(backoffDuration)
 
 	// increase backoff timeout for next try
@@ -61,19 +55,19 @@ func (ustream *UltrasoundStreamConnection) reconnect() {
 }
 
 func (ustream *UltrasoundStreamConnection) connect() {
-	ustream.log.WithField("uri", ustream.url).Info("Starting Ultrasound bid stream...")
+	ustream.log.WithField("uri", ustream.url).Info("[ultrasounds-stream] Starting bid stream...")
 
 	dialer := websocket.DefaultDialer
 	wsSubscriber, resp, err := dialer.Dial(ustream.url, nil)
 	if err != nil {
-		ustream.log.WithError(err).Error("failed to connect to bloxroute, reconnecting in a bit...")
+		ustream.log.WithError(err).Error("[ultrasounds-stream] failed to connect to bloxroute, reconnecting in a bit...")
 		go ustream.reconnect()
 		return
 	}
 	defer wsSubscriber.Close()
 	defer resp.Body.Close()
 
-	ustream.log.Info("ultrasound stream connection successful")
+	ustream.log.Info("[ultrasounds-stream] stream connection successful")
 	ustream.backoffSec = initialBackoffSec // reset backoff timeout
 
 	bid := new(common.UltrasoundStreamBid)
@@ -92,7 +86,7 @@ func (ustream *UltrasoundStreamConnection) connect() {
 		// Unmarshal SSZ
 		err = bid.UnmarshalSSZ(nextNotification)
 		if err != nil {
-			ustream.log.WithError(err).WithField("msg", hexutil.Encode(nextNotification)).Error("failed to unmarshal ultrasound stream message")
+			ustream.log.WithError(err).WithField("msg", hexutil.Encode(nextNotification)).Error("[ultrasounds-stream] failed to unmarshal ultrasound stream message")
 			continue
 		}
 

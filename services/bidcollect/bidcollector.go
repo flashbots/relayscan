@@ -27,8 +27,7 @@ type BidCollector struct {
 	dataAPIBidC    chan DataAPIPollerBidsMsg
 	// getHeaderBidC  chan DataAPIPollerBidsMsg
 
-	processorC chan []CommonBid
-	processor  *BidProcessor
+	processor *BidProcessor
 }
 
 func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
@@ -42,11 +41,10 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	}
 
 	// inputs
-	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, 100)
-	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, 100)
+	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, 1000)
+	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, 1-00)
 
 	// output
-	c.processorC = make(chan []CommonBid, 100)
 	c.processor = NewBidProcessor(&BidProcessorOpts{
 		Log:    opts.Log,
 		OutDir: "csv",

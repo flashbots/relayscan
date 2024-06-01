@@ -76,7 +76,7 @@ func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, t int64) {
 	tStart := tSlotStart.Add(time.Duration(t) * time.Second)
 	waitTime := tStart.Sub(time.Now().UTC())
 
-	poller.Log.Debugf("[data-api poller] - prepare polling for slot %d t %d (tSlotStart: %s, tStart: %s, waitTime: %s)", slot, t, tSlotStart.String(), tStart.String(), waitTime.String())
+	// poller.Log.Debugf("[data-api poller] - prepare polling for slot %d t %d (tSlotStart: %s, tStart: %s, waitTime: %s)", slot, t, tSlotStart.String(), tStart.String(), waitTime.String())
 	if waitTime < 0 {
 		poller.Log.Debugf("[data-api poller] - waitTime is negative: %s", waitTime.String())
 		return
@@ -101,12 +101,12 @@ func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEn
 		"slot":  slot,
 		"t":     t,
 	})
-	log.Debugf("[data-api poller] - polling relay %s for slot %d", relay.Hostname(), slot)
+	// log.Debugf("[data-api poller] - polling relay %s for slot %d", relay.Hostname(), slot)
 
 	// build query URL
 	path := "/relay/v1/data/bidtraces/builder_blocks_received"
 	url := common.GetURIWithQuery(relay.URL, path, map[string]string{"slot": fmt.Sprintf("%d", slot)})
-	log.Debugf("[data-api poller] Querying %s", url)
+	// log.Debugf("[data-api poller] Querying %s", url)
 
 	// start query
 	var data []relaycommon.BidTraceV2WithTimestampJSON
@@ -118,7 +118,7 @@ func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEn
 		return
 	}
 	log = log.WithFields(logrus.Fields{"code": code, "entries": len(data), "durationMs": timeRequestEnd.Sub(timeRequestStart).Milliseconds()})
-	log.Info("[data-api poller] request complete")
+	log.Debug("[data-api poller] request complete")
 
 	// send data to channel
 	poller.BidC <- DataAPIPollerBidsMsg{Bids: data, Relay: relay, ReceivedAt: time.Now().UTC()}

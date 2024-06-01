@@ -36,8 +36,6 @@ Done:
 Next up:
 
 - outputs
-  - like mempool dumpster, every N seconds print some stats
-  - CSV: dynamic + rotating csv files (like mempool dumpster, for daily files/rollover + combination of multiple collectors)
   - stream (websocket or SSE)
 
 - getHeader polling
@@ -45,6 +43,4 @@ Next up:
   - define query times
 
 - data API polling
-  - relay-specific rate limits
-
-- Collect which source the data is coming from
+  - relay-specific rate limits?
