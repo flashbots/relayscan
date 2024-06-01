@@ -68,8 +68,9 @@ func (c *BidProcessor) processBids(bids []*CommonBid) {
 			c.bidCache[bid.Slot] = make(map[string]*CommonBid)
 		}
 
+		// Check if bid is new top bid
 		if topBid, ok := c.topBidCache[bid.Slot]; !ok {
-			c.topBidCache[bid.Slot] = bid
+			c.topBidCache[bid.Slot] = bid // first one for the slot
 		} else {
 			// if current bid has higher value, use it as new top bid
 			if bid.ValueAsBigInt().Cmp(topBid.ValueAsBigInt()) == 1 {
@@ -78,6 +79,7 @@ func (c *BidProcessor) processBids(bids []*CommonBid) {
 			}
 		}
 
+		// process regular bids only once per unique key (slot+blockhash+parenthash+builderpubkey+value)
 		if _, ok := c.bidCache[bid.Slot][bid.UniqueKey()]; !ok {
 			// yet unknown bid, save it
 			c.bidCache[bid.Slot][bid.UniqueKey()] = bid
