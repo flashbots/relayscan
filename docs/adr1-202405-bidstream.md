@@ -17,12 +17,9 @@ It should expose these as:
 
 Run:
 
-```
-# Ultrasound top-bid stream
-go run . service bidcollect --out test.csv --ultrasound-stream
-
-# Data API polling
-go run . service bidcollect --out test.csv --data-api
+```bash
+# Collect bids from ultrasound stream + data API, save to CSV
+go run . service bidcollect --out csv  --data-api --ultrasound-stream
 ```
 
 Done:

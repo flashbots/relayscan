@@ -34,6 +34,8 @@ var bidCollectCmd = &cobra.Command{
 	Use:   "bidcollect",
 	Short: "Collect bids",
 	Run: func(cmd *cobra.Command, args []string) {
+		log.Infof("Bidcollect starting (%s) ...", vars.Version)
+
 		// Prepare relays
 		relays := []common.RelayEntry{
 			common.MustNewRelayEntry(vars.RelayFlashbots, false),

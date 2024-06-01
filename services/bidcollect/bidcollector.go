@@ -47,7 +47,7 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	// output
 	c.processor = NewBidProcessor(&BidProcessorOpts{
 		Log:    opts.Log,
-		OutDir: "csv",
+		OutDir: opts.OutDir,
 	})
 	return c
 }
