@@ -88,7 +88,7 @@ func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, t int64) {
 
 	// Poll for bids now
 	untilSlot := tSlotStart.Sub(time.Now().UTC())
-	poller.Log.Debugf("[data-api poller] polling for slot %d at %d (tNow=%s)", slot, t, untilSlot.String())
+	poller.Log.Debugf("[data-api poller] polling for slot %d at t=%d (tNow=%s)", slot, t, (untilSlot * -1).String())
 
 	for _, relay := range poller.Relays {
 		go poller._pollRelayForBids(slot, relay, t)

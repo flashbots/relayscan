@@ -22,7 +22,7 @@ Run:
 go run . service bidcollect --out csv  --data-api --ultrasound-stream
 ```
 
-#### Done
+### Done
 
 - Ultrasound bid stream
 - Data API polling
@@ -31,7 +31,7 @@ go run . service bidcollect --out csv  --data-api --ultrasound-stream
   - Writing to csv for top and all bids
   - Cache for deduplication
 
-#### Next up (must have)
+### Next up (must have)
 
 - Diagram showing the flow of data and the components involved
 - File Output
@@ -39,7 +39,7 @@ go run . service bidcollect --out csv  --data-api --ultrasound-stream
   - Consider gzipped CSV output: https://gist.github.com/mchirico/6147687 (currently, an hour of bids is about 300MB)
   - Consider Parquet output files
 
-#### Could have
+### Could have
 
 **Data API polling**
 - consider improvements to timing
