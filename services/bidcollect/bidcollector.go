@@ -2,10 +2,6 @@
 package bidcollect
 
 import (
-	"fmt"
-	"os"
-	"strings"
-
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/vars"
 	"github.com/sirupsen/logrus"
@@ -20,17 +16,19 @@ type BidCollectorOpts struct {
 
 	Relays        []common.RelayEntry
 	BeaconNodeURI string // for getHeader
-	OutFile       string
+	OutDir        string
 }
 
 type BidCollector struct {
 	opts *BidCollectorOpts
 	log  *logrus.Entry
-	outF *os.File
 
 	ultrasoundBidC chan UltrasoundStreamBidsMsg
 	dataAPIBidC    chan DataAPIPollerBidsMsg
 	// getHeaderBidC  chan DataAPIPollerBidsMsg
+
+	processorC chan []CommonBid
+	processor  *BidProcessor
 }
 
 func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
@@ -39,35 +37,26 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 		opts: opts,
 	}
 
+	if c.opts.OutDir == "" {
+		c.opts.OutDir = "csv"
+	}
+
+	// inputs
 	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, 100)
 	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, 100)
+
+	// output
+	c.processorC = make(chan []CommonBid, 100)
+	c.processor = NewBidProcessor(&BidProcessorOpts{
+		Log:    opts.Log,
+		OutDir: c.opts.OutDir,
+	})
 	return c
 }
 
 func (c *BidCollector) MustStart() {
-	var err error
 	c.log.WithField("version", vars.Version).Info("Starting BidCollector ...")
-
-	// Setup output file
-	if c.opts.OutFile != "" {
-		c.log.Infof("writing to %s", c.opts.OutFile)
-		c.outF, err = os.OpenFile(c.opts.OutFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
-		if err != nil {
-			c.log.WithError(err).WithField("filename", c.opts.OutFile).Fatal("failed to open output file")
-		}
-
-		fi, err := c.outF.Stat()
-		if err != nil {
-			c.log.WithError(err).Fatal("failed stat on output file")
-		}
-
-		if fi.Size() == 0 {
-			_, err = fmt.Fprint(c.outF, strings.Join(CommonBidCSVFields, "\t")+"\n")
-			if err != nil {
-				c.log.WithError(err).Fatal("failed to write header to output file")
-			}
-		}
-	}
+	go c.processor.Start()
 
 	if c.opts.CollectGetHeader {
 		c.log.Fatal("not yet implemented")
@@ -94,21 +83,19 @@ func (c *BidCollector) MustStart() {
 		select {
 		case bid := <-c.ultrasoundBidC:
 			commonBid := UltrasoundStreamToCommonBid(&bid)
-			c.processBid(commonBid)
+			c.processor.processBids([]*CommonBid{commonBid})
 		case bids := <-c.dataAPIBidC:
 			commonBids := DataAPIToCommonBids(bids)
-			for _, commonBid := range commonBids {
-				c.processBid(commonBid)
-			}
+			c.processor.processBids(commonBids)
 		}
 	}
 }
 
-func (c *BidCollector) processBid(bid *CommonBid) {
-	if c.outF != nil {
-		_, err := fmt.Fprint(c.outF, bid.ToCSVLine("\t")+"\n")
-		if err != nil {
-			c.log.WithError(err).Error("couldn't write bid to file")
-		}
-	}
-}
+// func (c *BidCollector) processBid(bid *CommonBid) {
+// 	if c.outF != nil {
+// 		_, err := fmt.Fprint(c.outF, bid.ToCSVLine("\t")+"\n")
+// 		if err != nil {
+// 			c.log.WithError(err).Error("couldn't write bid to file")
+// 		}
+// 	}
+// }

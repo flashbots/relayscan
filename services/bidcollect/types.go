@@ -2,6 +2,7 @@ package bidcollect
 
 import (
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -16,9 +17,10 @@ const (
 
 var CommonBidCSVFields = []string{
 	"source", "received_at",
-	"timestamp", "slot", "block_number", "block_hash", "parent_hash", "builder_pubkey", "value",
+	"timestamp", "timestamp_ms",
+	"slot", "block_number", "block_hash", "parent_hash", "builder_pubkey", "value",
 	"block_fee_recipient",
-	"relay", "timestamp_ms", "proposer_pubkey", "proposer_fee_recipient", "optimistic_submission",
+	"relay", "proposer_pubkey", "proposer_fee_recipient", "optimistic_submission",
 }
 
 type CommonBid struct {
@@ -50,19 +52,30 @@ type CommonBid struct {
 	// getHeader
 }
 
+func (bid *CommonBid) UniqueKey() string {
+	return fmt.Sprintf("%d-%s-%s-%s-%s", bid.Slot, bid.BlockHash, bid.ParentHash, bid.BuilderPubkey, bid.Value)
+}
+
+func (bid *CommonBid) ValueAsBigInt() *big.Int {
+	value := new(big.Int)
+	value.SetString(bid.Value, 10)
+	return value
+}
+
 func (bid *CommonBid) ToCSVFields() []string {
 	return []string{
 		// Collector-internal fields
 		fmt.Sprint(bid.Source), fmt.Sprint(bid.ReceivedAt),
 
 		// Common fields
-		fmt.Sprint(bid.Timestamp), fmt.Sprint(bid.Slot), fmt.Sprint(bid.BlockNumber), bid.BlockHash, bid.ParentHash, bid.BuilderPubkey, bid.Value,
+		fmt.Sprint(bid.Timestamp), fmt.Sprint(bid.TimestampMs),
+		fmt.Sprint(bid.Slot), fmt.Sprint(bid.BlockNumber), bid.BlockHash, bid.ParentHash, bid.BuilderPubkey, bid.Value,
 
 		// Ultrasound top-bid stream
 		bid.BlockFeeRecipient,
 
 		// Data API
-		bid.Relay, fmt.Sprint(bid.TimestampMs), bid.ProposerPubkey, bid.ProposerFeeRecipient, boolToString(bid.OptimisticSubmission),
+		bid.Relay, bid.ProposerPubkey, bid.ProposerFeeRecipient, boolToString(bid.OptimisticSubmission),
 	}
 }
 
@@ -87,7 +100,8 @@ func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *CommonBid {
 		Source:     CollectUltrasoundStream,
 		ReceivedAt: bid.ReceivedAt.Unix(),
 
-		Timestamp:         int64(bid.Bid.Timestamp),
+		Timestamp:         int64(bid.Bid.Timestamp) / 1000,
+		TimestampMs:       int64(bid.Bid.Timestamp),
 		Slot:              bid.Bid.Slot,
 		BlockNumber:       bid.Bid.BlockNumber,
 		BlockHash:         blockHash,

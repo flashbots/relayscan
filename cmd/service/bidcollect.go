@@ -15,7 +15,7 @@ var (
 	collectUltrasoundStream bool
 	collectGetHeader        bool
 	collectDataAPI          bool
-	outFileCSV              string
+	outDir                  string
 )
 
 func init() {
@@ -27,7 +27,7 @@ func init() {
 	bidCollectCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", vars.DefaultBeaconURI, "beacon endpoint")
 
 	// for saving to file
-	bidCollectCmd.Flags().StringVar(&outFileCSV, "out", "", "output file for CSV")
+	bidCollectCmd.Flags().StringVar(&outDir, "out", "csv", "output directory for CSV")
 }
 
 var bidCollectCmd = &cobra.Command{
@@ -54,7 +54,7 @@ var bidCollectCmd = &cobra.Command{
 			CollectGetHeader:        collectGetHeader,
 			CollectDataAPI:          collectDataAPI,
 			BeaconNodeURI:           beaconNodeURI,
-			OutFile:                 outFileCSV,
+			OutDir:                  outDir,
 		}
 
 		bidCollector := bidcollect.NewBidCollector(&opts)
