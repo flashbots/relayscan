@@ -40,8 +40,8 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	}
 
 	// inputs
-	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, 1000)
-	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, 1-00)
+	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, bidCollectorInputChannelSize)
+	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, bidCollectorInputChannelSize)
 
 	// output
 	c.processor = NewBidProcessor(&BidProcessorOpts{

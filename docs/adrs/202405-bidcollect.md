@@ -34,10 +34,12 @@ go run . service bidcollect --out csv  --data-api --ultrasound-stream
 ### Next up (must have)
 
 - Diagram showing the flow of data and the components involved
+- Consider methodology of storing "relay"
 - File Output
   - Combine all individual files into a big file
   - Consider gzipped CSV output: https://gist.github.com/mchirico/6147687 (currently, an hour of bids is about 300MB)
   - Consider Parquet output files
+  - Upload to S3 + R2 (see also mempool dumpster scripts)
 
 ### Could have
 
@@ -45,8 +47,8 @@ go run . service bidcollect --out csv  --data-api --ultrasound-stream
 - consider improvements to timing
 - relay-specific rate limits?
 
-**Output**
-- Stream (websocket or SSE)
+**Stream Output**
+- Websockets or SSE subscription
 
 **getHeader polling**
 - some already implemented in [collect-live-bids.go](/cmd/service/collect-live-bids.go))

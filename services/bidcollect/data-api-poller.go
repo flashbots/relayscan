@@ -46,8 +46,9 @@ func (poller *DataAPIPoller) Start() {
 	nextSlot := slot + 1
 	tNextSlot := common.SlotToTime(nextSlot)
 	untilNextSlot := tNextSlot.Sub(t)
-	time.Sleep(untilNextSlot)
+
 	poller.Log.Infof("[data-api poller] waiting until start of next slot (%d, %s from now)", nextSlot, untilNextSlot.String())
+	time.Sleep(untilNextSlot)
 
 	// then run polling loop
 	for {

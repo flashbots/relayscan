@@ -63,7 +63,9 @@ func (c *BidProcessor) processBids(bids []*CommonBid) {
 	c.bidCacheLock.Lock()
 	defer c.bidCacheLock.Unlock()
 
+	var isTopBid, isNewBid bool
 	for _, bid := range bids {
+		isNewBid, isTopBid = false, false
 		if _, ok := c.bidCache[bid.Slot]; !ok {
 			c.bidCache[bid.Slot] = make(map[string]*CommonBid)
 		}
@@ -71,11 +73,12 @@ func (c *BidProcessor) processBids(bids []*CommonBid) {
 		// Check if bid is new top bid
 		if topBid, ok := c.topBidCache[bid.Slot]; !ok {
 			c.topBidCache[bid.Slot] = bid // first one for the slot
+			isTopBid = true
 		} else {
 			// if current bid has higher value, use it as new top bid
 			if bid.ValueAsBigInt().Cmp(topBid.ValueAsBigInt()) == 1 {
 				c.topBidCache[bid.Slot] = bid
-				c.exportTopBid(bid)
+				isTopBid = true
 			}
 		}
 
@@ -83,34 +86,33 @@ func (c *BidProcessor) processBids(bids []*CommonBid) {
 		if _, ok := c.bidCache[bid.Slot][bid.UniqueKey()]; !ok {
 			// yet unknown bid, save it
 			c.bidCache[bid.Slot][bid.UniqueKey()] = bid
-			c.exportBid(bid)
+			isNewBid = true
+		}
+
+		// Write to CSV
+		c.writeBidToFile(bid, isNewBid, isTopBid)
+	}
+}
+
+func (c *BidProcessor) writeBidToFile(bid *CommonBid, isNewBid, isTopBid bool) {
+	fAll, fTop, err := c.getFiles(bid)
+	if err != nil {
+		c.log.WithError(err).Error("get get output file")
+		return
+	}
+	if isNewBid {
+		_, err = fmt.Fprint(fAll, bid.ToCSVLine(csvSeparator)+"\n")
+		if err != nil {
+			c.log.WithError(err).Error("couldn't write bid to file")
+			return
 		}
 	}
-}
-
-func (c *BidProcessor) exportBid(bid *CommonBid) {
-	outF, _, err := c.getFiles(bid)
-	if err != nil {
-		c.log.WithError(err).Error("get get output file")
-		return
-	}
-	_, err = fmt.Fprint(outF, bid.ToCSVLine("\t")+"\n")
-	if err != nil {
-		c.log.WithError(err).Error("couldn't write bid to file")
-		return
-	}
-}
-
-func (c *BidProcessor) exportTopBid(bid *CommonBid) {
-	_, outF, err := c.getFiles(bid)
-	if err != nil {
-		c.log.WithError(err).Error("get get output file")
-		return
-	}
-	_, err = fmt.Fprint(outF, bid.ToCSVLine("\t")+"\n")
-	if err != nil {
-		c.log.WithError(err).Error("couldn't write bid to file")
-		return
+	if isTopBid {
+		_, err = fmt.Fprint(fTop, bid.ToCSVLine(csvSeparator)+"\n")
+		if err != nil {
+			c.log.WithError(err).Error("couldn't write bid to file")
+			return
+		}
 	}
 }
 
@@ -129,7 +131,7 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 		return outFiles.FAll, outFiles.FTop, nil
 	}
 
-	// Create output files
+	// Create output directory
 	dir := filepath.Join(c.opts.OutDir, t.Format(time.DateOnly))
 	err = os.MkdirAll(dir, os.ModePerm)
 	if err != nil {
@@ -147,7 +149,7 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 		c.log.WithError(err).Fatal("failed stat on output file")
 	}
 	if fi.Size() == 0 {
-		_, err = fmt.Fprint(fAll, strings.Join(CommonBidCSVFields, "\t")+"\n")
+		_, err = fmt.Fprint(fAll, strings.Join(CommonBidCSVFields, csvSeparator)+"\n")
 		if err != nil {
 			c.log.WithError(err).Fatal("failed to write header to output file")
 		}
@@ -164,7 +166,7 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 		c.log.WithError(err).Fatal("failed stat on output file")
 	}
 	if fi.Size() == 0 {
-		_, err = fmt.Fprint(fTop, strings.Join(CommonBidCSVFields, "\t")+"\n")
+		_, err = fmt.Fprint(fTop, strings.Join(CommonBidCSVFields, csvSeparator)+"\n")
 		if err != nil {
 			c.log.WithError(err).Fatal("failed to write header to output file")
 		}
