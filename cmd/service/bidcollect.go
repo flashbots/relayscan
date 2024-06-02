@@ -16,7 +16,9 @@ var (
 	collectGetHeader        bool
 	collectDataAPI          bool
 	useAllRelays            bool
-	outDir                  string
+
+	outDir    string
+	outputTSV bool // by default: CSV, but can be changed to TSV with this setting
 )
 
 func init() {
@@ -29,7 +31,8 @@ func init() {
 	bidCollectCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", vars.DefaultBeaconURI, "beacon endpoint")
 
 	// for saving to file
-	bidCollectCmd.Flags().StringVar(&outDir, "out", "csv", "output directory for CSV")
+	bidCollectCmd.Flags().StringVar(&outDir, "out", "csv", "output directory for CSV/TSV")
+	bidCollectCmd.Flags().BoolVar(&outputTSV, "out-tsv", false, "output as TSV (instead of CSV)")
 }
 
 var bidCollectCmd = &cobra.Command{
@@ -60,6 +63,7 @@ var bidCollectCmd = &cobra.Command{
 			CollectDataAPI:          collectDataAPI,
 			BeaconNodeURI:           beaconNodeURI,
 			OutDir:                  outDir,
+			OutputTSV:               outputTSV,
 		}
 
 		bidCollector := bidcollect.NewBidCollector(&opts)

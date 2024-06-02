@@ -23,6 +23,14 @@ It should expose these as:
   - some relay only allow a single getHeader request per slot, so we time it at t=1s
   - header only has limited information. need to use receive timestamp, and optimistic is always false
   - Ultrasound relay doesn't support repeated getHeader requests
+- Ultrasound websocket stream
+  - doesn't expose optimistic, thus that field is always false
+
+clickhouse-local queries:
+
+```bash
+clickhouse local -q "SELECT source_type, COUNT(source_type) FROM 'top_2024-06-02_18-00.tsv' GROUP BY source_type ORDER BY source_type;"
+```
 
 ## Status
 
@@ -48,7 +56,8 @@ Example output: https://gist.github.com/metachris/061c0443afb8b8d07eed477a848fa3
 
 - Diagram showing the flow of data and the components involved
 - Consider methodology of storing "relay"
-- Double-check that bids are complete but without duplicates
+- Double-check caching methodology (only one bid per unique key, consider also per source type?)
+- Double-check that bids are complete and without duplicates
 
 ### Could have
 

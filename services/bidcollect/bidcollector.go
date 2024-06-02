@@ -15,7 +15,9 @@ type BidCollectorOpts struct {
 
 	Relays        []common.RelayEntry
 	BeaconNodeURI string // for getHeader
-	OutDir        string
+
+	OutDir    string
+	OutputTSV bool
 }
 
 type BidCollector struct {
@@ -36,7 +38,7 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	}
 
 	if c.opts.OutDir == "" {
-		c.opts.OutDir = "csv"
+		opts.Log.Fatal("outDir is required")
 	}
 
 	// inputs
@@ -46,8 +48,9 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 
 	// output
 	c.processor = NewBidProcessor(&BidProcessorOpts{
-		Log:    opts.Log,
-		OutDir: opts.OutDir,
+		Log:       opts.Log,
+		OutDir:    opts.OutDir,
+		OutputTSV: opts.OutputTSV,
 	})
 	return c
 }

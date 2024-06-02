@@ -1,9 +1,5 @@
 package bidcollect
 
-import (
-	relaycommon "github.com/flashbots/mev-boost-relay/common"
-)
-
 const (
 	SourceTypeGetHeader        = 0
 	SourceTypeDataAPI          = 1
@@ -21,6 +17,6 @@ const (
 )
 
 var (
-	csvFileEnding = relaycommon.GetEnv("CSV_FILE_END", "tsv")
-	csvSeparator  = relaycommon.GetEnv("CSV_SEP", "\t")
+// csvFileEnding = relaycommon.GetEnv("CSV_FILE_END", "tsv")
+// csvSeparator  = relaycommon.GetEnv("CSV_SEP", "\t")
 )

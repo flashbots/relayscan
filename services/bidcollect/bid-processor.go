@@ -19,8 +19,9 @@ import (
 //   - One CSV for top bids only
 
 type BidProcessorOpts struct {
-	Log    *logrus.Entry
-	OutDir string
+	Log       *logrus.Entry
+	OutDir    string
+	OutputTSV bool
 }
 
 type OutFiles struct {
@@ -38,6 +39,9 @@ type BidProcessor struct {
 	bidCache     map[uint64]map[string]*CommonBid // map[slot][bidUniqueKey]Bid
 	topBidCache  map[uint64]*CommonBid            // map[slot]Bid
 	bidCacheLock sync.RWMutex
+
+	csvSeparator  string
+	csvFileEnding string
 }
 
 func NewBidProcessor(opts *BidProcessorOpts) *BidProcessor {
@@ -47,6 +51,14 @@ func NewBidProcessor(opts *BidProcessorOpts) *BidProcessor {
 		outFiles:    make(map[int64]*OutFiles),
 		bidCache:    make(map[uint64]map[string]*CommonBid),
 		topBidCache: make(map[uint64]*CommonBid),
+	}
+
+	if opts.OutputTSV {
+		c.csvSeparator = "\t"
+		c.csvFileEnding = "tsv"
+	} else {
+		c.csvSeparator = ","
+		c.csvFileEnding = "csv"
 	}
 
 	return c
@@ -101,14 +113,14 @@ func (c *BidProcessor) writeBidToFile(bid *CommonBid, isNewBid, isTopBid bool) {
 		return
 	}
 	if isNewBid {
-		_, err = fmt.Fprint(fAll, bid.ToCSVLine(csvSeparator)+"\n")
+		_, err = fmt.Fprint(fAll, bid.ToCSVLine(c.csvSeparator)+"\n")
 		if err != nil {
 			c.log.WithError(err).Error("couldn't write bid to file")
 			return
 		}
 	}
 	if isTopBid {
-		_, err = fmt.Fprint(fTop, bid.ToCSVLine(csvSeparator)+"\n")
+		_, err = fmt.Fprint(fTop, bid.ToCSVLine(c.csvSeparator)+"\n")
 		if err != nil {
 			c.log.WithError(err).Error("couldn't write bid to file")
 			return
@@ -149,7 +161,7 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 		c.log.WithError(err).Fatal("failed stat on output file")
 	}
 	if fi.Size() == 0 {
-		_, err = fmt.Fprint(fAll, strings.Join(CommonBidCSVFields, csvSeparator)+"\n")
+		_, err = fmt.Fprint(fAll, strings.Join(CommonBidCSVFields, c.csvSeparator)+"\n")
 		if err != nil {
 			c.log.WithError(err).Fatal("failed to write header to output file")
 		}
@@ -166,7 +178,7 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 		c.log.WithError(err).Fatal("failed stat on output file")
 	}
 	if fi.Size() == 0 {
-		_, err = fmt.Fprint(fTop, strings.Join(CommonBidCSVFields, csvSeparator)+"\n")
+		_, err = fmt.Fprint(fTop, strings.Join(CommonBidCSVFields, c.csvSeparator)+"\n")
 		if err != nil {
 			c.log.WithError(err).Fatal("failed to write header to output file")
 		}
@@ -190,7 +202,7 @@ func (c *BidProcessor) getFilename(prefix string, timestamp int64) string {
 	if prefix != "" {
 		prefix += "_"
 	}
-	return fmt.Sprintf("%s%s.%s", prefix, t.Format("2006-01-02_15-04"), csvFileEnding)
+	return fmt.Sprintf("%s%s.%s", prefix, t.Format("2006-01-02_15-04"), c.csvFileEnding)
 }
 
 func (c *BidProcessor) housekeeping() {
