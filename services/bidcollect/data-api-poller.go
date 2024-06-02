@@ -62,10 +62,11 @@ func (poller *DataAPIPoller) Start() {
 		poller.Log.Infof("[data-api poller] current slot: %d / next slot: %d (%s), waitTime: %s", slot, nextSlot, tNextSlot.String(), untilNextSlot.String())
 
 		// Schedule polling at t-4, t-2, t=0, t=2
-		go poller.pollRelaysForBids(nextSlot, -4)
-		go poller.pollRelaysForBids(nextSlot, -2)
-		go poller.pollRelaysForBids(nextSlot, 0)
-		go poller.pollRelaysForBids(nextSlot, 2)
+		go poller.pollRelaysForBids(nextSlot, -4*time.Second)
+		go poller.pollRelaysForBids(nextSlot, -2*time.Second)
+		go poller.pollRelaysForBids(nextSlot, -500*time.Millisecond)
+		go poller.pollRelaysForBids(nextSlot, 500*time.Millisecond)
+		go poller.pollRelaysForBids(nextSlot, 2*time.Second)
 
 		// wait until next slot
 		time.Sleep(untilNextSlot)
@@ -73,9 +74,9 @@ func (poller *DataAPIPoller) Start() {
 }
 
 // pollRelaysForBids will poll data api for given slot with t seconds offset
-func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, t int64) {
+func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, tOffset time.Duration) {
 	tSlotStart := common.SlotToTime(slot)
-	tStart := tSlotStart.Add(time.Duration(t) * time.Second)
+	tStart := tSlotStart.Add(tOffset)
 	waitTime := tStart.Sub(time.Now().UTC())
 
 	// poller.Log.Debugf("[data-api poller] - prepare polling for slot %d t %d (tSlotStart: %s, tStart: %s, waitTime: %s)", slot, t, tSlotStart.String(), tStart.String(), waitTime.String())
@@ -89,19 +90,19 @@ func (poller *DataAPIPoller) pollRelaysForBids(slot uint64, t int64) {
 
 	// Poll for bids now
 	untilSlot := tSlotStart.Sub(time.Now().UTC())
-	poller.Log.Debugf("[data-api poller] polling for slot %d at t=%d (tNow=%s)", slot, t, (untilSlot * -1).String())
+	poller.Log.Debugf("[data-api poller] polling for slot %d at t=%s (tNow=%s)", slot, tOffset.String(), (untilSlot * -1).String())
 
 	for _, relay := range poller.Relays {
-		go poller._pollRelayForBids(slot, relay, t)
+		go poller._pollRelayForBids(slot, relay, tOffset)
 	}
 }
 
-func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEntry, t int64) {
+func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEntry, t time.Duration) {
 	// log := poller.Log.WithField("relay", relay.Hostname()).WithField("slot", slot)
 	log := poller.Log.WithFields(logrus.Fields{
 		"relay": relay.Hostname(),
 		"slot":  slot,
-		"t":     t,
+		"t":     t.String(),
 	})
 	// log.Debugf("[data-api poller] polling relay %s for slot %d", relay.Hostname(), slot)
 

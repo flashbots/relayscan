@@ -35,6 +35,7 @@ go run . service bidcollect --out csv  --data-api --ultrasound-stream
 
 - Diagram showing the flow of data and the components involved
 - Consider methodology of storing "relay"
+- Double-check that bids are complete but without duplicates
 - File Output
   - Combine all individual files into a big file
   - Consider gzipped CSV output: https://gist.github.com/mchirico/6147687 (currently, an hour of bids is about 300MB)
