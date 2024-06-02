@@ -169,7 +169,13 @@ func (poller *GetHeaderPoller) _pollRelayForBids(relay common.RelayEntry, t time
 	code, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &bid)
 	timeRequestEnd := time.Now().UTC()
 	if err != nil {
-		if strings.Contains(err.Error(), "no builder bid") {
+		msg := err.Error()
+		if strings.Contains(msg, "no builder bid") {
+			return
+		} else if strings.Contains(msg, "Too many getHeader requests! Use relay-analytics.ultrasound.money or the Websocket API") {
+			return
+		} else if code == 429 {
+			log.Warn("429 received")
 			return
 		}
 		log.WithFields(logrus.Fields{
