@@ -121,7 +121,6 @@ func (poller *GetHeaderPoller) Start() {
 		if nextProposerPubkey == "" {
 			poller.log.WithField("duties", duties).Error("no proposerPubkey for next slot")
 		} else {
-			go poller.pollRelaysForBids(-2*time.Second, nextSlot, block.Data.Message.Body.ExecutionPayload.BlockHash.String(), duties[nextSlot])
 			go poller.pollRelaysForBids(0*time.Second, nextSlot, block.Data.Message.Body.ExecutionPayload.BlockHash.String(), duties[nextSlot])
 			go poller.pollRelaysForBids(1500*time.Millisecond, nextSlot, block.Data.Message.Body.ExecutionPayload.BlockHash.String(), duties[nextSlot])
 		}

@@ -58,11 +58,6 @@ func (bid *CommonBid) ValueAsBigInt() *big.Int {
 }
 
 func (bid *CommonBid) ToCSVFields() []string {
-	slotTms := bid.TimestampMs - common.SlotToTime(bid.Slot).UnixMilli()
-	if bid.TimestampMs == 0 {
-		slotTms = bid.ReceivedAtMs - common.SlotToTime(bid.Slot).UnixMilli()
-	}
-
 	tsMs := bid.TimestampMs
 	if tsMs == 0 {
 		if bid.Timestamp > 0 {
@@ -71,6 +66,8 @@ func (bid *CommonBid) ToCSVFields() []string {
 			tsMs = bid.ReceivedAtMs
 		}
 	}
+
+	slotTms := tsMs - common.SlotToTime(bid.Slot).UnixMilli()
 
 	return []string{
 		// Collector-internal fields
