@@ -22,6 +22,8 @@ Run:
 go run . service bidcollect --out csv  --data-api --ultrasound-stream
 ```
 
+Example output: https://gist.github.com/metachris/061c0443afb8b8d07eed477a848fa395
+
 ### Done
 
 - Ultrasound bid stream
