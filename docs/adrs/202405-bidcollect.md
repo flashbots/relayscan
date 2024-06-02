@@ -4,9 +4,9 @@
 
 Relayscan should collect bids across relays:
 
-1. Ultrasound top-bid websocket stream (https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md)
+1. [Ultrasound top-bid websocket stream](https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md)
 2. getHeader polling
-3. data API polling
+3. Data API polling
 
 It should expose these as:
 
@@ -16,10 +16,13 @@ It should expose these as:
 ### Notes
 
 - [Source types](https://github.com/flashbots/relayscan/blob/bidstream/services/bidcollect/types.go#L13-L18):
-  - `0`: `getHeader` polling (not yet implemented)
+  - `0`: `getHeader` polling
   - `1`: Data API polling
   - `2`: Ultrasound top-bid Websockets stream
-- some relay only allow a single getHeader request per slot, so we time it at t=1s
+- getHeader polling
+  - some relay only allow a single getHeader request per slot, so we time it at t=1s
+  - header only has limited information. need to use receive timestamp, and optimistic is always false
+  - Ultrasound relay doesn't support repeated getHeader requests
 
 ## Status
 
