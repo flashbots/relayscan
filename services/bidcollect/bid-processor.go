@@ -190,7 +190,7 @@ func (c *BidProcessor) getFilename(prefix string, timestamp int64) string {
 	if prefix != "" {
 		prefix += "_"
 	}
-	return fmt.Sprintf("%s%s.csv", prefix, t.Format("2006-01-02_15-04"))
+	return fmt.Sprintf("%s%s.%s", prefix, t.Format("2006-01-02_15-04"), csvFileEnding)
 }
 
 func (c *BidProcessor) housekeeping() {

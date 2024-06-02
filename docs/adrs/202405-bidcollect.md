@@ -10,8 +10,8 @@ Relayscan should collect bids across relays:
 
 It should expose these as:
 
-1. A websocket/SSE stream
-2. Parquet/CSV files
+1. Parquet/CSV files
+2. A websocket/SSE stream
 
 ## Status
 
@@ -25,32 +25,30 @@ go run . service bidcollect --out csv  --data-api --ultrasound-stream
 ### Done
 
 - Ultrasound bid stream
-- Data API polling
-- Data format
-- Output
-  - Writing to csv for top and all bids
+- Data API polling (at t-4, t-2, t-0.5, t+0.5, t+2)
+- CSV Output
+  - Writing to hourly CSV files (one file for top bids, and one for all bids)
   - Cache for deduplication
+  - Script to combine into single CSV
 
 ### Next up (must have)
 
 - Diagram showing the flow of data and the components involved
 - Consider methodology of storing "relay"
 - Double-check that bids are complete but without duplicates
-- File Output
-  - Combine all individual files into a big file
-  - Consider gzipped CSV output: https://gist.github.com/mchirico/6147687 (currently, an hour of bids is about 300MB)
-  - Consider Parquet output files
-  - Upload to S3 + R2 (see also mempool dumpster scripts)
 
 ### Could have
 
-**Data API polling**
-- consider improvements to timing
+Data API polling
 - relay-specific rate limits?
 
-**Stream Output**
+Stream Output
 - Websockets or SSE subscription
 
-**getHeader polling**
+File Output
+- Consider Parquet output files (not sure if needed)
+- Upload to S3 + R2 (see also mempool dumpster scripts)
+
+getHeader polling
 - some already implemented in [collect-live-bids.go](/cmd/service/collect-live-bids.go))
 - define query times

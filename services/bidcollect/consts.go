@@ -16,4 +16,7 @@ const (
 	bidCollectorInputChannelSize = 1000
 )
 
-var csvSeparator = relaycommon.GetEnv("CSV_SEP", "\t")
+var (
+	csvFileEnding = relaycommon.GetEnv("CSV_FILE_END", "tsv")
+	csvSeparator  = relaycommon.GetEnv("CSV_SEP", "\t")
+)
