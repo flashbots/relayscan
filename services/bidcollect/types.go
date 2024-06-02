@@ -10,8 +10,8 @@ import (
 )
 
 var CommonBidCSVFields = []string{
-	"source_type", "received_at",
-	"timestamp", "timestamp_ms",
+	"source_type", "received_at_ms",
+	"timestamp_ms",
 	"slot", "slot_t_ms", "value",
 	"block_hash", "parent_hash", "builder_pubkey", "block_number",
 	"block_fee_recipient",
@@ -63,12 +63,21 @@ func (bid *CommonBid) ToCSVFields() []string {
 		slotTms = bid.ReceivedAtMs - common.SlotToTime(bid.Slot).UnixMilli()
 	}
 
+	tsMs := bid.TimestampMs
+	if tsMs == 0 {
+		if bid.Timestamp > 0 {
+			tsMs = bid.Timestamp * 1000
+		} else {
+			tsMs = bid.ReceivedAtMs
+		}
+	}
+
 	return []string{
 		// Collector-internal fields
 		fmt.Sprint(bid.SourceType), fmt.Sprint(bid.ReceivedAtMs),
 
 		// Common fields
-		fmt.Sprint(bid.Timestamp), fmt.Sprint(bid.TimestampMs),
+		fmt.Sprint(tsMs),
 		fmt.Sprint(bid.Slot), fmt.Sprint(slotTms), bid.Value,
 		bid.BlockHash, bid.ParentHash, bid.BuilderPubkey, fmt.Sprint(bid.BlockNumber),
 
