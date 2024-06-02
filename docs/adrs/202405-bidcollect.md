@@ -13,13 +13,20 @@ It should expose these as:
 1. Parquet/CSV files
 2. A websocket/SSE stream
 
+### Notes
+
+[Source types](https://github.com/flashbots/relayscan/blob/bidstream/services/bidcollect/types.go#L13-L18):
+- `0`: `getHeader` polling (not yet implemented)
+- `1`: Data API polling
+- `2`: Ultrasound top-bid Websockets stream
+
 ## Status
 
 Run:
 
 ```bash
-# Collect bids from ultrasound stream + data API, save to CSV
-go run . service bidcollect --out csv  --data-api --ultrasound-stream
+# Collect bids from ultrasound stream + data API, save to directory "tsv/<date>/<filename>.tsv"
+go run . service bidcollect --out tsv --data-api --ultrasound-stream
 ```
 
 Example output: https://gist.github.com/metachris/061c0443afb8b8d07eed477a848fa395

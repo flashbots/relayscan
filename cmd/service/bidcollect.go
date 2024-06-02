@@ -26,7 +26,7 @@ func init() {
 	bidCollectCmd.Flags().BoolVar(&useAllRelays, "all-relays", false, "use all relays")
 
 	// for getHeader
-	// bidCollectCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", vars.DefaultBeaconURI, "beacon endpoint")
+	bidCollectCmd.Flags().StringVar(&beaconNodeURI, "beacon-uri", vars.DefaultBeaconURI, "beacon endpoint")
 
 	// for saving to file
 	bidCollectCmd.Flags().StringVar(&outDir, "out", "csv", "output directory for CSV")

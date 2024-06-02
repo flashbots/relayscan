@@ -24,7 +24,7 @@ type BidCollector struct {
 
 	ultrasoundBidC chan UltrasoundStreamBidsMsg
 	dataAPIBidC    chan DataAPIPollerBidsMsg
-	// getHeaderBidC  chan DataAPIPollerBidsMsg
+	getHeaderBidC  chan GetHeaderPollerBidsMsg
 
 	processor *BidProcessor
 }
@@ -42,6 +42,7 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	// inputs
 	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, bidCollectorInputChannelSize)
 	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, bidCollectorInputChannelSize)
+	c.getHeaderBidC = make(chan GetHeaderPollerBidsMsg, bidCollectorInputChannelSize)
 
 	// output
 	c.processor = NewBidProcessor(&BidProcessorOpts{
@@ -55,7 +56,13 @@ func (c *BidCollector) MustStart() {
 	go c.processor.Start()
 
 	if c.opts.CollectGetHeader {
-		c.log.Fatal("not yet implemented")
+		poller := NewGetHeaderPoller(&GetHeaderPollerOpts{
+			Log:       c.log,
+			BidC:      c.getHeaderBidC,
+			BeaconURI: c.opts.BeaconNodeURI,
+			Relays:    c.opts.Relays,
+		})
+		go poller.Start()
 	}
 
 	if c.opts.CollectDataAPI {
@@ -83,15 +90,9 @@ func (c *BidCollector) MustStart() {
 		case bids := <-c.dataAPIBidC:
 			commonBids := DataAPIToCommonBids(bids)
 			c.processor.processBids(commonBids)
+		case bid := <-c.getHeaderBidC:
+			commonBid := GetHeaderToCommonBid(bid)
+			c.processor.processBids([]*CommonBid{commonBid})
 		}
 	}
 }
-
-// func (c *BidCollector) processBid(bid *CommonBid) {
-// 	if c.outF != nil {
-// 		_, err := fmt.Fprint(c.outF, bid.ToCSVLine("\t")+"\n")
-// 		if err != nil {
-// 			c.log.WithError(err).Error("couldn't write bid to file")
-// 		}
-// 	}
-// }

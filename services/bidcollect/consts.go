@@ -5,6 +5,10 @@ import (
 )
 
 const (
+	SourceTypeGetHeader        = 0
+	SourceTypeDataAPI          = 1
+	SourceTypeUltrasoundStream = 2
+
 	ultrasoundStreamDefaultURL = "ws://relay-builders-eu.ultrasound.money/ws/v1/top_bid"
 	initialBackoffSec          = 5
 	maxBackoffSec              = 120

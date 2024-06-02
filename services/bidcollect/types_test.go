@@ -7,7 +7,7 @@ import (
 )
 
 func TestSourceTypes(t *testing.T) {
-	require.Equal(t, 0, CollectGetHeader)
-	require.Equal(t, 1, CollectDataAPI)
-	require.Equal(t, 2, CollectUltrasoundStream)
+	require.Equal(t, 0, SourceTypeGetHeader)
+	require.Equal(t, 1, SourceTypeDataAPI)
+	require.Equal(t, 2, SourceTypeUltrasoundStream)
 }

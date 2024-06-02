@@ -9,13 +9,6 @@ import (
 	"github.com/flashbots/relayscan/common"
 )
 
-// iota
-const (
-	CollectGetHeader = iota
-	CollectDataAPI
-	CollectUltrasoundStream
-)
-
 var CommonBidCSVFields = []string{
 	"source_type", "received_at",
 	"timestamp", "timestamp_ms",
@@ -27,8 +20,8 @@ var CommonBidCSVFields = []string{
 
 type CommonBid struct {
 	// Collector-internal fields
-	SourceType int   `json:"source_type"`
-	ReceivedAt int64 `json:"received_at"`
+	SourceType   int   `json:"source_type"`
+	ReceivedAtMs int64 `json:"received_at"`
 
 	// Common fields
 	Timestamp     int64  `json:"timestamp"`
@@ -65,13 +58,18 @@ func (bid *CommonBid) ValueAsBigInt() *big.Int {
 }
 
 func (bid *CommonBid) ToCSVFields() []string {
+	slotTms := bid.TimestampMs - common.SlotToTime(bid.Slot).UnixMilli()
+	if bid.TimestampMs == 0 {
+		slotTms = bid.ReceivedAtMs - common.SlotToTime(bid.Slot).UnixMilli()
+	}
+
 	return []string{
 		// Collector-internal fields
-		fmt.Sprint(bid.SourceType), fmt.Sprint(bid.ReceivedAt),
+		fmt.Sprint(bid.SourceType), fmt.Sprint(bid.ReceivedAtMs),
 
 		// Common fields
 		fmt.Sprint(bid.Timestamp), fmt.Sprint(bid.TimestampMs),
-		fmt.Sprint(bid.Slot), fmt.Sprint(bid.TimestampMs - common.SlotToTime(bid.Slot).UnixMilli()), bid.Value,
+		fmt.Sprint(bid.Slot), fmt.Sprint(slotTms), bid.Value,
 		bid.BlockHash, bid.ParentHash, bid.BuilderPubkey, fmt.Sprint(bid.BlockNumber),
 
 		// Ultrasound top-bid stream
@@ -100,8 +98,8 @@ func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *CommonBid {
 	blockFeeRecipient := hexutil.Encode(bid.Bid.FeeRecipient[:])
 
 	return &CommonBid{
-		SourceType: CollectUltrasoundStream,
-		ReceivedAt: bid.ReceivedAt.Unix(),
+		SourceType:   SourceTypeUltrasoundStream,
+		ReceivedAtMs: bid.ReceivedAt.UnixMilli(),
 
 		Timestamp:         int64(bid.Bid.Timestamp) / 1000,
 		TimestampMs:       int64(bid.Bid.Timestamp),
@@ -120,8 +118,8 @@ func DataAPIToCommonBids(bids DataAPIPollerBidsMsg) []*CommonBid {
 	commonBids := make([]*CommonBid, 0, len(bids.Bids))
 	for _, bid := range bids.Bids {
 		commonBids = append(commonBids, &CommonBid{
-			SourceType: CollectDataAPI,
-			ReceivedAt: bids.ReceivedAt.Unix(),
+			SourceType:   SourceTypeDataAPI,
+			ReceivedAtMs: bids.ReceivedAt.UnixMilli(),
 
 			Timestamp:            bid.Timestamp,
 			TimestampMs:          bid.TimestampMs,
@@ -138,4 +136,18 @@ func DataAPIToCommonBids(bids DataAPIPollerBidsMsg) []*CommonBid {
 		})
 	}
 	return commonBids
+}
+
+func GetHeaderToCommonBid(bid GetHeaderPollerBidsMsg) *CommonBid {
+	return &CommonBid{
+		SourceType:   SourceTypeGetHeader,
+		ReceivedAtMs: bid.ReceivedAt.UnixMilli(),
+		Relay:        bid.Relay.Hostname(),
+		Slot:         bid.Slot,
+
+		BlockNumber: bid.Bid.Data.Message.Header.BlockNumber,
+		BlockHash:   strings.ToLower(bid.Bid.Data.Message.Header.BlockHash.String()),
+		ParentHash:  strings.ToLower(bid.Bid.Data.Message.Header.ParentHash.String()),
+		Value:       bid.Bid.Data.Message.Value.String(),
+	}
 }

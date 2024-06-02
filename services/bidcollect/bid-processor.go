@@ -119,7 +119,7 @@ func (c *BidProcessor) writeBidToFile(bid *CommonBid, isNewBid, isTopBid bool) {
 func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error) {
 	// hourlybucket
 	sec := int64(bucketMinutes * 60)
-	bucketTS := bid.ReceivedAt / sec * sec // timestamp down-round to start of bucket
+	bucketTS := bid.ReceivedAtMs / 1000 / sec * sec // timestamp down-round to start of bucket
 	t := time.Unix(bucketTS, 0).UTC()
 
 	// files may already be opened
