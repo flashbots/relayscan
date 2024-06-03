@@ -15,7 +15,7 @@ It should expose these as:
 
 ### Notes
 
-- [Source types](https://github.com/flashbots/relayscan/blob/bidstream/services/bidcollect/types.go#L13-L18):
+- Source types:
   - `0`: `getHeader` polling
   - `1`: Data API polling
   - `2`: Ultrasound top-bid Websockets stream
@@ -26,7 +26,7 @@ It should expose these as:
 - Ultrasound websocket stream
   - doesn't expose optimistic, thus that field is always false
 
-clickhouse-local queries:
+Useful [clickhouse-local](https://clickhouse.com/docs/en/operations/utilities/clickhouse-local) queries:
 
 ```bash
 clickhouse local -q "SELECT source_type, COUNT(source_type) FROM 'top_2024-06-02_18-00.tsv' GROUP BY source_type ORDER BY source_type;"
@@ -34,20 +34,26 @@ clickhouse local -q "SELECT source_type, COUNT(source_type) FROM 'top_2024-06-02
 
 ## Status
 
+Mostly working
+- PR: https://github.com/flashbots/relayscan/pull/37
+- Example output: https://gist.github.com/metachris/061c0443afb8b8d07eed477a848fa395
+
 Run:
 
 ```bash
-# Collect bids from ultrasound stream + data API, save to directory "tsv/<date>/<filename>.tsv"
-go run . service bidcollect --out tsv --data-api --ultrasound-stream
-```
+# CSV output (into `csv/<date>/<filename>.csv`)
+go run . service bidcollect --data-api --ultrasound-stream
 
-Example output: https://gist.github.com/metachris/061c0443afb8b8d07eed477a848fa395
+# TSV output (into `data/<date>/<filename>.tsv`)
+go run . service bidcollect --out data --out-tsv --data-api --ultrasound-stream
+```
 
 ### Done
 
 - Ultrasound bid stream
 - Data API polling (at t-4, t-2, t-0.5, t+0.5, t+2)
-- CSV Output
+- getHeader polling at t+1
+- CSV/TSV Output
   - Writing to hourly CSV files (one file for top bids, and one for all bids)
   - Cache for deduplication
   - Script to combine into single CSV
