@@ -5,8 +5,10 @@ import (
 	"math/big"
 	"net/url"
 	"runtime"
+	"strings"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/flashbots/mev-boost-relay/beaconclient"
 	"github.com/flashbots/relayscan/vars"
@@ -136,4 +138,13 @@ func GetMemMB() uint64 {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	return m.Alloc / 1024 / 1024
+}
+
+// HumanBytes returns size in the same format as AWS S3
+func HumanBytes(n uint64) string {
+	s := humanize.IBytes(n)
+	s = strings.Replace(s, "KiB", "KB", 1)
+	s = strings.Replace(s, "MiB", "MB", 1)
+	s = strings.Replace(s, "GiB", "GB", 1)
+	return s
 }

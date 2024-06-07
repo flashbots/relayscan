@@ -7,6 +7,7 @@ package service
 import (
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/services/bidcollect"
+	"github.com/flashbots/relayscan/services/bidcollect/website"
 	"github.com/flashbots/relayscan/vars"
 	"github.com/spf13/cobra"
 )
@@ -19,6 +20,9 @@ var (
 
 	outDir    string
 	outputTSV bool // by default: CSV, but can be changed to TSV with this setting
+
+	runDevServerOnly    bool // used to play with file listing website
+	devServerListenAddr = ":8095"
 )
 
 func init() {
@@ -33,12 +37,21 @@ func init() {
 	// for saving to file
 	bidCollectCmd.Flags().StringVar(&outDir, "out", "csv", "output directory for CSV/TSV")
 	bidCollectCmd.Flags().BoolVar(&outputTSV, "out-tsv", false, "output as TSV (instead of CSV)")
+
+	// for dev purposes
+	bidCollectCmd.Flags().BoolVar(&runDevServerOnly, "devserver", false, "only run devserver to play with file listing website")
 }
 
 var bidCollectCmd = &cobra.Command{
 	Use:   "bidcollect",
 	Short: "Collect bids",
 	Run: func(cmd *cobra.Command, args []string) {
+		if runDevServerOnly {
+			log.Infof("Bidcollect devserver starting (%s) ...", vars.Version)
+			fileListingDevServer()
+			return
+		}
+
 		log.Infof("Bidcollect starting (%s) ...", vars.Version)
 
 		// Prepare relays
@@ -69,4 +82,18 @@ var bidCollectCmd = &cobra.Command{
 		bidCollector := bidcollect.NewBidCollector(&opts)
 		bidCollector.MustStart()
 	},
+}
+
+func fileListingDevServer() {
+	webserver, err := website.NewDevWebserver(&website.DevWebserverOpts{ //nolint:exhaustruct
+		ListenAddress: devServerListenAddr,
+		Log:           log,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = webserver.StartServer()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

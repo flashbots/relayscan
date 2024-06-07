@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
+	github.com/dustin/go-humanize v1.0.1
 	github.com/ethereum/go-ethereum v1.11.6
 	github.com/ferranbt/fastssz v0.1.3
 	github.com/flashbots/go-boost-utils v1.6.0
@@ -21,6 +22,7 @@ require (
 	github.com/stretchr/testify v1.8.3
 	github.com/tdewolff/minify v2.3.6+incompatible
 	go.uber.org/atomic v1.11.0
+	go.uber.org/zap v1.24.0
 	golang.org/x/text v0.15.0
 )
 
@@ -90,7 +92,6 @@ require (
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc // indirect
 	golang.org/x/net v0.25.0 // indirect
