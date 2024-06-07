@@ -85,7 +85,7 @@ func (srv *DevWebserver) RespondError(w http.ResponseWriter, code int, message s
 	w.WriteHeader(code)
 	resp := HTTPErrorResp{code, message}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		srv.log.WithField("response", resp).Error("Couldn't write error response", "error", err)
+		srv.log.WithError(err).Error("Couldn't write error response")
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 }
@@ -94,7 +94,7 @@ func (srv *DevWebserver) RespondOK(w http.ResponseWriter, response any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		srv.log.WithField("response", response).Error("Couldn't write OK response", "error", err)
+		srv.log.WithError(err).Error("Couldn't write OK response")
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 }
@@ -102,7 +102,7 @@ func (srv *DevWebserver) RespondOK(w http.ResponseWriter, response any) {
 func (srv *DevWebserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	tpl, err := ParseIndexTemplate()
 	if err != nil {
-		srv.log.Error("wroot: error parsing template", "error", err)
+		srv.log.WithError(err).Error("wroot: error parsing template")
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -111,7 +111,7 @@ func (srv *DevWebserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	data.Path = "/"
 	err = tpl.ExecuteTemplate(w, "base", data)
 	if err != nil {
-		srv.log.Error("wroot: error executing template", "error", err)
+		srv.log.WithError(err).Error("wroot: error executing template")
 		return
 	}
 }
@@ -128,7 +128,7 @@ func (srv *DevWebserver) handleMonth(w http.ResponseWriter, req *http.Request) {
 
 	tpl, err := ParseFilesTemplate()
 	if err != nil {
-		srv.log.Error("wroot: error parsing template", "error", err)
+		srv.log.WithError(err).Error("wroot: error parsing template")
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -139,7 +139,7 @@ func (srv *DevWebserver) handleMonth(w http.ResponseWriter, req *http.Request) {
 
 	err = tpl.ExecuteTemplate(w, "base", &data)
 	if err != nil {
-		srv.log.Error("wroot: error executing template", "error", err)
+		srv.log.WithError(err).Error("wroot: error executing template")
 		return
 	}
 }
