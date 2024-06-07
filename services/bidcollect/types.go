@@ -63,7 +63,7 @@ func (bid *CommonBid) ToCSVFields() []string {
 		if bid.Timestamp > 0 {
 			tsMs = bid.Timestamp * 1000
 		} else {
-			tsMs = bid.ReceivedAtMs
+			tsMs = bid.ReceivedAtMs // fallback for getHeader bids (which don't include the bid timestamp)
 		}
 	}
 

@@ -45,6 +45,10 @@ if [[ "${UPLOAD}" == "1" ]]; then
     aws --profile s3 s3 cp --no-progress "${fn_out_zip}" "s3://relayscan-bidarchive/ethereum/mainnet/${ym}/"
 fi
 
+if [[ "${DEL}" == "1" ]]; then
+    rm -f all*
+fi
+
 echo ""
 
 # TOP BIDS
@@ -74,4 +78,8 @@ if [[ "${UPLOAD}" == "1" ]]; then
     echo "Uploading to R2 and S3..."
     aws --profile r2 s3 cp --no-progress "${fn_out_zip}" "s3://relayscan-bidarchive/ethereum/mainnet/${ym}/" --endpoint-url "https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
     aws --profile s3 s3 cp --no-progress "${fn_out_zip}" "s3://relayscan-bidarchive/ethereum/mainnet/${ym}/"
+fi
+
+if [[ "${DEL}" == "1" ]]; then
+    rm -f top*
 fi
