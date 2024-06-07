@@ -14,6 +14,7 @@ Output:
 See also:
 
 - [Example output](https://gist.github.com/metachris/061c0443afb8b8d07eed477a848fa395)
+- PR: https://github.com/flashbots/relayscan/pull/37
 - TODO: link CSV files
 
 ---
@@ -33,10 +34,11 @@ Different data sources have different limitations:
     - Optimistic is always `false`
     - Does not include `builder_pubkey`
     - Does not include bid timestamp (need to use receive timestamp)
+    - getHeader bid timestamps are always when the response from polling at t=1s comes back (but not when the bid was received at a relay)
 - Data API polling:
     - Has all the necessary information
     - Due to rate limits, we only poll at specific times
-    - Polling at t-4, t-2, t-0.5, t+0.5, t+2 (see also [`services/bidcollect/data-api-pollser.go`](services/bidcollect/data-api-poller.go#64-69))
+    - Polling at t-4, t-2, t-0.5, t+0.5, t+2 (see also [`services/bidcollect/data-api-poller.go`](services/bidcollect/data-api-poller.go#64-69))
   - Ultrasound websocket stream
     - doesn't expose optimistic, thus that field is always `false`
 
