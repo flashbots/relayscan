@@ -24,7 +24,7 @@ cd ..
 source .env.prod
 
 # archive and upload!
-UPLOAD=1 ./scripts/bids-combine-and-upload.sh "/mnt/data/relayscan-bids/$d/"
+./scripts/bids-combine-and-upload.sh "/mnt/data/relayscan-bids/$d/"
 
 # update website
 # make website

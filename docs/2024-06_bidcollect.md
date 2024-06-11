@@ -92,5 +92,5 @@ sys     0m0.589s
 
 ## TODO
 
-- spotting some weird lines in csv files, might be concurrent writes or not flushing?
-  - -> double-check file contents
+- Website generation
+- Dockerization
