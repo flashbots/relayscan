@@ -19,8 +19,7 @@ echo ""
 # ALL BIDS
 fn_out="${date}_all.csv"
 fn_out_zip="${fn_out}.zip"
-fn_out_gz="${fn_out}.gz"
-rm -f $fn_out $fn_out_zip $fn_out_gz
+rm -f $fn_out $fn_out_zip
 
 echo "Combining all bids..."
 first="1"
@@ -37,6 +36,7 @@ wc -l $fn_out
 zip ${fn_out_zip} $fn_out
 echo "Wrote ${fn_out_zip}"
 rm -f $fn_out
+rm -f all*.csv
 
 # Upload
 if [[ "${UPLOAD}" != "0" ]]; then
@@ -55,8 +55,7 @@ echo ""
 echo "Combining top bids..."
 fn_out="${date}_top.csv"
 fn_out_zip="${fn_out}.zip"
-fn_out_gz="${fn_out}.gz"
-rm -f $fn_out $fn_out_zip $fn_out_gz
+rm -f $fn_out $fn_out_zip
 
 first="1"
 for fn in $(\ls top*); do
@@ -72,6 +71,7 @@ wc -l $fn_out
 zip ${fn_out_zip} $fn_out
 echo "Wrote ${fn_out_zip}"
 rm -f $fn_out
+rm -f top*.csv
 
 # Upload
 if [[ "${UPLOAD}" != "0" ]]; then
