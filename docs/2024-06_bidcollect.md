@@ -86,3 +86,11 @@ sys     0m0.589s
 ## Architecture
 
 ![Architecture](./img/bidcollect-overview.png)
+
+
+---
+
+## TODO
+
+- spotting some weird lines in csv files, might be concurrent writes or not flushing?
+  - -> double-check file contents

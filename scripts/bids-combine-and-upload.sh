@@ -39,7 +39,7 @@ echo "Wrote ${fn_out_zip}"
 rm -f $fn_out
 
 # Upload
-if [[ "${UPLOAD}" == "1" ]]; then
+if [[ "${UPLOAD}" != "0" ]]; then
     echo "Uploading to R2 and S3..."
     aws --profile r2 s3 cp --no-progress "${fn_out_zip}" "s3://relayscan-bidarchive/ethereum/mainnet/${ym}/" --endpoint-url "https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
     aws --profile s3 s3 cp --no-progress "${fn_out_zip}" "s3://relayscan-bidarchive/ethereum/mainnet/${ym}/"
@@ -74,7 +74,7 @@ echo "Wrote ${fn_out_zip}"
 rm -f $fn_out
 
 # Upload
-if [[ "${UPLOAD}" == "1" ]]; then
+if [[ "${UPLOAD}" != "0" ]]; then
     echo "Uploading to R2 and S3..."
     aws --profile r2 s3 cp --no-progress "${fn_out_zip}" "s3://relayscan-bidarchive/ethereum/mainnet/${ym}/" --endpoint-url "https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
     aws --profile s3 s3 cp --no-progress "${fn_out_zip}" "s3://relayscan-bidarchive/ethereum/mainnet/${ym}/"
