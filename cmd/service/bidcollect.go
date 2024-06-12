@@ -23,6 +23,10 @@ var (
 
 	runDevServerOnly    bool // used to play with file listing website
 	devServerListenAddr = ":8095"
+
+	buildWebsite       bool
+	buildWebsiteUpload bool
+	buildWebsiteOutDir string
 )
 
 func init() {
@@ -40,6 +44,11 @@ func init() {
 
 	// for dev purposes
 	bidCollectCmd.Flags().BoolVar(&runDevServerOnly, "devserver", false, "only run devserver to play with file listing website")
+
+	// building the S3 website
+	bidCollectCmd.Flags().BoolVar(&buildWebsite, "build-website", false, "build file listing website")
+	bidCollectCmd.Flags().BoolVar(&buildWebsiteUpload, "build-website-upload", false, "upload after building")
+	bidCollectCmd.Flags().StringVar(&buildWebsiteOutDir, "build-website-out", "build", "output directory for website")
 }
 
 var bidCollectCmd = &cobra.Command{
@@ -49,6 +58,12 @@ var bidCollectCmd = &cobra.Command{
 		if runDevServerOnly {
 			log.Infof("Bidcollect devserver starting (%s) ...", vars.Version)
 			fileListingDevServer()
+			return
+		}
+
+		if buildWebsite {
+			log.Infof("Bidcollect %s building website (output: %s) ...", vars.Version, buildWebsiteOutDir)
+			website.BuildProdWebsite(log, buildWebsiteOutDir, buildWebsiteUpload)
 			return
 		}
 

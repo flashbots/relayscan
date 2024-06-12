@@ -1,6 +1,6 @@
 {{ define "base" }}
 
-{{ $title:="Mempool Dumpster ♻️" }}
+{{ $title:="Relayscan Bidarchive 📚" }}
 
 {{ if ne .Title "" }}
 {{ $title = (printf "%v | %v" .Title $title) }}
@@ -24,22 +24,22 @@
 
     <!-- HTML Meta Tags -->
     <title>{{ $title }}</title>
-    <meta name="description" content="Free Ethereum mempool transactions archive, brought to you by Flashbots ⚡️🤖 and friends 💫">
+    <meta name="description" content="Free Ethereum mempool transactions archive, brought to you by Flashbots ⚡️🤖">
 
     <!-- Facebook Meta Tags -->
-    <meta property="og:url" content="https://mempool-dumpster.flashbots.net{{ .Path }}">
+    <meta property="og:url" content="https://relayscan-bidarchive.flashbots.net{{ .Path }}">
     <meta property="og:type" content="website">
     <meta property="og:title" content="{{ $title }}">
-    <meta property="og:description" content="Free Ethereum mempool transactions archive, brought to you by Flashbots ⚡️🤖 and friends 💫">
-    <meta property="og:image" content="https://mempool-dumpster.flashbots.net/static/favicon/android-chrome-512x512.png">
+    <meta property="og:description" content="Free MEV-Boost Bid Archive, brought to you by Flashbots ⚡️🤖">
+    <meta property="og:image" content="https://relayscan-bidarchive.flashbots.net/static/favicon/android-chrome-512x512.png">
 
     <!-- Twitter Meta Tags -->
     <meta name="twitter:card" content="summary">
-    <meta property="twitter:domain" content="mempool-dumpster.flashbots.net">
-    <meta property="twitter:url" content="https://mempool-dumpster.flashbots.net{{ .Path }}">
+    <meta property="twitter:domain" content="relayscan-bidarchive.flashbots.net">
+    <meta property="twitter:url" content="https://relayscan-bidarchive.flashbots.net{{ .Path }}">
     <meta name="twitter:title" content="{{ $title }}">
-    <meta name="twitter:description" content="Free Ethereum mempool transactions archive, brought to you by Flashbots ⚡️🤖 and friends 💫">
-    <meta name="twitter:image" content="https://mempool-dumpster.flashbots.net/static/favicon/android-chrome-512x512.png">
+    <meta name="twitter:description" content="Free MEV-Boost Bid Archive, brought to you by Flashbots ⚡️🤖">
+    <meta name="twitter:image" content="https://relayscan-bidarchive.flashbots.net/static/favicon/android-chrome-512x512.png">
 
     <style>
         body {
@@ -100,9 +100,9 @@
         }
     </style>
     <script type="text/javascript">
-        if (window.location.host.indexOf("r2.dev") > -1) {
-            window.location = "https://mempool-dumpster.flashbots.net" + window.location.pathname + window.location.search + window.location.hash;
-        }
+        // if (window.location.host.indexOf("r2.dev") > -1) {
+        //     window.location = "https://relayscan-bidarchive.flashbots.net" + window.location.pathname + window.location.search + window.location.hash;
+        // }
     </script>
 </head>
 
@@ -111,7 +111,7 @@
         <a href="https://collective.flashbots.net/">
             <img style="float:right; background:white; margin-left: 64px; width: 100px; height: 100px;" src="https://d33wubrfki0l68.cloudfront.net/ae8530415158fbbbbe17fb033855452f792606c7/fe19f/img/logo.png">
         </a>
-        <h1>Relayscan Bidarchive</h1>
+        <h1>{{ $title }}</h1>
         <p>
             <a href="https://github.com/flashbots/relayscan">https://github.com/flashbots/relayscan</a>
         </p>

@@ -55,3 +55,9 @@ docker-image:
 generate-ssz:
 	rm -f common/ultrasoundbid_encoding.go
 	sszgen --path common --objs UltrasoundStreamBid
+
+bids-website:
+	go run . service bidcollect --build-website --build-website-upload
+
+bids-website-dev:
+	go run . service bidcollect --devserver

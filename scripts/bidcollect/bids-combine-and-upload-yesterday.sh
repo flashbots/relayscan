@@ -18,13 +18,13 @@ echo "upload for: $d"
 
 # change to project root directory
 cd "$(dirname "$0")"
-cd ..
+cd ../../
 
 # load environment variables
 source .env.prod
 
 # archive and upload!
-./scripts/bids-combine-and-upload.sh "/mnt/data/relayscan-bids/$d/"
+./scripts/bidcollect/bids-combine-and-upload.sh "/mnt/data/relayscan-bids/$d/"
 
 # update website
-# make website
+make bids-website
