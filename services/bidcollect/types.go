@@ -80,6 +80,11 @@ func (bid *CommonBid) ToCSVFields() []string {
 		bidIntoSlotTmsString = fmt.Sprint(bitIntoSlotTms)
 	}
 
+	bidIsOptimisticString := ""
+	if bid.SourceType == SourceTypeDataAPI {
+		bidIsOptimisticString = boolToString(bid.OptimisticSubmission)
+	}
+
 	return []string{
 		// Collector-internal fields
 		fmt.Sprint(bid.SourceType),
@@ -105,7 +110,7 @@ func (bid *CommonBid) ToCSVFields() []string {
 		// Data API
 		bid.ProposerPubkey,
 		bid.ProposerFeeRecipient,
-		boolToString(bid.OptimisticSubmission),
+		bidIsOptimisticString,
 	}
 }
 

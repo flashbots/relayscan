@@ -6,18 +6,17 @@ Relayscan.io collects a full, public archive of bids across [relays](../vars/rel
 
 ---
 
-### Bids source types
-
-0. [getHeader polling](https://ethereum.github.io/builder-specs/#/Builder/getHeader)
-1. [Data API polling](https://flashbots.github.io/relay-specs/#/Data/getReceivedBids)
-2. [Ultrasound top-bid websocket stream](https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md)
-
 ### Output
 
 For every day, there are two CSV files:
 1. All bids
 2. Top bids only
 
+### Bids source types
+
+- `0`: [getHeader polling](https://ethereum.github.io/builder-specs/#/Builder/getHeader)
+- `1`: [Data API polling](https://flashbots.github.io/relay-specs/#/Data/getReceivedBids)
+- `2`: [Ultrasound top-bid websocket stream](https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md)
 
 ### Collected fields
 
