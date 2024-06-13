@@ -52,11 +52,26 @@ func NewRelayEntry(relayURL string, requireUser bool) (entry RelayEntry, err err
 	return entry, err
 }
 
+func MustNewRelayEntry(relayURL string, requireUser bool) (entry RelayEntry) {
+	entry, err := NewRelayEntry(relayURL, requireUser)
+	Check(err)
+	return entry
+}
+
 // RelayEntriesToStrings returns the string representation of a list of relay entries
 func RelayEntriesToStrings(relays []RelayEntry) []string {
 	ret := make([]string, len(relays))
 	for i, entry := range relays {
 		ret[i] = entry.String()
+	}
+	return ret
+}
+
+// RelayEntriesToHostnameStrings returns the hostnames of a list of relay entries
+func RelayEntriesToHostnameStrings(relays []RelayEntry) []string {
+	ret := make([]string, len(relays))
+	for i, entry := range relays {
+		ret[i] = entry.Hostname()
 	}
 	return ret
 }
@@ -71,4 +86,10 @@ func GetRelays() ([]RelayEntry, error) {
 		}
 	}
 	return relays, nil
+}
+
+func MustGetRelays() []RelayEntry {
+	relays, err := GetRelays()
+	Check(err)
+	return relays
 }

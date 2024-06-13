@@ -55,7 +55,13 @@ func SendHTTPRequest(ctx context.Context, client http.Client, method, url string
 		return resp.StatusCode, fmt.Errorf("%w: %d / %s", errHTTPErrorResponse, resp.StatusCode, string(bodyBytes))
 	}
 
-	if dst != nil {
+	if dst == nil {
+		// still read the body to reuse http connection (see also https://stackoverflow.com/a/17953506)
+		_, err = io.Copy(io.Discard, resp.Body)
+		if err != nil {
+			return resp.StatusCode, fmt.Errorf("could not read response body: %w", err)
+		}
+	} else {
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return resp.StatusCode, fmt.Errorf("could not read response body: %w", err)

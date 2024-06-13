@@ -1,0 +1,48 @@
+{{ define "content" }}
+{{ $day:="" }}
+{{ $class:="even" }}
+{{ $change:="" }}
+
+<hr>
+<br>
+<a href=/index.html>{{ .CurrentNetwork }}</a>
+<h2>{{ .CurrentMonth }}</h2>
+
+<table class="pure-table pure-table-horizontal">
+    <tbody>
+        <tr class="cx">
+            <td class=fn><a href=/index.html>../</a></td>
+            <td></td>
+        </tr>
+
+        {{ range .Files }}
+        {{ $dayTmp:=.Filename|substr10 }}
+        {{ if ne $day $dayTmp }}
+        {{ $change = "1" }}
+        {{ $day = $dayTmp }}
+        {{ if ne $class "even" }}
+        {{ $class = "even" }}
+        {{ else }}
+        {{ $class = "odd" }}
+        {{ end }}
+        {{ else }}
+        {{ $change = "" }}
+        {{ end }}
+        <tr class="f-{{$class}} c{{$change}}">
+            <td class=fn>
+                {{ if eq $change "1" }}<a name="{{ $dayTmp }}"></a>{{ end }}
+                <a name="{{ .Filename }}"></a>
+                <a href={{ .Filename }}>{{ .Filename }}</a>
+            </td>
+            <td class=fs>{{ .Size | humanBytes }}</td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
+
+<br>
+<br>
+<p>
+    <small>The data is dedicated to the public domain under the <a href="https://creativecommons.org/publicdomain/zero/1.0">CC-0 license</a>.</small>
+</p>
+{{ end }}
