@@ -56,7 +56,7 @@ var bidCollectCmd = &cobra.Command{
 	Short: "Collect bids",
 	Run: func(cmd *cobra.Command, args []string) {
 		if runDevServerOnly {
-			log.Infof("Bidcollect devserver starting (%s) ...", vars.Version)
+			log.Infof("Bidcollect (%s) devserver starting on %s ...", vars.Version, devServerListenAddr)
 			fileListingDevServer()
 			return
 		}
