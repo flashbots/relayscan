@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"strings"
 	"sync"
 	"text/template"
@@ -24,7 +25,10 @@ import (
 	uberatomic "go.uber.org/atomic"
 )
 
-var ErrServerAlreadyStarted = errors.New("server was already started")
+var (
+	ErrServerAlreadyStarted = errors.New("server was already started")
+	envSkip7dStats          = os.Getenv("SKIP_7D_STATS") != ""
+)
 
 type WebserverOpts struct {
 	ListenAddress string
@@ -95,6 +99,10 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 func (srv *Webserver) StartServer() (err error) {
 	if srv.srvStarted.Swap(true) {
 		return ErrServerAlreadyStarted
+	}
+
+	if envSkip7dStats {
+		srv.log.Warn("SKIP_7D_STATS - Skipping 7d stats")
 	}
 
 	// Start background task to regularly update status HTML data
@@ -258,14 +266,16 @@ func (srv *Webserver) updateHTML() {
 		}
 		srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 1h stats")
 
-		startUpdate = time.Now()
-		srv.log.Info("updating 7d stats...")
-		stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
-		if err != nil {
-			srv.log.WithError(err).Error("Failed to get stats for 24h")
-			return
+		if !envSkip7dStats {
+			startUpdate = time.Now()
+			srv.log.Info("updating 7d stats...")
+			stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
+			if err != nil {
+				srv.log.WithError(err).Error("Failed to get stats for 24h")
+				return
+			}
+			srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 7d stats")
 		}
-		srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 7d stats")
 	}
 
 	// Save the html data
