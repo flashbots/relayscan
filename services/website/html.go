@@ -30,10 +30,11 @@ func NewStats() *Stats {
 type HTMLData struct {
 	Title string
 
-	GeneratedAt    time.Time
-	LastUpdateTime string
-	LastUpdateSlot uint64
-	TimeSpans      []string
+	GeneratedAt        time.Time
+	LastDataTime       time.Time
+	LastDataTimeString string
+	LastUpdateSlot     uint64
+	TimeSpans          []string
 
 	TimeSpan string
 	View     string
