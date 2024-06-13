@@ -217,10 +217,10 @@ func (srv *Webserver) updateHTML() {
 	// Now generate the HTML
 	// htmlDefault := bytes.Buffer{}
 
-	now := time.Now().UTC()
+	startTime := time.Now().UTC()
 	htmlData := HTMLData{} //nolint:exhaustruct
-	htmlData.GeneratedAt = now
-	htmlData.LastUpdateTime = now.Format("2006-01-02 15:04")
+	htmlData.GeneratedAt = startTime
+	htmlData.LastUpdateTime = startTime.Format("2006-01-02 15:04")
 	htmlData.TimeSpans = []string{"7d", "24h", "12h", "1h"}
 	// htmlData.TimeSpans = []string{"24h", "12h"}
 
@@ -247,7 +247,11 @@ func (srv *Webserver) updateHTML() {
 	}
 	srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 24h stats")
 
-	if !srv.opts.Only24h {
+	if srv.opts.Only24h {
+		stats["1h"] = NewStats()
+		stats["12h"] = NewStats()
+		stats["7d"] = NewStats()
+	} else {
 		startUpdate = time.Now()
 		srv.log.Info("updating 12h stats...")
 		stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
@@ -266,7 +270,9 @@ func (srv *Webserver) updateHTML() {
 		}
 		srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 1h stats")
 
-		if !envSkip7dStats {
+		if envSkip7dStats {
+			stats["7d"] = NewStats()
+		} else {
 			startUpdate = time.Now()
 			srv.log.Info("updating 7d stats...")
 			stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
@@ -288,14 +294,14 @@ func (srv *Webserver) updateHTML() {
 	stats24h := stats["24h"]
 
 	// create overviewMd markdown
-	overviewMd := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
+	overviewMd := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```\n", startTime.Format("2006-01-02 15:04"))
 	overviewMd += relayTable(stats24h.TopRelays)
-	overviewMd += fmt.Sprintf("```\n\nTop builders - 24h, %s UTC, via relayscan.io \n\n```\n", now.Format("2006-01-02 15:04"))
+	overviewMd += fmt.Sprintf("```\n\nTop builders - 24h, %s UTC, via relayscan.io \n\n```\n", startTime.Format("2006-01-02 15:04"))
 	overviewMd += builderTable(stats24h.TopBuilders)
 	overviewMd += "```"
 	overviewMdBytes := []byte(overviewMd)
 
-	builderProfitMd := fmt.Sprintf("Builder profits - 24h, %s UTC, via relayscan.io/builder-profit \n\n```\n", now.Format("2006-01-02 15:04"))
+	builderProfitMd := fmt.Sprintf("Builder profits - 24h, %s UTC, via relayscan.io/builder-profit \n\n```\n", startTime.Format("2006-01-02 15:04"))
 	builderProfitMd += builderProfitTable(stats24h.BuilderProfits)
 	builderProfitMd += "```"
 	builderProfitMdBytes := []byte(builderProfitMd)
@@ -320,7 +326,8 @@ func (srv *Webserver) updateHTML() {
 	// 	srv.statsAPIResp = &respBytes
 	// }
 	// srv.statsAPIRespLock.Unlock()
-	srv.log.Info("Updating HTML data complete.")
+	duration := time.Since(startTime)
+	srv.log.WithField("duration", duration.String()).Info("Updating HTML data complete.")
 }
 
 func (srv *Webserver) RespondError(w http.ResponseWriter, code int, message string) {
