@@ -175,20 +175,20 @@ func (poller *GetHeaderPoller) _pollRelayForBids(relay common.RelayEntry, t time
 		} else if strings.Contains(msg, "Too many getHeader requests! Use relay-analytics.ultrasound.money or the Websocket API") {
 			return
 		} else if code == 429 {
-			log.Warn("429 received")
+			log.Warn("[getHeader poller] 429 received")
 			return
 		}
 		log.WithFields(logrus.Fields{
 			"code": code,
 			"url":  url,
-		}).WithError(err).Error("error on getHeader request")
+		}).WithError(err).Error("[getHeader poller] error on getHeader request")
 		return
 	}
 	if code != 200 {
-		log.WithField("code", code).Debug("no bid received")
+		log.WithField("code", code).Debug("[getHeader poller] no bid received")
 		return
 	}
-	log.WithField("durationMs", timeRequestEnd.Sub(timeRequestStart).Milliseconds()).Infof("bid received! slot: %d \t value: %s \t block_hash: %s \t timestamp: %d", slot, bid.Data.Message.Value.String(), bid.Data.Message.Header.BlockHash.String(), bid.Data.Message.Header.Timestamp)
+	log.WithField("durationMs", timeRequestEnd.Sub(timeRequestStart).Milliseconds()).Infof("[getHeader poller] bid received! slot: %d - value: %s - block_hash: %s -", slot, bid.Data.Message.Value.String(), bid.Data.Message.Header.BlockHash.String())
 
 	// send data to channel
 	poller.bidC <- GetHeaderPollerBidsMsg{Slot: slot, Bid: bid, Relay: relay, ReceivedAt: time.Now().UTC()}

@@ -14,7 +14,7 @@ For every day, there are two CSV files:
 
 ### Bids source types
 
-- `0`: [getHeader polling](https://ethereum.github.io/builder-specs/#/Builder/getHeader)
+- `0`: [GetHeader polling](https://ethereum.github.io/builder-specs/#/Builder/getHeader)
 - `1`: [Data API polling](https://flashbots.github.io/relay-specs/#/Data/getReceivedBids)
 - `2`: [Ultrasound top-bid websocket stream](https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md)
 
@@ -22,7 +22,7 @@ For every day, there are two CSV files:
 
 | Field                    | Description                                                | Source Types |
 | ------------------------ | ---------------------------------------------------------- | ------------ |
-| `source_type`            | 0: getHeader, 1: Data API, 2: Ultrasound stream            | all          |
+| `source_type`            | 0: GetHeader, 1: Data API, 2: Ultrasound stream            | all          |
 | `received_at_ms`         | When the bid was first received by the relayscan collector | all          |
 | `timestamp_ms`           | When the bid was received by the relay                     | 1 + 2        |
 | `slot`                   | Slot the bid was submitted for                             | all          |
@@ -49,19 +49,19 @@ For every day, there are two CSV files:
 ## Notes on data sources
 
 Source types:
-- `0`: `getHeader` polling
+- `0`: `GetHeader` polling
 - `1`: Data API polling
 - `2`: Ultrasound top-bid Websockets stream
 
 Different data sources have different limitations:
 
-- `getHeader` polling ([code](/services/bidcollect/getheader-poller.go)):
+- `GetHeader` polling ([code](/services/bidcollect/getheader-poller.go)):
   - The received header only has limited information, with these implications:
     - Optimistic is always `false`
     - No `builder_pubkey`
     - No bid timestamp (need to use receive timestamp)
-    - getHeader bid timestamps are always when the response from polling at t=1s comes back (but not when the bid was received at a relay)
-  - Some relays only allow a single `getHeader` request per slot, so we time it at `t=1s`
+    - GetHeader bid timestamps are always when the response from polling at t=1s comes back (but not when the bid was received at a relay)
+  - Some relays only allow a single `GetHeader` request per slot, so we time it at `t=1s`
 - Data API polling ([code](/services/bidcollect/data-api-poller.go):
     - Has all the necessary information
     - Due to rate limits, we only poll at specific times
@@ -85,7 +85,7 @@ By default, the collector will output CSV into `<outdir>/<date>/<filename>.csv`
 # Start data API and ultrasound stream collectors
 go run . service bidcollect --data-api --ultrasound-stream --all-relays
 
-# getHeader needs a beacon node too
+# GetHeader needs a beacon node too
 go run . service bidcollect --get-header --beacon-uri http://localhost:3500 --all-relays
 ```
 
