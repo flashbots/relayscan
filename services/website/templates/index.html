@@ -1,5 +1,5 @@
 {{ define "content" }}
-{{ $lastUpdateTime := .LastUpdateTime }}
+{{ $lastDataTime := .LastDataTimeString }}
 {{ $time := .TimeSpan }}
 {{ $view := .View }}
 
@@ -9,7 +9,7 @@
         <!-- <h2 style="margin-bottom:10px;">24h Stats</h2> -->
 
         <p style="color: #6d6d6d; margin-top:0;">
-            <small>updated {{ .LastUpdateTime }} UTC (slot {{ .LastUpdateSlot }})</small>
+            <small>Updated {{ .LastDataTimeString }} UTC / Slot {{ .LastUpdateSlot }} / <span id="updated_ago">7 minutes ago</span></small><br>
         </p>
         <p id="view-type">
             <a href="/overview?t={{ $time }}" id="a-view-type-overview" {{ if eq $view "overview" }}class="active" {{ end }}>Overview</a>
@@ -258,15 +258,50 @@
         // fix for table sorting (it's already sorted, and this click makes the sortable plugin think it has done it)
         document.getElementById("th-builderprofit-profittotal").click()
     }
+
+    function timeSince(date) {
+        var seconds = Math.floor(new Date() - date) / 1000;
+        var interval = seconds / 31536000;
+        if (interval > 1) {
+            return Math.floor(interval) + " years";
+        }
+        interval = seconds / 2592000;
+        if (interval > 1) {
+            return Math.floor(interval) + " months";
+        }
+        interval = seconds / 86400;
+        if (interval > 1) {
+            return Math.floor(interval) + " days";
+        }
+        interval = seconds / 3600;
+        if (interval > 1) {
+            return Math.floor(interval) + " hours";
+        }
+        interval = seconds / 60;
+        if (interval > 1) {
+            n = Math.floor(interval)
+            if (n == 1) {
+                return n + " minute";
+            } else {
+                return n + " minutes";
+            }
+        }
+        return Math.floor(seconds) + " seconds";
+    }
+    window.onload = function (e) {
+        var referenceTime = new Date("{{ .LastDataTime }}");
+        var timeAgo = timeSince(referenceTime);
+        document.getElementById("updated_ago").innerText = timeAgo + " ago";
+    }
 </script>
 
 <div style="display: none;">
     <pre id="md-relays">{{ .Stats.TopRelays | relayTable}}
-Top relays - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://www.relayscan.io)</pre>
+Top relays - {{ .TimeSpan }}, {{ $lastDataTime }} UTC, via [relayscan.io](https://www.relayscan.io)</pre>
     <pre id="md-builders">{{ .Stats.TopBuilders | builderTable}}
-Top builders - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io](https://www.relayscan.io)</pre>
+Top builders - {{ .TimeSpan }}, {{ $lastDataTime }} UTC, via [relayscan.io](https://www.relayscan.io)</pre>
     <pre id="md-builderprofit">{{ .Stats.BuilderProfits | builderProfitTable}}
-Builder profits - {{ .TimeSpan }}, {{ $lastUpdateTime }} UTC, via [relayscan.io/builder-profit](https://www.relayscan.io/builder-profit)</pre>
+Builder profits - {{ .TimeSpan }}, {{ $lastDataTime }} UTC, via [relayscan.io/builder-profit](https://www.relayscan.io/builder-profit)</pre>
 </div>
 
 <!-- <link href="https://cdn.jsdelivr.net/gh/tofsjonas/sortable/sortable.min.css" rel="stylesheet" /> -->

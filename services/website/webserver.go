@@ -225,7 +225,6 @@ func (srv *Webserver) updateHTML() {
 	startTime := time.Now().UTC()
 	htmlData := HTMLData{} //nolint:exhaustruct
 	htmlData.GeneratedAt = startTime
-	htmlData.LastUpdateTime = startTime.Format("2006-01-02 15:04")
 	htmlData.TimeSpans = []string{"7d", "24h", "12h", "1h"}
 	// htmlData.TimeSpans = []string{"24h", "12h"}
 
@@ -239,9 +238,14 @@ func (srv *Webserver) updateHTML() {
 		srv.log.WithError(err).Error("Failed to get last delivered payload entry")
 		return
 	} else {
-		htmlData.LastUpdateTime = entry.InsertedAt.Format("2006-01-02 15:04")
+		htmlData.LastDataTime = entry.InsertedAt
+		htmlData.LastDataTimeString = entry.InsertedAt.Format("2006-01-02 15:04")
 		htmlData.LastUpdateSlot = entry.Slot
 		srv.latestSlot = entry.Slot
+		srv.log.WithFields(logrus.Fields{
+			"slot": entry.Slot,
+			"time": entry.InsertedAt,
+		}).Infof("Latest database entry found for slot %d", entry.Slot)
 	}
 
 	startUpdate := time.Now()
