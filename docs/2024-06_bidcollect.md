@@ -21,23 +21,23 @@ For every day, there are two CSV files:
 
 ### Collected fields
 
-| Field                    | Description                                            | Source Types                              |
-| ------------------------ | ------------------------------------------------------ | ----------------------------------------- |
-| `source_type`            | 0: getHeader, 1: Data API, 2: Ultrasound stream        | all                                       |
-| `received_at_ms`         | Timestamp when the bid was first seen at the collector | all                                       |
-| `timestamp_ms`           | Timestamp when the bid was received by the relay       | 1 + 2 (for 0 it's using `received_at_ms`) |
-| `slot`                   | Slot the bid was submitted for                         | all                                       |
-| `slot_t_ms`              | Slot timestamp                                         | all                                       |
-| `value`                  | Bid value in wei                                       | all                                       |
-| `block_hash`             | Block hash                                             | all                                       |
-| `parent_hash`            | Parent hash                                            | all                                       |
-| `builder_pubkey`         | Builder pubkey                                         | 1 + 2                                     |
-| `block_number`           | Block number                                           | all                                       |
-| `block_fee_recipient`    | Block fee recipient                                    | all                                       |
-| `relay`                  | Relay name                                             | all                                       |
-| `proposer_pubkey`        | Proposer pubkey                                        | 1 + 2                                     |
-| `proposer_fee_recipient` | Proposer fee recipient                                 | 1 + 2                                     |
-| `optimistic_submission`  | Optimistic submission flag                             | 0 + 1                                     |
+| Field                    | Description                                                | Source Types |
+| ------------------------ | ---------------------------------------------------------- | ------------ |
+| `source_type`            | 0: getHeader, 1: Data API, 2: Ultrasound stream            | all          |
+| `received_at_ms`         | When the bid was first received by the relayscan collector | all          |
+| `timestamp_ms`           | When the bid was received by the relay                     | 1 + 2        |
+| `slot`                   | Slot the bid was submitted for                             | all          |
+| `slot_t_ms`              | How late into the slot the bid was received by the relay   | all          |
+| `value`                  | Bid value in wei                                           | all          |
+| `block_hash`             | Block hash                                                 | all          |
+| `parent_hash`            | Parent hash                                                | all          |
+| `block_number`           | Block number                                               | all          |
+| `relay`                  | Relay name                                                 | all          |
+| `builder_pubkey`         | Builder pubkey                                             | 1 + 2        |
+| `block_fee_recipient`    | Block fee recipient                                        | 2            |
+| `proposer_pubkey`        | Proposer pubkey                                            | 1            |
+| `proposer_fee_recipient` | Proposer fee recipient                                     | 1            |
+| `optimistic_submission`  | Optimistic submission flag                                 | 1            |
 
 ### See also
 
