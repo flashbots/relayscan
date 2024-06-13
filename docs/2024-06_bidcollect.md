@@ -26,14 +26,14 @@ For every day, there are two CSV files:
 | `received_at_ms`         | When the bid was first received by the relayscan collector | all          |
 | `timestamp_ms`           | When the bid was received by the relay                     | 1 + 2        |
 | `slot`                   | Slot the bid was submitted for                             | all          |
-| `slot_t_ms`              | How late into the slot the bid was received by the relay   | all          |
+| `slot_t_ms`              | How late into the slot the bid was received by the relay   | 1 + 2        |
 | `value`                  | Bid value in wei                                           | all          |
 | `block_hash`             | Block hash                                                 | all          |
 | `parent_hash`            | Parent hash                                                | all          |
-| `block_number`           | Block number                                               | all          |
-| `relay`                  | Relay name                                                 | all          |
 | `builder_pubkey`         | Builder pubkey                                             | 1 + 2        |
+| `block_number`           | Block number                                               | all          |
 | `block_fee_recipient`    | Block fee recipient                                        | 2            |
+| `relay`                  | Relay name                                                 | all          |
 | `proposer_pubkey`        | Proposer pubkey                                            | 1            |
 | `proposer_fee_recipient` | Proposer fee recipient                                     | 1            |
 | `optimistic_submission`  | Optimistic submission flag                                 | 1            |

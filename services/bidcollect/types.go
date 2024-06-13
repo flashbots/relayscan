@@ -36,7 +36,6 @@ type CommonBid struct {
 	ReceivedAtMs int64 `json:"received_at"`
 
 	// Common fields
-	// Timestamp     int64  `json:"timestamp"`
 	Slot          uint64 `json:"slot"`
 	BlockNumber   uint64 `json:"block_number"`
 	BlockHash     string `json:"block_hash"`
@@ -80,6 +79,7 @@ func (bid *CommonBid) ToCSVFields() []string {
 		bidIntoSlotTmsString = fmt.Sprint(bitIntoSlotTms)
 	}
 
+	// Optimistic string can be (1) empty, (2) `true` or (3) `false`
 	bidIsOptimisticString := ""
 	if bid.SourceType == SourceTypeDataAPI {
 		bidIsOptimisticString = boolToString(bid.OptimisticSubmission)
