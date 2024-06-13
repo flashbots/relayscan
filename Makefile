@@ -56,8 +56,11 @@ generate-ssz:
 	rm -f common/ultrasoundbid_encoding.go
 	sszgen --path common --objs UltrasoundStreamBid
 
-bids-website:
+update-bids-website:
 	go run . service bidcollect --build-website --build-website-upload
 
-bids-website-dev:
+dev-website:
+	go run . service website --dev
+
+dev-bids-website:
 	go run . service bidcollect --devserver

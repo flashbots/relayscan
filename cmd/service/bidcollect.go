@@ -22,7 +22,7 @@ var (
 	outputTSV bool // by default: CSV, but can be changed to TSV with this setting
 
 	runDevServerOnly    bool // used to play with file listing website
-	devServerListenAddr = ":8095"
+	devServerListenAddr string
 
 	buildWebsite       bool
 	buildWebsiteUpload bool
@@ -44,6 +44,7 @@ func init() {
 
 	// for dev purposes
 	bidCollectCmd.Flags().BoolVar(&runDevServerOnly, "devserver", false, "only run devserver to play with file listing website")
+	bidCollectCmd.Flags().StringVar(&devServerListenAddr, "devserver-addr", "localhost:8095", "listen address for devserver")
 
 	// building the S3 website
 	bidCollectCmd.Flags().BoolVar(&buildWebsite, "build-website", false, "build file listing website")
@@ -56,7 +57,7 @@ var bidCollectCmd = &cobra.Command{
 	Short: "Collect bids",
 	Run: func(cmd *cobra.Command, args []string) {
 		if runDevServerOnly {
-			log.Infof("Bidcollect (%s) devserver starting on %s ...", vars.Version, devServerListenAddr)
+			log.Infof("Bidcollect %s devserver starting on %s ...", vars.Version, devServerListenAddr)
 			fileListingDevServer()
 			return
 		}
@@ -67,7 +68,7 @@ var bidCollectCmd = &cobra.Command{
 			return
 		}
 
-		log.Infof("Bidcollect starting (%s) ...", vars.Version)
+		log.Infof("Bidcollect %s starting ...", vars.Version)
 
 		// Prepare relays
 		relays := []common.RelayEntry{
