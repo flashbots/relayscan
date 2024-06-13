@@ -10,12 +10,24 @@ import (
 )
 
 var CommonBidCSVFields = []string{
-	"source_type", "received_at_ms",
+	"source_type",
+	"received_at_ms",
+
 	"timestamp_ms",
-	"slot", "slot_t_ms", "value",
-	"block_hash", "parent_hash", "builder_pubkey", "block_number",
+	"slot",
+	"slot_t_ms",
+	"value",
+
+	"block_hash",
+	"parent_hash",
+	"builder_pubkey",
+	"block_number",
+
 	"block_fee_recipient",
-	"relay", "proposer_pubkey", "proposer_fee_recipient", "optimistic_submission",
+	"relay",
+	"proposer_pubkey",
+	"proposer_fee_recipient",
+	"optimistic_submission",
 }
 
 type CommonBid struct {
@@ -24,7 +36,7 @@ type CommonBid struct {
 	ReceivedAtMs int64 `json:"received_at"`
 
 	// Common fields
-	Timestamp     int64  `json:"timestamp"`
+	// Timestamp     int64  `json:"timestamp"`
 	Slot          uint64 `json:"slot"`
 	BlockNumber   uint64 `json:"block_number"`
 	BlockHash     string `json:"block_hash"`
@@ -43,8 +55,6 @@ type CommonBid struct {
 	ProposerPubkey       string `json:"proposer_pubkey"`
 	ProposerFeeRecipient string `json:"proposer_fee_recipient"`
 	OptimisticSubmission bool   `json:"optimistic_submission"`
-
-	// getHeader
 }
 
 func (bid *CommonBid) UniqueKey() string {
@@ -58,31 +68,44 @@ func (bid *CommonBid) ValueAsBigInt() *big.Int {
 }
 
 func (bid *CommonBid) ToCSVFields() []string {
-	tsMs := bid.TimestampMs
-	if tsMs == 0 {
-		if bid.Timestamp > 0 {
-			tsMs = bid.Timestamp * 1000
-		} else {
-			tsMs = bid.ReceivedAtMs // fallback for getHeader bids (which don't include the bid timestamp)
-		}
-	}
+	bidTimestampMsString := ""
+	bidIntoSlotTmsString := ""
 
-	slotTms := tsMs - common.SlotToTime(bid.Slot).UnixMilli()
+	// If we have a timestamp, can caculate how
+	if bid.TimestampMs > 0 {
+		bidTimestampMsString = fmt.Sprint(bid.TimestampMs)
+
+		// calculate the bid time into the slot
+		bitIntoSlotTms := bid.TimestampMs - common.SlotToTime(bid.Slot).UnixMilli()
+		bidIntoSlotTmsString = fmt.Sprint(bitIntoSlotTms)
+	}
 
 	return []string{
 		// Collector-internal fields
-		fmt.Sprint(bid.SourceType), fmt.Sprint(bid.ReceivedAtMs),
+		fmt.Sprint(bid.SourceType),
+		fmt.Sprint(bid.ReceivedAtMs),
 
 		// Common fields
-		fmt.Sprint(tsMs),
-		fmt.Sprint(bid.Slot), fmt.Sprint(slotTms), bid.Value,
-		bid.BlockHash, bid.ParentHash, bid.BuilderPubkey, fmt.Sprint(bid.BlockNumber),
+		bidTimestampMsString,
+		fmt.Sprint(bid.Slot),
+		bidIntoSlotTmsString,
+		bid.Value,
+
+		bid.BlockHash,
+		bid.ParentHash,
+		bid.BuilderPubkey,
+		fmt.Sprint(bid.BlockNumber),
 
 		// Ultrasound top-bid stream
 		bid.BlockFeeRecipient,
 
+		// Relay is common too
+		bid.Relay,
+
 		// Data API
-		bid.Relay, bid.ProposerPubkey, bid.ProposerFeeRecipient, boolToString(bid.OptimisticSubmission),
+		bid.ProposerPubkey,
+		bid.ProposerFeeRecipient,
+		boolToString(bid.OptimisticSubmission),
 	}
 }
 
@@ -107,7 +130,6 @@ func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *CommonBid {
 		SourceType:   SourceTypeUltrasoundStream,
 		ReceivedAtMs: bid.ReceivedAt.UnixMilli(),
 
-		Timestamp:         int64(bid.Bid.Timestamp) / 1000,
 		TimestampMs:       int64(bid.Bid.Timestamp),
 		Slot:              bid.Bid.Slot,
 		BlockNumber:       bid.Bid.BlockNumber,
@@ -123,12 +145,17 @@ func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *CommonBid {
 func DataAPIToCommonBids(bids DataAPIPollerBidsMsg) []*CommonBid {
 	commonBids := make([]*CommonBid, 0, len(bids.Bids))
 	for _, bid := range bids.Bids {
+		// ensure it works even if some relays don't provide the timestamp in ms by converting regular timestamp to ms
+		bidTimestampMs := bid.TimestampMs
+		if bidTimestampMs == 0 && bid.Timestamp > 0 {
+			bidTimestampMs = bid.Timestamp * 1000
+		}
+
 		commonBids = append(commonBids, &CommonBid{
 			SourceType:   SourceTypeDataAPI,
 			ReceivedAtMs: bids.ReceivedAt.UnixMilli(),
 
-			Timestamp:            bid.Timestamp,
-			TimestampMs:          bid.TimestampMs,
+			TimestampMs:          bidTimestampMs,
 			Slot:                 bid.Slot,
 			BlockNumber:          bid.BlockNumber,
 			BlockHash:            strings.ToLower(bid.BlockHash),
