@@ -78,8 +78,6 @@ docker run flashbots/relayscan /app/relayscan version
 # Start the website (--dev reloads the template on every page load, for easier iteration)
 ./relayscan service website --dev
 
-# Start service to query every relay for bids
-./relayscan service website --dev collect-live-bids
 ```
 
 You might want to run Postgres locally for testing:

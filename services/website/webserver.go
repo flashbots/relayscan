@@ -17,6 +17,7 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/flashbots/go-utils/httplogger"
+	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
@@ -59,6 +60,8 @@ type Webserver struct {
 	markdownSummaryRespLock sync.RWMutex
 	markdownOverview        *[]byte
 	markdownBuilderProfit   *[]byte
+
+	latestSlot uint64
 }
 
 func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
@@ -145,7 +148,9 @@ func (srv *Webserver) getRouter() http.Handler {
 	r.HandleFunc("/stats/cowstats", srv.handleCowstatsJSON).Methods(http.MethodGet)
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}", srv.handleDailyStats).Methods(http.MethodGet)
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}/json", srv.handleDailyStatsJSON).Methods(http.MethodGet)
-	// r.HandleFunc("/api/stats", srv.handleStatsAPI).Methods(http.MethodGet)
+
+	r.HandleFunc("/livez", srv.handleLivenessCheck)
+	r.HandleFunc("/healthz", srv.handleHealthCheck)
 
 	if srv.opts.EnablePprof {
 		srv.log.Info("pprof API enabled")
@@ -236,6 +241,7 @@ func (srv *Webserver) updateHTML() {
 	} else {
 		htmlData.LastUpdateTime = entry.InsertedAt.Format("2006-01-02 15:04")
 		htmlData.LastUpdateSlot = entry.Slot
+		srv.latestSlot = entry.Slot
 	}
 
 	startUpdate := time.Now()
@@ -336,6 +342,15 @@ func (srv *Webserver) RespondError(w http.ResponseWriter, code int, message stri
 	resp := HTTPErrorResp{code, message}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		srv.log.WithField("response", resp).WithError(err).Error("Couldn't write error response")
+		http.Error(w, "", http.StatusInternalServerError)
+	}
+}
+
+func (srv *Webserver) RespondErrorJSON(w http.ResponseWriter, code int, response any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		srv.log.WithField("response", response).WithError(err).Error("Couldn't write OK response")
 		http.Error(w, "", http.StatusInternalServerError)
 	}
 }
@@ -557,5 +572,39 @@ func (srv *Webserver) handleCowstatsJSON(w http.ResponseWriter, req *http.Reques
 		DateTo:      wednesday1.String(),
 		TopBuilders: consolidateBuilderEntries(topBuilders),
 	}
+	srv.RespondOK(w, resp)
+}
+
+func (srv *Webserver) handleLivenessCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func (srv *Webserver) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	currentSlot := common.TimeToSlot(time.Now().UTC())
+	slotsPerMinute := 5
+	maxMinutesSinceLastUpdate := 10
+	maxSlotsSinceLastUpdate := maxMinutesSinceLastUpdate * slotsPerMinute
+
+	type apiResp struct {
+		IsHealthy        bool   `json:"is_healthy"`
+		CurrentSlot      uint64 `json:"current_slot"`
+		LatestUpdateSlot uint64 `json:"latest_update_slot"`
+		SlotsSinceUpdate uint64 `json:"slots_since_update"`
+		Message          string `json:"message"`
+	}
+
+	resp := apiResp{
+		IsHealthy:        true,
+		CurrentSlot:      currentSlot,
+		LatestUpdateSlot: srv.latestSlot,
+		SlotsSinceUpdate: currentSlot - srv.latestSlot,
+	}
+
+	if currentSlot-srv.latestSlot > uint64(maxSlotsSinceLastUpdate) {
+		resp.IsHealthy = false
+		resp.Message = "No updates for too long"
+		srv.RespondErrorJSON(w, http.StatusInternalServerError, resp)
+	}
+
 	srv.RespondOK(w, resp)
 }
