@@ -6,10 +6,9 @@
 <div class="content">
     <div style="text-align: center; margin-bottom:60px;">
         <h1 style="margin-bottom:10px;">MEV-Boost Analytics</h1>
-        <!-- <h2 style="margin-bottom:10px;">24h Stats</h2> -->
 
-        <p style="color: #6d6d6d; margin-top:0;">
-            <small>Updated {{ .LastDataTimeString }} UTC / Slot {{ .LastUpdateSlot }}<span id="updated_ago"> / 0 minutes ago</span></small><br>
+        <p style="color: #6d6d6d; margin-top:0; line-height: 1.4em;">
+            <small>Updated {{ .LastDataTimeString }} UTC / Slot {{ .LastUpdateSlot }}<br><span id="updated_ago"></span></small><br>
         </p>
         <p id="view-type">
             <a href="/overview?t={{ $time }}" id="a-view-type-overview" {{ if eq $view "overview" }}class="active" {{ end }}>Overview</a>
@@ -170,6 +169,47 @@
 
 <script src="https://unpkg.com/@popperjs/core@2"></script>
 <script>
+    function timeSince(date) {
+        var seconds = Math.floor(new Date() - date) / 1000;
+        var interval = seconds / 31536000;
+        if (interval > 1) {
+            return Math.floor(interval) + " years";
+        }
+        interval = seconds / 2592000;
+        if (interval > 1) {
+            return Math.floor(interval) + " months";
+        }
+        interval = seconds / 86400;
+        if (interval > 1) {
+            return Math.floor(interval) + " days";
+        }
+        interval = seconds / 3600;
+        if (interval > 1) {
+            return Math.floor(interval) + " hours";
+        }
+        interval = seconds / 60;
+        if (interval > 1) {
+            n = Math.floor(interval)
+            if (n == 1) {
+                return n + " minute";
+            } else {
+                return n + " minutes";
+            }
+        }
+
+        sec = Math.floor(seconds)
+        if (isNaN(sec)) {
+            return "";
+        }
+        return sec + " seconds";
+    }
+
+    var referenceTime = new Date("{{ .LastDataTime }}");
+    var timeAgo = timeSince(referenceTime);
+    if (timeAgo != "") {
+        document.getElementById("updated_ago").innerText = "(" + timeAgo + " ago)";
+    }
+
     const showEvents = ['mouseenter', 'focus'];
     const hideEvents = ['mouseleave', 'blur'];
 
@@ -258,49 +298,6 @@
         // fix for table sorting (it's already sorted, and this click makes the sortable plugin think it has done it)
         document.getElementById("th-builderprofit-profittotal").click()
     }
-
-    function timeSince(date) {
-        var seconds = Math.floor(new Date() - date) / 1000;
-        var interval = seconds / 31536000;
-        if (interval > 1) {
-            return Math.floor(interval) + " years";
-        }
-        interval = seconds / 2592000;
-        if (interval > 1) {
-            return Math.floor(interval) + " months";
-        }
-        interval = seconds / 86400;
-        if (interval > 1) {
-            return Math.floor(interval) + " days";
-        }
-        interval = seconds / 3600;
-        if (interval > 1) {
-            return Math.floor(interval) + " hours";
-        }
-        interval = seconds / 60;
-        if (interval > 1) {
-            n = Math.floor(interval)
-            if (n == 1) {
-                return n + " minute";
-            } else {
-                return n + " minutes";
-            }
-        }
-
-        sec = Math.floor(seconds)
-        if (isNaN(sec)) {
-            return "";
-        }
-        return sec + " seconds";
-    }
-
-    var referenceTime = new Date("{{ .LastDataTime }}");
-    var timeAgo = timeSince(referenceTime);
-    if (timeAgo == "") {
-        // hide element
-        document.getElementById("updated_ago").style.display = "none";
-    }
-    document.getElementById("updated_ago").innerText = " / " + timeAgo + " ago";
 </script>
 
 <div style="display: none;">
