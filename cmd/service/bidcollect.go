@@ -9,6 +9,7 @@ import (
 	"github.com/flashbots/relayscan/services/bidcollect"
 	"github.com/flashbots/relayscan/services/bidcollect/website"
 	"github.com/flashbots/relayscan/vars"
+	"github.com/lithammer/shortuuid"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +20,8 @@ var (
 	useAllRelays            bool
 
 	outDir    string
-	outputTSV bool // by default: CSV, but can be changed to TSV with this setting
+	outputTSV bool   // by default: CSV, but can be changed to TSV with this setting
+	uid       string // used in output filenames, to avoid collissions between multiple collector instances
 
 	runDevServerOnly    bool // used to play with file listing website
 	devServerListenAddr string
@@ -41,6 +43,9 @@ func init() {
 	// for saving to file
 	bidCollectCmd.Flags().StringVar(&outDir, "out", "csv", "output directory for CSV/TSV")
 	bidCollectCmd.Flags().BoolVar(&outputTSV, "out-tsv", false, "output as TSV (instead of CSV)")
+
+	// utils
+	bidCollectCmd.Flags().StringVar(&uid, "uid", "", "unique identifier for output files (to avoid collisions)")
 
 	// for dev purposes
 	bidCollectCmd.Flags().BoolVar(&runDevServerOnly, "devserver", false, "only run devserver to play with file listing website")
@@ -68,7 +73,11 @@ var bidCollectCmd = &cobra.Command{
 			return
 		}
 
-		log.Infof("Bidcollect %s starting ...", vars.Version)
+		if uid == "" {
+			uid = shortuuid.New()[:6]
+		}
+
+		log.WithField("uid", uid).Infof("Bidcollect %s starting ...", vars.Version)
 
 		// Prepare relays
 		relays := []common.RelayEntry{
@@ -86,6 +95,7 @@ var bidCollectCmd = &cobra.Command{
 
 		opts := bidcollect.BidCollectorOpts{
 			Log:                     log,
+			UID:                     uid,
 			Relays:                  relays,
 			CollectUltrasoundStream: collectUltrasoundStream,
 			CollectGetHeader:        collectGetHeader,

@@ -20,6 +20,7 @@ import (
 
 type BidProcessorOpts struct {
 	Log       *logrus.Entry
+	UID       string
 	OutDir    string
 	OutputTSV bool
 }
@@ -202,7 +203,7 @@ func (c *BidProcessor) getFilename(prefix string, timestamp int64) string {
 	if prefix != "" {
 		prefix += "_"
 	}
-	return fmt.Sprintf("%s%s.%s", prefix, t.Format("2006-01-02_15-04"), c.csvFileEnding)
+	return fmt.Sprintf("%s%s_%s.%s", prefix, t.Format("2006-01-02_15-04"), c.opts.UID, c.csvFileEnding)
 }
 
 func (c *BidProcessor) housekeeping() {

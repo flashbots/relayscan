@@ -27,4 +27,4 @@ source .env.prod
 ./scripts/bidcollect/bids-combine-and-upload.sh "/mnt/data/relayscan-bids/$d/"
 
 # update website
-make update-bids-website
+./relayscan service bidcollect --build-website --build-website-upload

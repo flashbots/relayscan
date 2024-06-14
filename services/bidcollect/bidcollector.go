@@ -8,6 +8,7 @@ import (
 
 type BidCollectorOpts struct {
 	Log *logrus.Entry
+	UID string
 
 	CollectUltrasoundStream bool
 	CollectGetHeader        bool
@@ -49,6 +50,7 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	// output
 	c.processor = NewBidProcessor(&BidProcessorOpts{
 		Log:       opts.Log,
+		UID:       opts.UID,
 		OutDir:    opts.OutDir,
 		OutputTSV: opts.OutputTSV,
 	})

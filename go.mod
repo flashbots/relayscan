@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.9
+	github.com/lithammer/shortuuid v3.0.0+incompatible
 	github.com/metachris/flashbotsrpc v0.5.0
 	github.com/metachris/go-ethutils v0.5.3
 	github.com/olekukonko/tablewriter v0.0.5
