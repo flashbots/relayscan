@@ -9,7 +9,7 @@
         <!-- <h2 style="margin-bottom:10px;">24h Stats</h2> -->
 
         <p style="color: #6d6d6d; margin-top:0;">
-            <small>Updated {{ .LastDataTimeString }} UTC / Slot {{ .LastUpdateSlot }} / <span id="updated_ago">7 minutes ago</span></small><br>
+            <small>Updated {{ .LastDataTimeString }} UTC / Slot {{ .LastUpdateSlot }}<span id="updated_ago"> / 0 minutes ago</span></small><br>
         </p>
         <p id="view-type">
             <a href="/overview?t={{ $time }}" id="a-view-type-overview" {{ if eq $view "overview" }}class="active" {{ end }}>Overview</a>
@@ -286,13 +286,21 @@
                 return n + " minutes";
             }
         }
-        return Math.floor(seconds) + " seconds";
+
+        sec = Math.floor(seconds)
+        if (isNaN(sec)) {
+            return "";
+        }
+        return sec + " seconds";
     }
-    window.onload = function (e) {
-        var referenceTime = new Date("{{ .LastDataTime }}");
-        var timeAgo = timeSince(referenceTime);
-        document.getElementById("updated_ago").innerText = timeAgo + " ago";
+
+    var referenceTime = new Date("{{ .LastDataTime }}");
+    var timeAgo = timeSince(referenceTime);
+    if (timeAgo == "") {
+        // hide element
+        document.getElementById("updated_ago").style.display = "none";
     }
+    document.getElementById("updated_ago").innerText = " / " + timeAgo + " ago";
 </script>
 
 <div style="display: none;">
