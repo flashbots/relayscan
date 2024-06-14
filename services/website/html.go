@@ -5,6 +5,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/flashbots/relayscan/database"
 )
 
@@ -63,6 +64,7 @@ var funcMap = template.FuncMap{
 	"relayTable":         relayTable,
 	"builderTable":       builderTable,
 	"builderProfitTable": builderProfitTable,
+	"humanTime":          humanize.Time,
 }
 
 func ParseIndexTemplate() (*template.Template, error) {

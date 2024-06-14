@@ -8,7 +8,10 @@
         <h1 style="margin-bottom:10px;">MEV-Boost Analytics</h1>
 
         <p style="color: #6d6d6d; margin-top:0; line-height: 1.4em;">
-            <small>Updated {{ .LastDataTimeString }} UTC / Slot {{ .LastUpdateSlot }}<br><span id="updated_ago"></span></small><br>
+            <small>
+                Updated {{ .LastDataTimeString }} UTC / Slot {{ .LastUpdateSlot }}<br>
+                <span id="updated_ago">({{ .LastDataTime | humanTime }})</span>
+            </small>
         </p>
         <p id="view-type">
             <a href="/overview?t={{ $time }}" id="a-view-type-overview" {{ if eq $view "overview" }}class="active" {{ end }}>Overview</a>
