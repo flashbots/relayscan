@@ -1,6 +1,6 @@
 {{ define "base" }}
 
-{{ $title:="Relayscan Bidarchive 📚" }}
+{{ $title:="Relayscan.io Bid Archive 📚" }}
 
 {{ if ne .Title "" }}
 {{ $title = (printf "%v | %v" .Title $title) }}
@@ -23,22 +23,22 @@
 
     <!-- HTML Meta Tags -->
     <title>{{ $title }}</title>
-    <meta name="description" content="MEV-Boost bid archive across relays, brought to you by Flashbots ⚡️🤖">
+    <meta name="description" content="Builder bids across MEV-Boost relays, brought to you by Flashbots ⚡️🤖">
 
     <!-- Facebook Meta Tags -->
-    <meta property="og:url" content="https://relayscan-bidarchive.flashbots.net{{ .Path }}">
+    <meta property="og:url" content="https://bidarchive.relayscan.io{{ .Path }}">
     <meta property="og:type" content="website">
     <meta property="og:title" content="{{ $title }}">
-    <meta property="og:description" content="MEV-Boost bid archive across relays, brought to you by Flashbots ⚡️🤖">
-    <meta property="og:image" content="https://relayscan-bidarchive.flashbots.net/static/favicon/android-chrome-512x512.png">
+    <meta property="og:description" content="Builder bids across MEV-Boost relays, brought to you by Flashbots ⚡️🤖">
+    <meta property="og:image" content="https://bidarchive.relayscan.io/static/favicon/android-chrome-512x512.png">
 
     <!-- Twitter Meta Tags -->
     <meta name="twitter:card" content="summary">
-    <meta property="twitter:domain" content="relayscan-bidarchive.flashbots.net">
-    <meta property="twitter:url" content="https://relayscan-bidarchive.flashbots.net{{ .Path }}">
+    <meta property="twitter:domain" content="https://bidarchive.relayscan.io">
+    <meta property="twitter:url" content="https://bidarchive.relayscan.io{{ .Path }}">
     <meta name="twitter:title" content="{{ $title }}">
-    <meta name="twitter:description" content="MEV-Boost bid archive across relays, brought to you by Flashbots ⚡️🤖">
-    <meta name="twitter:image" content="https://relayscan-bidarchive.flashbots.net/static/favicon/android-chrome-512x512.png">
+    <meta name="twitter:description" content="Builder bids across MEV-Boost relays, brought to you by Flashbots ⚡️🤖">
+    <meta name="twitter:image" content="https://bidarchive.relayscan.io/static/favicon/android-chrome-512x512.png">
 
     <style>
         body {
@@ -100,7 +100,7 @@
     </style>
     <script type="text/javascript">
         // if (window.location.host.indexOf("r2.dev") > -1) {
-        //     window.location = "https://relayscan-bidarchive.flashbots.net" + window.location.pathname + window.location.search + window.location.hash;
+        //     window.location = "https://bidarchive.relayscan.io" + window.location.pathname + window.location.search + window.location.hash;
         // }
     </script>
 </head>
@@ -110,9 +110,9 @@
         <a href="https://collective.flashbots.net/">
             <img style="float:right; background:white; margin-left: 64px; width: 100px; height: 100px;" src="https://d33wubrfki0l68.cloudfront.net/ae8530415158fbbbbe17fb033855452f792606c7/fe19f/img/logo.png">
         </a>
-        <h1>{{ $title }}</h1>
+        <h1>{{ $title }} <img src="https://relayscan.io/static/favicon/favicon-32x32.png"></h1>
         <p>
-            <a href="https://github.com/flashbots/relayscan/blob/main/docs/2024-06_bidcollect.md">docs</a> &middot; <a href="https://github.com/flashbots/relayscan">https://github.com/flashbots/relayscan</a>
+            <a href="https://github.com/flashbots/relayscan/blob/main/docs/2024-06_bidcollect.md">Docs</a> &middot; <a href="https://github.com/flashbots/relayscan">github.com/flashbots/relayscan</a>
         </p>
         <p><i>Illuminate, Democratize, Distribute</i></p>
     </div>

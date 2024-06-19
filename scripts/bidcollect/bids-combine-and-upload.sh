@@ -32,7 +32,12 @@ for fn in $(\ls all*); do
     tail -n +2 $fn >> $fn_out
 done
 
+echo "Lines (all bids):"
 wc -l $fn_out
+
+echo "Source types (all bids):"
+clickhouse local -q "SELECT source_type, COUNT(source_type) FROM '$fn_out' GROUP BY source_type ORDER BY source_type;"
+
 zip ${fn_out_zip} $fn_out
 echo "Wrote ${fn_out_zip}"
 rm -f $fn_out
@@ -67,7 +72,12 @@ for fn in $(\ls top*); do
     tail -n +2 $fn >> $fn_out
 done
 
+echo "Lines (top bids):"
 wc -l $fn_out
+
+echo "Source types (top bids):"
+clickhouse local -q "SELECT source_type, COUNT(source_type) FROM '$fn_out' GROUP BY source_type ORDER BY source_type;"
+
 zip ${fn_out_zip} $fn_out
 echo "Wrote ${fn_out_zip}"
 rm -f $fn_out
