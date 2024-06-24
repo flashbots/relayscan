@@ -61,12 +61,13 @@ func (poller *DataAPIPoller) Start() {
 
 		poller.Log.Infof("[data-api poller] scheduling polling for upcoming slot: %d (%s - in %s)", nextSlot, tNextSlot.String(), untilNextSlot.String())
 
-		// Schedule polling at t-4, t-2, t=0, t=2
+		// Schedule polling at t-4, t-2, t=0, t=2, t=20
 		go poller.pollRelaysForBids(nextSlot, -4*time.Second)
 		go poller.pollRelaysForBids(nextSlot, -2*time.Second)
 		go poller.pollRelaysForBids(nextSlot, -500*time.Millisecond)
 		go poller.pollRelaysForBids(nextSlot, 500*time.Millisecond)
 		go poller.pollRelaysForBids(nextSlot, 2*time.Second)
+		go poller.pollRelaysForBids(nextSlot, 20*time.Second)
 
 		// wait until next slot
 		time.Sleep(untilNextSlot)
