@@ -9,5 +9,5 @@ import (
 func TestSourceTypes(t *testing.T) {
 	require.Equal(t, 0, SourceTypeGetHeader)
 	require.Equal(t, 1, SourceTypeDataAPI)
-	require.Equal(t, 2, SourceTypeUltrasoundStream)
+	require.Equal(t, 2, SourceTypeTopBidWSStream)
 }

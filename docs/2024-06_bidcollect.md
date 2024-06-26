@@ -16,13 +16,13 @@ For every day, there are two CSV files:
 
 - `0`: [GetHeader polling](https://ethereum.github.io/builder-specs/#/Builder/getHeader)
 - `1`: [Data API polling](https://flashbots.github.io/relay-specs/#/Data/getReceivedBids)
-- `2`: [Ultrasound top-bid websocket stream](https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md)
+- `2`: [Top-bid websocket stream (Ultrasound + Aestus)](https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md)
 
 ### Collected fields
 
 | Field                    | Description                                                | Source Types |
 | ------------------------ | ---------------------------------------------------------- | ------------ |
-| `source_type`            | 0: GetHeader, 1: Data API, 2: Ultrasound stream            | all          |
+| `source_type`            | 0: GetHeader, 1: Data API, 2: Top-Bid WS Stream            | all          |
 | `received_at_ms`         | When the bid was first received by the relayscan collector | all          |
 | `timestamp_ms`           | When the bid was received by the relay                     | 1 + 2        |
 | `slot`                   | Slot the bid was submitted for                             | all          |
@@ -51,7 +51,7 @@ For every day, there are two CSV files:
 Source types:
 - `0`: `GetHeader` polling
 - `1`: Data API polling
-- `2`: Ultrasound top-bid Websockets stream
+- `2`: Top-bid Websocket stream
 
 Different data sources have different limitations:
 
@@ -66,7 +66,7 @@ Different data sources have different limitations:
     - Has all the necessary information
     - Due to rate limits, we only poll at specific times
     - Polling at t-4, t-2, t-0.5, t+0.5, t+2 (see also [`/services/bidcollect/data-api-poller.go`](/services/bidcollect/data-api-poller.go#64-69))
-- Ultrasound websocket stream ([code](/services/bidcollect/ultrasound-stream.go):
+- Top-bid websocket stream ([code](/services/bidcollect/top-bid-websocket-stream.go):
   - doesn't expose optimistic, thus that field is always `false`
 
 ## Other notes
@@ -82,8 +82,8 @@ Different data sources have different limitations:
 By default, the collector will output CSV into `<outdir>/<date>/<filename>.csv`
 
 ```bash
-# Start data API and ultrasound stream collectors
-go run . service bidcollect --data-api --ultrasound-stream --all-relays
+# Start data API and top-bid websocket stream collectors
+go run . service bidcollect --data-api --top-bid-ws-stream --all-relays
 
 # GetHeader needs a beacon node too
 go run . service bidcollect --get-header --beacon-uri http://localhost:3500 --all-relays

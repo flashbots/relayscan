@@ -43,7 +43,7 @@ type CommonBid struct {
 	BuilderPubkey string `json:"builder_pubkey"`
 	Value         string `json:"value"`
 
-	// Ultrasound top-bid stream - https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md
+	// Top-bid WS stream - https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md
 	BlockFeeRecipient string `json:"block_fee_recipient"`
 
 	// Data API
@@ -101,7 +101,7 @@ func (bid *CommonBid) ToCSVFields() []string {
 		bid.BuilderPubkey,
 		fmt.Sprint(bid.BlockNumber),
 
-		// Ultrasound top-bid stream
+		// Top-bid WS stream
 		bid.BlockFeeRecipient,
 
 		// Relay is common too
@@ -125,14 +125,14 @@ func boolToString(b bool) string {
 	return "false"
 }
 
-func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *CommonBid {
+func TopBidWebsocketStreamToCommonBid(bid *TopBidWebsocketStreamBidsMsg) *CommonBid {
 	blockHash := hexutil.Encode(bid.Bid.BlockHash[:])
 	parentHash := hexutil.Encode(bid.Bid.ParentHash[:])
 	builderPubkey := hexutil.Encode(bid.Bid.BuilderPubkey[:])
 	blockFeeRecipient := hexutil.Encode(bid.Bid.FeeRecipient[:])
 
 	return &CommonBid{
-		SourceType:   SourceTypeUltrasoundStream,
+		SourceType:   SourceTypeTopBidWSStream,
 		ReceivedAtMs: bid.ReceivedAt.UnixMilli(),
 
 		TimestampMs:       int64(bid.Bid.Timestamp),

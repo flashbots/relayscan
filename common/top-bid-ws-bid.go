@@ -16,7 +16,7 @@ func (n *U256) String() string {
 	return new(big.Int).SetBytes(ReverseBytes(n[:])).String()
 }
 
-type UltrasoundStreamBid struct {
+type TopBidWebsocketStreamBid struct {
 	Timestamp     uint64    `json:"timestamp"`
 	Slot          uint64    `json:"slot"`
 	BlockNumber   uint64    `json:"block_number"`

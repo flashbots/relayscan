@@ -31,7 +31,7 @@ func (r *RelayEntry) GetURI(path string) string {
 // relayURL can be IP@PORT, PUBKEY@IP:PORT, https://IP, etc.
 func NewRelayEntry(relayURL string, requireUser bool) (entry RelayEntry, err error) {
 	// Add protocol scheme prefix if it does not exist.
-	if !strings.HasPrefix(relayURL, "http") {
+	if !strings.Contains(relayURL, "://") {
 		relayURL = "https://" + relayURL
 	}
 
