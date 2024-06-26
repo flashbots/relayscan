@@ -125,7 +125,7 @@ func boolToString(b bool) string {
 	return "false"
 }
 
-func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *CommonBid {
+func UltrasoundStreamToCommonBid(bid *TopBidWebsocketStreamBidsMsg) *CommonBid {
 	blockHash := hexutil.Encode(bid.Bid.BlockHash[:])
 	parentHash := hexutil.Encode(bid.Bid.ParentHash[:])
 	builderPubkey := hexutil.Encode(bid.Bid.BuilderPubkey[:])

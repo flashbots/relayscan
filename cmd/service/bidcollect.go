@@ -14,10 +14,10 @@ import (
 )
 
 var (
-	collectUltrasoundStream bool
-	collectGetHeader        bool
-	collectDataAPI          bool
-	useAllRelays            bool
+	collectTopBidWebsocketStream bool
+	collectGetHeader             bool
+	collectDataAPI               bool
+	useAllRelays                 bool
 
 	outDir    string
 	outputTSV bool   // by default: CSV, but can be changed to TSV with this setting
@@ -32,7 +32,7 @@ var (
 )
 
 func init() {
-	bidCollectCmd.Flags().BoolVar(&collectUltrasoundStream, "ultrasound-stream", false, "use ultrasound top-bid stream")
+	bidCollectCmd.Flags().BoolVar(&collectTopBidWebsocketStream, "top-bid-ws-stream", false, "use top-bid websocket streams")
 	bidCollectCmd.Flags().BoolVar(&collectGetHeader, "get-header", false, "use getHeader API")
 	bidCollectCmd.Flags().BoolVar(&collectDataAPI, "data-api", false, "use data API")
 	bidCollectCmd.Flags().BoolVar(&useAllRelays, "all-relays", false, "use all relays")
@@ -93,16 +93,22 @@ var bidCollectCmd = &cobra.Command{
 			log.Infof("- relay #%d: %s", index+1, relay.Hostname())
 		}
 
+		topBidRelays := []common.RelayEntry{}
+		for _, url := range vars.TopBidStreamURLs {
+			topBidRelays = append(topBidRelays, common.MustNewRelayEntry(url, false))
+		}
+
 		opts := bidcollect.BidCollectorOpts{
-			Log:                     log,
-			UID:                     uid,
-			Relays:                  relays,
-			CollectUltrasoundStream: collectUltrasoundStream,
-			CollectGetHeader:        collectGetHeader,
-			CollectDataAPI:          collectDataAPI,
-			BeaconNodeURI:           beaconNodeURI,
-			OutDir:                  outDir,
-			OutputTSV:               outputTSV,
+			Log:                          log,
+			UID:                          uid,
+			Relays:                       relays,
+			CollectTopBidWebsocketStream: collectTopBidWebsocketStream,
+			TopBidWebsocketRelays:        topBidRelays,
+			CollectGetHeader:             collectGetHeader,
+			CollectDataAPI:               collectDataAPI,
+			BeaconNodeURI:                beaconNodeURI,
+			OutDir:                       outDir,
+			OutputTSV:                    outputTSV,
 		}
 
 		bidCollector := bidcollect.NewBidCollector(&opts)

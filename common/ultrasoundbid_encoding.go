@@ -5,12 +5,12 @@ import (
 )
 
 // MarshalSSZ ssz marshals the UltrasoundStreamBid object
-func (u *UltrasoundStreamBid) MarshalSSZ() ([]byte, error) {
+func (u *TopBidWebsocketStreamBid) MarshalSSZ() ([]byte, error) {
 	return ssz.MarshalSSZ(u)
 }
 
 // MarshalSSZTo ssz marshals the UltrasoundStreamBid object to a target array
-func (u *UltrasoundStreamBid) MarshalSSZTo(buf []byte) (dst []byte, err error) {
+func (u *TopBidWebsocketStreamBid) MarshalSSZTo(buf []byte) (dst []byte, err error) {
 	dst = buf
 
 	// Field (0) 'Timestamp'
@@ -41,7 +41,7 @@ func (u *UltrasoundStreamBid) MarshalSSZTo(buf []byte) (dst []byte, err error) {
 }
 
 // UnmarshalSSZ ssz unmarshals the UltrasoundStreamBid object
-func (u *UltrasoundStreamBid) UnmarshalSSZ(buf []byte) error {
+func (u *TopBidWebsocketStreamBid) UnmarshalSSZ(buf []byte) error {
 	var err error
 	size := uint64(len(buf))
 	if size != 188 {
@@ -76,18 +76,18 @@ func (u *UltrasoundStreamBid) UnmarshalSSZ(buf []byte) error {
 }
 
 // SizeSSZ returns the ssz encoded size in bytes for the UltrasoundStreamBid object
-func (u *UltrasoundStreamBid) SizeSSZ() (size int) {
+func (u *TopBidWebsocketStreamBid) SizeSSZ() (size int) {
 	size = 188
 	return
 }
 
 // HashTreeRoot ssz hashes the UltrasoundStreamBid object
-func (u *UltrasoundStreamBid) HashTreeRoot() ([32]byte, error) {
+func (u *TopBidWebsocketStreamBid) HashTreeRoot() ([32]byte, error) {
 	return ssz.HashWithDefaultHasher(u)
 }
 
 // HashTreeRootWith ssz hashes the UltrasoundStreamBid object with a hasher
-func (u *UltrasoundStreamBid) HashTreeRootWith(hh ssz.HashWalker) (err error) {
+func (u *TopBidWebsocketStreamBid) HashTreeRootWith(hh ssz.HashWalker) (err error) {
 	indx := hh.Index()
 
 	// Field (0) 'Timestamp'
@@ -119,6 +119,6 @@ func (u *UltrasoundStreamBid) HashTreeRootWith(hh ssz.HashWalker) (err error) {
 }
 
 // GetTree ssz hashes the UltrasoundStreamBid object
-func (u *UltrasoundStreamBid) GetTree() (*ssz.Node, error) {
+func (u *TopBidWebsocketStreamBid) GetTree() (*ssz.Node, error) {
 	return ssz.ProofTree(u)
 }
