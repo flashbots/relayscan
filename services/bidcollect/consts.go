@@ -1,9 +1,9 @@
 package bidcollect
 
 const (
-	SourceTypeGetHeader        = 0
-	SourceTypeDataAPI          = 1
-	SourceTypeUltrasoundStream = 2
+	SourceTypeGetHeader      = 0
+	SourceTypeDataAPI        = 1
+	SourceTypeTopBidWSStream = 2
 
 	initialBackoffSec = 5
 	maxBackoffSec     = 120

@@ -95,7 +95,7 @@ func (c *BidCollector) MustStart() {
 	for {
 		select {
 		case bid := <-c.topBidWebsocketC:
-			commonBid := UltrasoundStreamToCommonBid(&bid)
+			commonBid := TopBidWebsocketStreamToCommonBid(&bid)
 			c.processor.processBids([]*CommonBid{commonBid})
 		case bids := <-c.dataAPIBidC:
 			commonBids := DataAPIToCommonBids(bids)

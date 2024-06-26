@@ -1,9 +1,5 @@
 package service
 
-/**
- * https://github.com/ultrasoundmoney/docs/blob/main/top-bid-websocket.md
- */
-
 import (
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/services/bidcollect"
