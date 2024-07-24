@@ -20,6 +20,10 @@ Additional URLs:
   - https://www.relayscan.io/stats/day/2023-06-20
   - https://www.relayscan.io/stats/day/2023-06-20/json
 
+**Bid Archive**
+
+https://bidarchive.relayscan.io
+
 ## Notes
 
 - Work in progress

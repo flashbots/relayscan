@@ -1,5 +1,5 @@
 {{ define "content" }}
-{{ $lastDataTime := .LastDataTimeString }}
+{{ $lastDataTime := .LastUpdateTime }}
 {{ $time := .TimeSpan }}
 {{ $view := .View }}
 
@@ -9,8 +9,8 @@
 
         <p style="color: #6d6d6d; margin-top:0; line-height: 1.4em;">
             <small>
-                Updated {{ .LastDataTimeString }} UTC / Slot {{ .LastUpdateSlot }}<br>
-                <span id="updated_ago">({{ .LastDataTime | humanTime }})</span>
+                Updated at slot {{ .LastUpdateSlot }}
+                <span id="updated_ago">({{ $lastDataTime | humanTime }})</span>
             </small>
         </p>
         <p id="view-type">
@@ -207,7 +207,7 @@
         return sec + " seconds";
     }
 
-    var referenceTime = new Date("{{ .LastDataTime }}");
+    var referenceTime = new Date("{{ $lastDataTime }}");
     var timeAgo = timeSince(referenceTime);
     if (timeAgo != "") {
         document.getElementById("updated_ago").innerText = "(" + timeAgo + " ago)";

@@ -2,8 +2,6 @@
 package website
 
 import (
-	"bytes"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,6 +27,7 @@ import (
 var (
 	ErrServerAlreadyStarted = errors.New("server was already started")
 	envSkip7dStats          = os.Getenv("SKIP_7D_STATS") != ""
+	timespans               = []string{"7d", "24h", "12h", "1h"}
 )
 
 type WebserverOpts struct {
@@ -53,15 +52,16 @@ type Webserver struct {
 	templateIndex      *template.Template
 	templateDailyStats *template.Template
 
-	statsLock sync.RWMutex
-	stats     map[string]*Stats
-	htmlData  *HTMLData
+	// data
+	stats    map[string]*Stats
+	html     map[string]*[]byte // HTML for common views
+	dataLock sync.RWMutex
+
+	latestSlot uberatomic.Uint64
 
 	markdownSummaryRespLock sync.RWMutex
 	markdownOverview        *[]byte
 	markdownBuilderProfit   *[]byte
-
-	latestSlot uint64
 }
 
 func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
@@ -75,12 +75,11 @@ func NewWebserver(opts *WebserverOpts) (*Webserver, error) {
 	opts.Only24h = opts.Dev
 
 	server := &Webserver{
-		opts: opts,
-		log:  opts.Log,
-		db:   opts.DB,
-
-		htmlData:              &HTMLData{}, //nolint:exhaustruct
+		opts:                  opts,
+		log:                   opts.Log,
+		db:                    opts.DB,
 		stats:                 make(map[string]*Stats),
+		html:                  make(map[string]*[]byte),
 		minifier:              minifier,
 		markdownOverview:      &[]byte{},
 		markdownBuilderProfit: &[]byte{},
@@ -109,13 +108,7 @@ func (srv *Webserver) StartServer() (err error) {
 	}
 
 	// Start background task to regularly update status HTML data
-	srv.updateHTML()
-	go func() {
-		for {
-			time.Sleep(1 * time.Minute)
-			srv.updateHTML()
-		}
-	}()
+	go srv.startRootHTMLUpdateLoops()
 
 	srv.srv = &http.Server{
 		Addr:    srv.opts.ListenAddress,
@@ -162,184 +155,6 @@ func (srv *Webserver) getRouter() http.Handler {
 	return withGz
 }
 
-func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, err error) {
-	now := time.Now().UTC()
-	since := now.Add(-1 * duration.Abs())
-
-	srv.log.Debug("- loading top relays...")
-	startTime := time.Now()
-	topRelays, err := srv.db.GetTopRelays(since, now)
-	if err != nil {
-		return nil, err
-	}
-	srv.log.WithField("duration", time.Since(startTime).String()).Debug("- got top relays")
-
-	srv.log.Debug("- loading top builders...")
-	startTime = time.Now()
-	topBuilders, err := srv.db.GetTopBuilders(since, now, "")
-	if err != nil {
-		return nil, err
-	}
-	srv.log.WithField("duration", time.Since(startTime).String()).Debug("- got top builders")
-
-	srv.log.Debug("- loading builder profits...")
-	startTime = time.Now()
-	builderProfits, err := srv.db.GetBuilderProfits(since, now)
-	if err != nil {
-		return nil, err
-	}
-	srv.log.WithField("duration", time.Since(startTime).String()).Debug("- got builder profits")
-
-	stats = &Stats{
-		Since: since,
-		Until: now,
-
-		TopRelays:          prepareRelaysEntries(topRelays),
-		TopBuilders:        consolidateBuilderEntries(topBuilders),
-		BuilderProfits:     consolidateBuilderProfitEntries(builderProfits),
-		TopBuildersByRelay: make(map[string][]*database.TopBuilderEntry),
-	}
-
-	// Query builders for each relay
-	srv.log.Debug("- loading builders per relay...")
-	startTime = time.Now()
-	for _, relay := range topRelays {
-		topBuildersForRelay, err := srv.db.GetTopBuilders(since, now, relay.Relay)
-		if err != nil {
-			return nil, err
-		}
-		stats.TopBuildersByRelay[relay.Relay] = consolidateBuilderEntries(topBuildersForRelay)
-	}
-	srv.log.WithField("duration", time.Since(startTime).String()).Debug("- got builders per relay")
-
-	return stats, nil
-}
-
-func (srv *Webserver) updateHTML() {
-	var err error
-	srv.log.Info("Updating HTML data...")
-
-	// Now generate the HTML
-	// htmlDefault := bytes.Buffer{}
-
-	startTime := time.Now().UTC()
-	htmlData := HTMLData{} //nolint:exhaustruct
-	htmlData.GeneratedAt = startTime
-	htmlData.TimeSpans = []string{"7d", "24h", "12h", "1h"}
-	// htmlData.TimeSpans = []string{"24h", "12h"}
-
-	stats := make(map[string]*Stats)
-
-	srv.log.Info("getting last delivered entry...")
-	entry, err := srv.db.GetLatestDeliveredPayload()
-	if errors.Is(err, sql.ErrNoRows) {
-		srv.log.Info("No last delivered payload entry found")
-	} else if err != nil {
-		srv.log.WithError(err).Error("Failed to get last delivered payload entry")
-		return
-	} else {
-		htmlData.LastDataTime = entry.InsertedAt
-		htmlData.LastDataTimeString = entry.InsertedAt.Format("2006-01-02 15:04")
-		htmlData.LastUpdateSlot = entry.Slot
-		srv.latestSlot = entry.Slot
-		srv.log.WithFields(logrus.Fields{
-			"slot": entry.Slot,
-			"time": entry.InsertedAt,
-		}).Infof("Latest database entry found for slot %d", entry.Slot)
-	}
-
-	startUpdate := time.Now()
-	srv.log.Info("updating 24h stats...")
-	stats["24h"], err = srv.getStatsForHours(24 * time.Hour)
-	if err != nil {
-		srv.log.WithError(err).Error("Failed to get stats for 24h")
-		return
-	}
-	srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 24h stats")
-
-	if srv.opts.Only24h {
-		stats["1h"] = NewStats()
-		stats["12h"] = NewStats()
-		stats["7d"] = NewStats()
-	} else {
-		startUpdate = time.Now()
-		srv.log.Info("updating 12h stats...")
-		stats["12h"], err = srv.getStatsForHours(12 * time.Hour)
-		if err != nil {
-			srv.log.WithError(err).Error("Failed to get stats for 12h")
-			return
-		}
-		srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 12h stats")
-
-		startUpdate = time.Now()
-		srv.log.Info("updating 1h stats...")
-		stats["1h"], err = srv.getStatsForHours(1 * time.Hour)
-		if err != nil {
-			srv.log.WithError(err).Error("Failed to get stats for 1h")
-			return
-		}
-		srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 1h stats")
-
-		if envSkip7dStats {
-			stats["7d"] = NewStats()
-		} else {
-			startUpdate = time.Now()
-			srv.log.Info("updating 7d stats...")
-			stats["7d"], err = srv.getStatsForHours(7 * 24 * time.Hour)
-			if err != nil {
-				srv.log.WithError(err).Error("Failed to get stats for 24h")
-				return
-			}
-			srv.log.WithField("duration", time.Since(startUpdate).String()).Info("updated 7d stats")
-		}
-	}
-
-	// Save the html data
-	srv.statsLock.Lock()
-	srv.stats = stats
-	srv.htmlData = &htmlData
-	srv.statsLock.Unlock()
-
-	// helper
-	stats24h := stats["24h"]
-
-	// create overviewMd markdown
-	overviewMd := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```\n", startTime.Format("2006-01-02 15:04"))
-	overviewMd += relayTable(stats24h.TopRelays)
-	overviewMd += fmt.Sprintf("```\n\nTop builders - 24h, %s UTC, via relayscan.io \n\n```\n", startTime.Format("2006-01-02 15:04"))
-	overviewMd += builderTable(stats24h.TopBuilders)
-	overviewMd += "```"
-	overviewMdBytes := []byte(overviewMd)
-
-	builderProfitMd := fmt.Sprintf("Builder profits - 24h, %s UTC, via relayscan.io/builder-profit \n\n```\n", startTime.Format("2006-01-02 15:04"))
-	builderProfitMd += builderProfitTable(stats24h.BuilderProfits)
-	builderProfitMd += "```"
-	builderProfitMdBytes := []byte(builderProfitMd)
-
-	// prepare commonly used views
-	srv.markdownSummaryRespLock.Lock()
-	srv.markdownOverview = &overviewMdBytes
-	srv.markdownBuilderProfit = &builderProfitMdBytes
-	srv.markdownSummaryRespLock.Unlock()
-
-	// srv.statsAPIRespLock.Lock()
-	// resp := statsResp{
-	// 	GeneratedAt: uint64(srv.HTMLData.GeneratedAt.Unix()),
-	// 	DataStartAt: uint64(stats24h.Since.Unix()),
-	// 	TopRelays:   stats24h.TopRelays,
-	// 	TopBuilders: stats24h.TopBuilders,
-	// }
-	// respBytes, err := json.Marshal(resp)
-	// if err != nil {
-	// 	srv.log.WithError(err).Error("error marshalling statsAPIResp")
-	// } else {
-	// 	srv.statsAPIResp = &respBytes
-	// }
-	// srv.statsAPIRespLock.Unlock()
-	duration := time.Since(startTime)
-	srv.log.WithField("duration", duration.String()).Info("Updating HTML data complete.")
-}
-
 func (srv *Webserver) RespondError(w http.ResponseWriter, code int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
@@ -375,63 +190,55 @@ func (srv *Webserver) handleRoot(w http.ResponseWriter, req *http.Request) {
 	}
 
 	view := "overview"
-	title := "MEV-Boost Relay & Builder Stats"
 	if strings.HasSuffix(req.URL.Path, "builder-profit") {
 		view = "builder-profit"
-		title = "MEV-Boost Builder Profitability"
 	}
 
-	srv.statsLock.RLock()
-	htmlData := srv.htmlData
-	htmlData.Stats = srv.stats[timespan]
-	srv.statsLock.RUnlock()
-
-	htmlData.Title = title
-	htmlData.TimeSpan = timespan
-	htmlData.View = view
-
+	// Re-render in dev mode
 	if srv.opts.Dev {
-		tpl, err := ParseIndexTemplate()
-		if err != nil {
-			srv.log.WithError(err).Error("root: error parsing template")
+		srv.dataLock.RLock()
+		stats, dataFound := srv.stats[timespan]
+		srv.dataLock.RUnlock()
+		if !dataFound {
+			srv.RespondError(w, http.StatusInternalServerError, "no data for timespan")
 			return
 		}
-		w.WriteHeader(http.StatusOK)
-		err = tpl.ExecuteTemplate(w, "base", htmlData)
+		overviewBytes, profitBytes, err := srv._renderRootHTML(stats)
 		if err != nil {
-			srv.log.WithError(err).Error("root: error executing template")
+			srv.RespondError(w, http.StatusInternalServerError, err.Error())
 			return
+		}
+		if view == "builder-profit" {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(profitBytes)
+			return
+		} else {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(overviewBytes)
+			return
+		}
+	}
+
+	// In production mode, just return pre-rendered HTML bytes
+	htmlKey := fmt.Sprintf("%s-%s", timespan, view)
+	srv.dataLock.RLock()
+	htmlBytes, htmlFound := srv.html[htmlKey]
+	srv.dataLock.RUnlock()
+	if !htmlFound {
+		srv.log.WithFields(logrus.Fields{
+			"timespan": timespan,
+			"view":     view,
+		}).Warn("No data for timespan")
+		if timespan == "24h" && view == "overview" {
+			srv.RespondError(w, http.StatusInternalServerError, "server starting, waiting for initial data...")
+		} else {
+			srv.RespondError(w, http.StatusInternalServerError, "no data for timespan")
 		}
 		return
 	}
-
-	// production flow...
-	htmlBuf := bytes.Buffer{}
-
-	// Render template
-	if err := srv.templateIndex.ExecuteTemplate(&htmlBuf, "base", htmlData); err != nil {
-		srv.log.WithError(err).Error("error rendering template")
-		srv.RespondError(w, http.StatusInternalServerError, "error rendering template")
-		return
-	}
-
-	// Minify
-	htmlBytes, err := srv.minifier.Bytes("text/html", htmlBuf.Bytes())
-	if err != nil {
-		srv.log.WithError(err).Error("error minifying html")
-		srv.RespondError(w, http.StatusInternalServerError, "error minifying html")
-		return
-	}
-
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(htmlBytes)
+	_, _ = w.Write(*htmlBytes)
 }
-
-// func (srv *Webserver) handleStatsAPI(w http.ResponseWriter, req *http.Request) {
-// 	srv.statsAPIRespLock.RLock()
-// 	defer srv.statsAPIRespLock.RUnlock()
-// 	_, _ = w.Write(*srv.statsAPIResp)
-// }
 
 func (srv *Webserver) handleOverviewMarkdown(w http.ResponseWriter, req *http.Request) {
 	srv.markdownSummaryRespLock.RLock()
@@ -445,19 +252,6 @@ func (srv *Webserver) handleBuilderProfitMarkdown(w http.ResponseWriter, req *ht
 	defer srv.markdownSummaryRespLock.RUnlock()
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(*srv.markdownBuilderProfit)
-}
-
-func (srv *Webserver) _getDailyStats(t time.Time) (since, until, minDate time.Time, relays []*database.TopRelayEntry, builders []*database.TopBuilderEntry, builderProfits []*database.BuilderProfitEntry, err error) {
-	now := time.Now().UTC()
-	minDate = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Add(-24 * time.Hour).UTC()
-	if t.UTC().After(minDate.UTC()) {
-		return now, now, minDate, nil, nil, nil, fmt.Errorf("date is too recent") //nolint:goerr113
-	}
-
-	since = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
-	until = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 0, time.UTC)
-	relays, builders, builderProfits, err = srv.db.GetStatsForTimerange(since, until, "")
-	return since, until, minDate, relays, builders, builderProfits, err
 }
 
 func (srv *Webserver) handleDailyStats(w http.ResponseWriter, req *http.Request) {
@@ -597,14 +391,15 @@ func (srv *Webserver) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 		Message          string `json:"message"`
 	}
 
+	latestSlotInDB := srv.latestSlot.Load()
 	resp := apiResp{
 		IsHealthy:        true,
 		CurrentSlot:      currentSlot,
-		LatestUpdateSlot: srv.latestSlot,
-		SlotsSinceUpdate: currentSlot - srv.latestSlot,
+		LatestUpdateSlot: latestSlotInDB,
+		SlotsSinceUpdate: currentSlot - latestSlotInDB,
 	}
 
-	if currentSlot-srv.latestSlot > uint64(maxSlotsSinceLastUpdate) {
+	if currentSlot-latestSlotInDB > uint64(maxSlotsSinceLastUpdate) {
 		resp.IsHealthy = false
 		resp.Message = "No updates for too long"
 		srv.RespondErrorJSON(w, http.StatusInternalServerError, resp)
@@ -612,3 +407,33 @@ func (srv *Webserver) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 
 	srv.RespondOK(w, resp)
 }
+
+// func (srv *Webserver) updateHTML() {
+// 	var err error
+// 	srv.log.Info("Updating HTML data...")
+
+// 	// helper
+// 	stats24h := stats
+
+// 	// create overviewMd markdown
+// 	overviewMd := fmt.Sprintf("Top relays - 24h, %s UTC, via relayscan.io \n\n```\n", startTime.Format("2006-01-02 15:04"))
+// 	overviewMd += relayTable(stats24h.TopRelays)
+// 	overviewMd += fmt.Sprintf("```\n\nTop builders - 24h, %s UTC, via relayscan.io \n\n```\n", startTime.Format("2006-01-02 15:04"))
+// 	overviewMd += builderTable(stats24h.TopBuilders)
+// 	overviewMd += "```"
+// 	overviewMdBytes := []byte(overviewMd)
+
+// 	builderProfitMd := fmt.Sprintf("Builder profits - 24h, %s UTC, via relayscan.io/builder-profit \n\n```\n", startTime.Format("2006-01-02 15:04"))
+// 	builderProfitMd += builderProfitTable(stats24h.BuilderProfits)
+// 	builderProfitMd += "```"
+// 	builderProfitMdBytes := []byte(builderProfitMd)
+
+// 	// prepare commonly used views
+// 	srv.markdownSummaryRespLock.Lock()
+// 	srv.markdownOverview = &overviewMdBytes
+// 	srv.markdownBuilderProfit = &builderProfitMdBytes
+// 	srv.markdownSummaryRespLock.Unlock()
+
+// 	duration := time.Since(startTime)
+// 	srv.log.WithField("duration", duration.String()).Info("Updating HTML data complete.")
+// }
