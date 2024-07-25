@@ -51,10 +51,9 @@ cover-html:
 docker-image:
 	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --build-arg VERSION=${VERSION} . -t relayscan
 
-
 generate-ssz:
-	rm -f common/ultrasoundbid_encoding.go
-	sszgen --path common --objs UltrasoundStreamBid
+	rm -f common/top-bid-ws-bid_encoding.go
+	sszgen --path common --objs TopBidWebsocketStreamBid
 
 update-bids-website:
 	go run . service bidcollect --build-website --build-website-upload
