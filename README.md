@@ -97,7 +97,7 @@ source .env.local
 make dev-postgres-start
 
 # Query only a single relay, and for the shortest time possible
-go run . core data-api-backfill --relay fb --min-slot -1
+go run . core data-api-backfill --relay fb --min-slot -1000
 
 # Now the DB has data, check it (and update in DB)
 go run . core check-payload-value

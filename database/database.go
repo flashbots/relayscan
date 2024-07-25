@@ -67,9 +67,9 @@ func (s *DatabaseService) SaveDataAPIPayloadDelivered(entry *DataAPIPayloadDeliv
 	return err
 }
 
-func (s *DatabaseService) SaveDataAPIPayloadDeliveredBatch(entries []*DataAPIPayloadDeliveredEntry) error {
+func (s *DatabaseService) SaveDataAPIPayloadDeliveredBatch(entries []*DataAPIPayloadDeliveredEntry) (rowsAffected int64, err error) {
 	if len(entries) == 0 {
-		return nil
+		return 0, nil
 	}
 
 	query := `INSERT INTO ` + vars.TableDataAPIPayloadDelivered + `
@@ -84,12 +84,19 @@ func (s *DatabaseService) SaveDataAPIPayloadDeliveredBatch(entries []*DataAPIPay
 			end = len(entries)
 		}
 
-		_, err := s.DB.NamedExec(query, entries[i:end])
+		r, err := s.DB.NamedExec(query, entries[i:end])
 		if err != nil {
-			return err
+			return 0, err
 		}
+
+		_rowsAffected, err := r.RowsAffected()
+		if err != nil {
+			return 0, err
+		}
+
+		rowsAffected += _rowsAffected
 	}
-	return nil
+	return rowsAffected, nil
 }
 
 func (s *DatabaseService) GetDataAPILatestPayloadDelivered(relay string) (*DataAPIPayloadDeliveredEntry, error) {
