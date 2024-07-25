@@ -1,17 +1,19 @@
 package core
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"math/big"
 	"strings"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
 	"github.com/flashbots/relayscan/vars"
-	"github.com/metachris/flashbotsrpc"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -48,18 +50,19 @@ var checkPayloadValueCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 
-		client := flashbotsrpc.New(ethNodeURI)
-		if client == nil {
+		client, err := ethclient.Dial(ethNodeURI)
+		if err != nil {
 			log.Fatalf("Failed to create RPC client for '%s'", ethNodeURI)
 		}
-		log.Infof("Using eth node: %s", client.URL())
+		log.Infof("Using eth node: %s", ethNodeURI)
+
 		client2 := client
 		if ethNodeBackupURI != "" {
-			client2 = flashbotsrpc.New(ethNodeBackupURI)
-			if client2 == nil {
+			client2, err = ethclient.Dial(ethNodeBackupURI)
+			if err != nil {
 				log.Fatalf("Failed to create backup RPC client for '%s'", ethNodeBackupURI)
 			}
-			log.Infof("Using eth backup node: %s", client2.URL())
+			log.Infof("Using eth backup node: %s", ethNodeBackupURI)
 		}
 
 		// Connect to Postgres
@@ -129,24 +132,27 @@ var checkPayloadValueCmd = &cobra.Command{
 	},
 }
 
-func _getBalanceDiff(ethClient *flashbotsrpc.FlashbotsRPC, address string, blockNumber int) (*big.Int, error) {
-	balanceBefore, err := ethClient.EthGetBalance(address, fmt.Sprintf("0x%x", blockNumber-1))
+func _getBalanceDiff(ethClient *ethclient.Client, address ethcommon.Address, blockNumber *big.Int) (*big.Int, error) {
+	blockNumberMinusOne := new(big.Int).Sub(blockNumber, big.NewInt(1))
+
+	balanceBefore, err := ethClient.BalanceAt(context.TODO(), address, blockNumberMinusOne)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't get balance for %s @ %d", address, blockNumber-1) //nolint
+		return nil, fmt.Errorf("couldn't get balance for %s @ %d", address, blockNumberMinusOne) //nolint
 	}
-	balanceAfter, err := ethClient.EthGetBalance(address, fmt.Sprintf("0x%x", blockNumber))
+
+	balanceAfter, err := ethClient.BalanceAt(context.TODO(), address, blockNumber)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't get balance for %s @ %d", address, blockNumber-1) //nolint
+		return nil, fmt.Errorf("couldn't get balance for %s @ %d", address, blockNumber) //nolint
 	}
-	balanceDiff := new(big.Int).Sub(&balanceAfter, &balanceBefore)
+	balanceDiff := new(big.Int).Sub(balanceAfter, balanceBefore)
 	return balanceDiff, nil
 }
 
 // func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *flashbotsrpc.FlashbotsRPC, entryC chan database.DataAPIPayloadDeliveredEntry, bn *beaconclient.ProdBeaconInstance) {
-func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *flashbotsrpc.FlashbotsRPC, entryC chan database.DataAPIPayloadDeliveredEntry) {
+func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client, client2 *ethclient.Client, entryC chan database.DataAPIPayloadDeliveredEntry) {
 	defer wg.Done()
 
-	getBalanceDiff := func(address string, blockNumber int) (*big.Int, error) {
+	getBalanceDiff := func(address ethcommon.Address, blockNumber *big.Int) (*big.Int, error) {
 		r, err := _getBalanceDiff(client, address, blockNumber)
 		if err != nil {
 			r, err = _getBalanceDiff(client2, address, blockNumber)
@@ -154,18 +160,27 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		return r, err
 	}
 
-	getBlockByHash := func(blockHash string, withTransactions bool) (*flashbotsrpc.Block, error) {
-		block, err := client.EthGetBlockByHash(blockHash, withTransactions)
+	getBlockByHash := func(blockHashHex string) (*types.Block, error) {
+		blockHash := ethcommon.HexToHash(blockHashHex)
+		block, err := client.BlockByHash(context.Background(), blockHash)
 		if err != nil || block == nil {
-			block, err = client2.EthGetBlockByHash(blockHash, withTransactions)
+			block, err = client2.BlockByHash(context.Background(), blockHash)
 		}
 		return block, err
 	}
 
-	getBlockByNumber := func(blockNumber int, withTransactions bool) (*flashbotsrpc.Block, error) {
-		block, err := client.EthGetBlockByNumber(blockNumber, withTransactions)
+	// getBlockByNumber := func(blockNumber int) (*types.Block, error) {
+	// 	block, err := client.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
+	// 	if err != nil || block == nil {
+	// 		block, err = client2.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
+	// 	}
+	// 	return block, err
+	// }
+
+	getHeaderByNumber := func(blockNumber *big.Int) (*types.Header, error) {
+		block, err := client.HeaderByNumber(context.Background(), blockNumber)
 		if err != nil || block == nil {
-			block, err = client2.EthGetBlockByNumber(blockNumber, withTransactions)
+			block, err = client2.HeaderByNumber(context.Background(), blockNumber)
 		}
 		return block, err
 	}
@@ -194,7 +209,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 	}
 
 	var err error
-	var block *flashbotsrpc.Block
+	var block *types.Block
 	for entry := range entryC {
 		_log := log.WithFields(logrus.Fields{
 			"slot":        entry.Slot,
@@ -224,7 +239,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		// }
 
 		// query block by hash
-		block, err = getBlockByHash(entry.BlockHash, true)
+		block, err = getBlockByHash(entry.BlockHash)
 		if err != nil {
 			_log.WithError(err).Fatalf("couldn't get block %s", entry.BlockHash)
 		} else if block == nil {
@@ -236,22 +251,24 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 
 		entry.FoundOnChain = sql.NullBool{} //nolint:exhaustruct
 		if !entry.BlockNumber.Valid {
-			entry.BlockNumber = database.NewNullInt64(int64(block.Number))
+			entry.BlockNumber = database.NewNullInt64(block.Number().Int64())
 		}
 
-		entry.BlockCoinbaseAddress = database.NewNullString(block.Miner)
-		coinbaseIsProposer := strings.EqualFold(block.Miner, entry.ProposerFeeRecipient)
+		entry.BlockCoinbaseAddress = database.NewNullString(block.Coinbase().Hex())
+		coinbaseIsProposer := strings.EqualFold(block.Coinbase().Hex(), entry.ProposerFeeRecipient)
 		entry.BlockCoinbaseIsProposer = database.NewNullBool(coinbaseIsProposer)
 
+		entryBlockHash := ethcommon.HexToHash(entry.BlockHash)
+
 		// query block by number to ensure that's what landed on-chain
-		blockByNum, err := getBlockByNumber(block.Number, false)
+		blockByNum, err := getHeaderByNumber(block.Number())
 		if err != nil {
-			_log.WithError(err).Fatalf("couldn't get block by number %d", block.Number)
+			_log.WithError(err).Fatalf("couldn't get block by number %d", block.NumberU64())
 		} else if blockByNum == nil {
-			_log.WithError(err).Warnf("block by number not found: %d", block.Number)
+			_log.WithError(err).Warnf("block by number not found: %d", block.NumberU64())
 			continue
-		} else if blockByNum.Hash != entry.BlockHash {
-			_log.Warnf("block hash mismatch when checking by number. probably missed slot! entry hash: %s / by number: %s", entry.BlockHash, blockByNum.Hash)
+		} else if blockByNum.Hash() != entryBlockHash {
+			_log.Warnf("block hash mismatch when checking by number. probably missed slot! entry hash: %s / by number: %s", entry.BlockHash, blockByNum.Hash().Hex())
 			entry.SlotWasMissed = database.NewNullBool(true)
 			saveEntry(_log, entry)
 			continue
@@ -259,20 +276,23 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 
 		// Block was found on chain and is same for this blocknumber. Now check the payment!
 		checkMethod := "balanceDiff"
-		proposerBalanceDiffWei, err := getBalanceDiff(entry.ProposerFeeRecipient, block.Number)
+		proposerFeeRecipientAddr := ethcommon.HexToAddress(entry.ProposerFeeRecipient)
+		proposerBalanceDiffWei, err := getBalanceDiff(proposerFeeRecipientAddr, block.Number())
 		if err != nil {
 			_log.WithError(err).Fatalf("couldn't get balance diff")
 		}
+
+		txs := block.Transactions()
 
 		proposerValueDiffFromClaim := new(big.Int).Sub(claimedProposerValue, proposerBalanceDiffWei)
 		if proposerValueDiffFromClaim.String() != "0" {
 			// Value delivered is off. Might be due to a forwarder contract... Checking payment tx...
 			checkMethod = "balanceDiff+txValue"
 			isDeliveredValueIncorrect := true
-			if len(block.Transactions) > 0 {
-				paymentTx := block.Transactions[len(block.Transactions)-1]
-				if paymentTx.To == entry.ProposerFeeRecipient {
-					proposerValueDiffFromClaim = new(big.Int).Sub(claimedProposerValue, &paymentTx.Value)
+			if len(txs) > 0 {
+				paymentTx := txs[len(txs)-1]
+				if paymentTx.To().Hex() == entry.ProposerFeeRecipient {
+					proposerValueDiffFromClaim = new(big.Int).Sub(claimedProposerValue, paymentTx.Value())
 					if proposerValueDiffFromClaim.String() == "0" {
 						_log.Debug("all good, payment is in last tx but was probably forwarded through smart contract")
 						isDeliveredValueIncorrect = false
@@ -281,29 +301,25 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			}
 
 			if isDeliveredValueIncorrect {
-				_log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.Number)
+				_log.Warnf("Value delivered to %s diffs by %s from claim. delivered: %s - claim: %s - relay: %s - slot: %d / block: %d", entry.ProposerFeeRecipient, proposerValueDiffFromClaim.String(), proposerBalanceDiffWei, entry.ValueClaimedWei, entry.Relay, entry.Slot, block.NumberU64())
 			}
 		}
 
 		// check for transactions to/from proposer feeRecipient
 		if checkTx {
-			log.Infof("checking %d tx...", len(block.Transactions))
-			for i, tx := range block.Transactions {
-				if tx.From == entry.ProposerFeeRecipient {
-					_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value.String())
-					proposerValueDiffFromClaim = new(big.Int).Add(proposerValueDiffFromClaim, &tx.Value) //nolint:gosec
-				} else if tx.To == entry.ProposerFeeRecipient {
-					_log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value.String())
+			log.Infof("checking %d tx...", len(txs))
+			for i, tx := range txs {
+				txFrom, _ := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
+				if txFrom.Hex() == entry.ProposerFeeRecipient {
+					_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value().String())
+					proposerValueDiffFromClaim = new(big.Int).Add(proposerValueDiffFromClaim, tx.Value())
+				} else if tx.To().Hex() == entry.ProposerFeeRecipient {
+					_log.Infof("- tx %d to feeRecipient with value %s", i, tx.Value().String())
 				}
 			}
 		}
 
-		extraDataBytes, err := hexutil.Decode(block.ExtraData)
-		if err != nil {
-			log.WithError(err).Errorf("failed to decode extradata %s", block.ExtraData)
-		} else {
-			entry.ExtraData = database.ExtraDataToUtf8Str(extraDataBytes)
-		}
+		entry.ExtraData = database.ExtraDataToUtf8Str(block.Extra())
 		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
 		entry.ValueCheckMethod = database.NewNullString(checkMethod)
 		entry.ValueDeliveredWei = database.NewNullString(proposerBalanceDiffWei.String())
@@ -325,7 +341,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 
 		if !coinbaseIsProposer {
 			// Get builder balance diff
-			builderBalanceDiffWei, err := getBalanceDiff(block.Miner, block.Number)
+			builderBalanceDiffWei, err := getBalanceDiff(block.Coinbase(), block.Number())
 			if err != nil {
 				_log.WithError(err).Fatalf("couldn't get balance diff")
 			}
