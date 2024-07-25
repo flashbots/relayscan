@@ -199,7 +199,8 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 				block_coinbase_is_proposer=:block_coinbase_is_proposer,
 				coinbase_diff_wei=:coinbase_diff_wei,
 				coinbase_diff_eth=:coinbase_diff_eth,
-				found_onchain=:found_onchain -- should rename field, because getBlockByHash might succeed even though this slot was missed
+				found_onchain=:found_onchain, -- should rename field, because getBlockByHash might succeed even though this slot was missed
+				num_blob_txs=:num_blob_txs
 				WHERE slot=:slot`
 		_, err := db.DB.NamedExec(query, entry)
 		if err != nil {
@@ -321,6 +322,16 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			}
 		}
 
+		// find number of blob transactions
+		numBlobTxs := 0
+		numBlobs := 0
+		for _, tx := range txs {
+			if tx.Type() == types.BlobTxType {
+				numBlobTxs++
+				numBlobs += len(tx.BlobHashes())
+			}
+		}
+		entry.NumBlobTxs = database.NewNullInt64(int64(numBlobTxs))
 		entry.ExtraData = database.ExtraDataToUtf8Str(block.Extra())
 		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
 		entry.ValueCheckMethod = database.NewNullString(checkMethod)
@@ -339,6 +350,8 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			"valueDeliveredEth": entry.ValueDeliveredEth.String,
 			// "valueDeliveredDiffWei":   entry.ValueDeliveredDiffWei,
 			"valueDeliveredDiffEth": entry.ValueDeliveredDiffEth.String,
+			"numBlobTxs":            numBlobTxs,
+			"numBlobs":              numBlobs,
 		}).Info("value check done")
 
 		if !coinbaseIsProposer {
