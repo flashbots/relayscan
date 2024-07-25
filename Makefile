@@ -14,21 +14,26 @@ v: ## Show the current version
 
 ##@ Building
 
+.PHONY: clean
 clean: ## Remove build artifacts
 	rm -rf relayscan build/
 
+.PHONY: build
 build: ## Build the relayscan binary
 	go build -trimpath -ldflags "-s -X cmd.Version=${VERSION} -X main.Version=${VERSION}" -v -o relayscan .
 
+.PHONY: docker-image
 docker-image: ## Build the relayscan docker image
 	DOCKER_BUILDKIT=1 docker build --platform linux/amd64 --build-arg VERSION=${VERSION} . -t relayscan
 
+.PHONY: generate-ssz
 generate-ssz: ## Generate SSZ serialization code
 	rm -f common/ultrasoundbid_encoding.go
 	sszgen --path common --objs UltrasoundStreamBid
 
 ##@ Production tasks
 
+.PHONY: update-bids-website
 update-bids-website: ## Update the bid archive website
 	go run . service bidcollect --build-website --build-website-upload
 

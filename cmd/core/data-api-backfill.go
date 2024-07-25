@@ -168,16 +168,16 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		}
 
 		// Save entries
-		rowsAffected, err := bf.db.SaveDataAPIPayloadDeliveredBatch(entries)
+		newEntries, err := bf.db.SaveDataAPIPayloadDeliveredBatch(entries)
 		if err != nil {
 			_log.WithError(err).Fatal("failed to save entries")
 			return err
 		}
 
 		_log.WithFields(logrus.Fields{
-			"rowsAffected": rowsAffected,
-			"slotFirst":    slotFirst,
-			"slotLast":     slotLast,
+			"newEntries": newEntries,
+			"slotFirst":  slotFirst,
+			"slotLast":   slotLast,
 		}).Info("Batch of payloads saved to database")
 
 		// Save builders
@@ -196,81 +196,14 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 
 		// Stop if at the latest slot in DB
 		if cursorSlot < latestSlotInDB {
-			_log.Infof("Payloads backfilled until last in DB at slot %d", latestSlotInDB)
+			_log.Infof("Payloads backfilled until latest slot in DB: %d", latestSlotInDB)
 			return nil
 		}
 
 		// Stop if at min slot
 		if cursorSlot < bf.minSlot {
-			_log.Infof("Payloads backfilled until min slot %d", bf.minSlot)
+			_log.Infof("Payloads backfilled until min slot: %d", bf.minSlot)
 			return nil
 		}
 	}
 }
-
-// func (bf *backfiller) backfillDataAPIBids() error {
-// 	log.Infof("backfilling bids from relay %s ...", bf.relay.Hostname())
-
-// 	// 1. get latest entry from DB
-// 	latestEntry, err := bf.db.GetDataAPILatestBid(bf.relay.Hostname())
-// 	latestSlotInDB := uint64(0)
-// 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-// 		log.WithError(err).Fatal("failed to get latest entry")
-// 		return err
-// 	} else {
-// 		latestSlotInDB = latestEntry.Slot
-// 	}
-// 	log.Infof("last known slot: %d", latestSlotInDB)
-
-// 	// 2. backfill until latest DB entry is reached
-// 	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/builder_blocks_received")
-// 	cursorSlot := bf.cursorSlot
-// 	slotsReceived := make(map[uint64]bool)
-
-// 	for {
-// 		entriesNew := 0
-// 		url := baseURL
-// 		if cursorSlot > 0 {
-// 			url = fmt.Sprintf("%s?slot=%d", baseURL, cursorSlot)
-// 		}
-// 		log.Info("url: ", url)
-// 		var data []relaycommon.BidTraceV2WithTimestampJSON
-// 		common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
-
-// 		log.Infof("got %d entries", len(data))
-// 		entries := make([]*database.DataAPIBuilderBidEntry, len(data))
-
-// 		for index, dataEntry := range data {
-// 			log.Debugf("saving entry for slot %d", dataEntry.Slot)
-// 			dbEntry := database.BidTraceV2WithTimestampJSONToBuilderBidEntry(bf.relay.Hostname(), dataEntry)
-// 			entries[index] = &dbEntry
-
-// 			if !slotsReceived[dataEntry.Slot] {
-// 				slotsReceived[dataEntry.Slot] = true
-// 				entriesNew += 1
-// 			}
-
-// 			if cursorSlot == 0 {
-// 				cursorSlot = dataEntry.Slot
-// 			}
-// 		}
-
-// 		err := bf.db.SaveDataAPIBids(entries)
-// 		if err != nil {
-// 			log.WithError(err).Fatal("failed to save bids")
-// 			return err
-// 		}
-
-// 		if entriesNew == 0 {
-// 			log.Info("No new bids, all done")
-// 			return nil
-// 		}
-
-// 		if cursorSlot < latestSlotInDB {
-// 			log.Infof("Bids backfilled until last in DB (%d)", latestSlotInDB)
-// 			return nil
-// 		}
-// 		cursorSlot -= 1
-// 		// time.Sleep(1 * time.Second)
-// 	}
-// }
