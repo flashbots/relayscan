@@ -93,8 +93,8 @@ Start by filling the DB with relay data (delivered payloads), and checking it:
 # Copy .env.example to .env.local, update ETH_NODE_URI and source it
 source .env.local
 
-# Start Postgres
-docker run -d --name relayscan-postgres -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
+# Start Postgres Docker container
+make dev-postgres-start
 
 # Query only a single relay, and for the shortest time possible
 go run . core data-api-backfill --relay fb --min-slot -1
@@ -105,8 +105,11 @@ go run . core check-payload-value
 # Can also check a single slot only:
 go run . core check-payload-value --slot _N_
 
-# Reset DB? Remove and restart the Docker container
-docker rm -f relayscan-postgres
+# Reset DB
+dev-postgres-wipe
+
+# See the Makefile for more commands
+make help
 ```
 
 For linting and testing:
@@ -117,11 +120,13 @@ go install mvdan.cc/gofumpt@latest
 go install honnef.co/go/tools/cmd/staticcheck@v0.4.3
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
 
-# Lint, test and build
+# Lint and test
 make lint
 make test
 make test-race
-make build
+
+# Format the code
+make fmt
 ```
 
 
