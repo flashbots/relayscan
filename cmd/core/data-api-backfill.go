@@ -16,15 +16,15 @@ import (
 
 var (
 	cliRelay   string
+	minSlot    int64
 	initCursor uint64
-	minSlot    uint64
 	// bidsOnly   bool
 )
 
 func init() {
 	backfillDataAPICmd.Flags().StringVar(&cliRelay, "relay", "", "specific relay only")
 	backfillDataAPICmd.Flags().Uint64Var(&initCursor, "cursor", 0, "initial cursor")
-	backfillDataAPICmd.Flags().Uint64Var(&minSlot, "min-slot", 0, "minimum slot (if unset, backfill until the merge)")
+	backfillDataAPICmd.Flags().Int64Var(&minSlot, "min-slot", 0, "minimum slot (if unset, backfill until the merge, negative number for that number of slots before latest)")
 	// backfillDataAPICmd.Flags().BoolVar(&bidsOnly, "bids", false, "only bids")
 }
 
@@ -62,8 +62,20 @@ var backfillDataAPICmd = &cobra.Command{
 		// Connect to Postgres
 		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
+		// If needed, get latest slot (i.e. if min-slot is negative)
+		if minSlot < 0 {
+			log.Infof("Getting latest slot from beacon chain for offset %d", minSlot)
+			latestSlotOnBeaconChain := common.MustGetLatestSlot()
+			log.Infof("- Latest slot from beacon chain: %d", latestSlotOnBeaconChain)
+			minSlot = int64(latestSlotOnBeaconChain) + minSlot
+		}
+
+		if minSlot != 0 {
+			log.Infof("Using min slot: %d", minSlot)
+		}
+
 		for _, relay := range relays {
-			backfiller := newBackfiller(db, relay, initCursor, minSlot)
+			backfiller := newBackfiller(db, relay, initCursor, uint64(minSlot))
 			// backfiller.backfillDataAPIBids()
 			err = backfiller.backfillPayloadsDelivered()
 			if err != nil {

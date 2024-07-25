@@ -2,7 +2,9 @@
 package common
 
 import (
+	"encoding/json"
 	"math/big"
+	"net/http"
 	"net/url"
 	"runtime"
 	"strings"
@@ -147,4 +149,25 @@ func HumanBytes(n uint64) string {
 	s = strings.Replace(s, "MiB", "MB", 1)
 	s = strings.Replace(s, "GiB", "GB", 1)
 	return s
+}
+
+func getJSON(url string, target interface{}) error {
+	r, err := http.DefaultClient.Get(url)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+	return json.NewDecoder(r.Body).Decode(target)
+}
+
+func MustGetLatestSlot() uint64 {
+	url := "https://beaconcha.in/api/v1/slot/latest"
+	var c struct {
+		Data struct {
+			Slot uint64 `json:"slot"`
+		}
+	}
+	err := getJSON(url, &c)
+	Check(err)
+	return c.Data.Slot
 }
