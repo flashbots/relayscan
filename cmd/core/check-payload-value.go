@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"math/big"
 	"strings"
@@ -200,7 +199,8 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 				coinbase_diff_wei=:coinbase_diff_wei,
 				coinbase_diff_eth=:coinbase_diff_eth,
 				found_onchain=:found_onchain, -- should rename field, because getBlockByHash might succeed even though this slot was missed
-				num_blob_txs=:num_blob_txs
+				num_blob_txs=:num_blob_txs,
+				num_blobs=:num_blobs
 				WHERE slot=:slot`
 		_, err := db.DB.NamedExec(query, entry)
 		if err != nil {
@@ -217,7 +217,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			"blockHash":   entry.BlockHash,
 			"relay":       entry.Relay,
 		})
-		_log.Infof("checking slot...")
+		_log.Infof("checking slot %d ...", entry.Slot)
 		claimedProposerValue, ok := new(big.Int).SetString(entry.ValueClaimedWei, 10)
 		if !ok {
 			_log.Fatalf("couldn't convert claimed value to big.Int: %s", entry.ValueClaimedWei)
@@ -241,15 +241,20 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		// query block by hash
 		block, err = getBlockByHash(entry.BlockHash)
 		if err != nil {
-			_log.WithError(err).Fatalf("couldn't get block %s", entry.BlockHash)
-		} else if block == nil {
-			_log.WithError(err).Warnf("block not found: %s", entry.BlockHash)
-			entry.FoundOnChain = database.NewNullBool(false)
-			saveEntry(_log, entry)
-			continue
+			if err.Error() == "not found" {
+				_log.WithError(err).Warnf("block by hash not found: %s", entry.BlockHash)
+				_log.WithError(err).Warnf("block not found: %s", entry.BlockHash)
+				entry.FoundOnChain = database.NewNullBool(false)
+				saveEntry(_log, entry)
+				continue
+			} else {
+				_log.WithError(err).Fatalf("error querying block by hash: %s", entry.BlockHash)
+			}
 		}
 
-		entry.FoundOnChain = sql.NullBool{} //nolint:exhaustruct
+		// We found this block by hash, it's on chain
+		entry.FoundOnChain = database.NewNullBool(true)
+
 		if !entry.BlockNumber.Valid {
 			entry.BlockNumber = database.NewNullInt64(block.Number().Int64())
 		}
@@ -332,6 +337,8 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			}
 		}
 		entry.NumBlobTxs = database.NewNullInt64(int64(numBlobTxs))
+		entry.NumBlobs = database.NewNullInt64(int64(numBlobs))
+
 		entry.ExtraData = database.ExtraDataToUtf8Str(block.Extra())
 		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
 		entry.ValueCheckMethod = database.NewNullString(checkMethod)
