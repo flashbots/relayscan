@@ -9,6 +9,12 @@ import (
 var (
 	log               = common.Logger
 	numThreads uint64 = 10
+
+	// Printer for pretty printing numbers
+	// printer = message.NewPrinter(language.English)
+
+	ethNodeURI       string
+	ethNodeBackupURI string
 )
 
 var UtilCmd = &cobra.Command{
@@ -20,6 +26,5 @@ var UtilCmd = &cobra.Command{
 }
 
 func init() {
-	UtilCmd.AddCommand(inspectBlockCmd)
 	UtilCmd.AddCommand(backfillExtradataCmd)
 }

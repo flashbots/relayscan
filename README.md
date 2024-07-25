@@ -64,12 +64,14 @@ make build
 # Run with Docker
 docker run flashbots/relayscan
 docker run flashbots/relayscan /app/relayscan version
+```
 
----
+More example commands:
 
+```bash
 # Grab delivered payloads from relays data API, and fill up database
 ./relayscan core data-api-backfill                     #  for all slots since the merge
-./relayscan core data-api-backfill --min-slot 6658658  #  since a given slot (good for dev/testing)
+./relayscan core data-api-backfill --min-slot 9590900  #  since a given slot (good for dev/testing)
 
 # Double-check new entries for valid payments (and other)
 ./relayscan core check-payload-value
@@ -81,16 +83,27 @@ docker run flashbots/relayscan /app/relayscan version
 
 # Start the website (--dev reloads the template on every page load, for easier iteration)
 ./relayscan service website --dev
-
 ```
 
-You might want to run Postgres locally for testing:
+### Test & development
 
-```
-docker run -d -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
+Start by filling the DB with relay data (delivered payloads), and checking it:
+
+```bash
+# Copy .env.example to .env.local, update ETH_NODE_URI and source it
+source .env.local
+
+# Start Postgres
+docker run -d --name postgres -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres postgres
+
+# Query only a single relay, and for the shortest time possible
+go run . core data-api-backfill --relay fb --min-slot -1
+
+# Now the DB has data, check it (for only a single slot, the latest one, see logs for "latest received payload at slot N" in the backfill command)
+go run . core check-payload-value --slot _N_
 ```
 
-### Test & dev
+For linting and testing:
 
 ```bash
 # Install dependencies
