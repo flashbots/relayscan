@@ -60,7 +60,7 @@ update-bids-website:
 	go run . service bidcollect --build-website --build-website-upload
 
 dev-website:
-	go run . service website --dev
+	DB_DONT_APPLY_SCHEMA=1 go run . service website --dev
 
 dev-bids-website:
 	go run . service bidcollect --devserver

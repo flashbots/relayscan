@@ -13,6 +13,8 @@ type Stats struct {
 	Since time.Time
 	Until time.Time
 
+	TimeStr string // i.e. 24h, 12h, 1h or 7d
+
 	TopRelays          []*database.TopRelayEntry
 	TopBuilders        []*database.TopBuilderEntry
 	BuilderProfits     []*database.BuilderProfitEntry
@@ -29,17 +31,16 @@ func NewStats() *Stats {
 }
 
 type HTMLData struct {
-	Title string
+	Title     string
+	TimeSpans []string
+	TimeSpan  string
+	View      string // overview or builder-profit
 
-	GeneratedAt        time.Time
-	LastDataTime       time.Time
-	LastDataTimeString string
-	LastUpdateSlot     uint64
-	TimeSpans          []string
+	Stats *Stats // stats for this view
 
-	TimeSpan string
-	View     string
-	Stats    *Stats
+	LastUpdateSlot    uint64
+	LastUpdateTime    time.Time
+	LastUpdateTimeStr string
 }
 
 type HTMLDataDailyStats struct {
