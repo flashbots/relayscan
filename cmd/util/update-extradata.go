@@ -5,6 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/flashbots/relayscan/database"
+	dbvars "github.com/flashbots/relayscan/database/vars"
 	"github.com/flashbots/relayscan/vars"
 	"github.com/metachris/flashbotsrpc"
 	"github.com/sirupsen/logrus"
@@ -38,7 +39,7 @@ var backfillExtradataCmd = &cobra.Command{
 		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
 		entries := []database.DataAPIPayloadDeliveredEntry{}
-		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered + ` WHERE slot < 4823872 AND extra_data = ''`
+		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + dbvars.TableDataAPIPayloadDelivered + ` WHERE slot < 4823872 AND extra_data = ''`
 		// query += ` LIMIT 1000`
 		err = db.DB.Select(&entries, query)
 		if err != nil {
@@ -109,7 +110,7 @@ func startBackfillWorker(wg *sync.WaitGroup, db *database.DatabaseService, clien
 				continue
 			}
 
-			query := `UPDATE ` + database.TableDataAPIPayloadDelivered + ` SET extra_data=$1 WHERE id=$2`
+			query := `UPDATE ` + dbvars.TableDataAPIPayloadDelivered + ` SET extra_data=$1 WHERE id=$2`
 			_, err := db.DB.Exec(query, entry.ExtraData, entry.ID)
 			if err != nil {
 				_log.WithError(err).Fatalf("failed to save entry")

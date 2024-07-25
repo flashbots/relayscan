@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	dbvars "github.com/flashbots/relayscan/database/vars"
 	"github.com/flashbots/relayscan/vars"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -71,7 +72,7 @@ var checkPayloadValueCmd = &cobra.Command{
 		// log.Infof("beacon node connected. headslot: %d", headSlot)
 
 		entries := []database.DataAPIPayloadDeliveredEntry{}
-		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered
+		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + dbvars.TableDataAPIPayloadDelivered
 		if checkIncorrectOnly {
 			query += ` WHERE value_check_ok=false ORDER BY slot DESC`
 			if limit > 0 {
@@ -184,7 +185,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 	}
 
 	saveEntry := func(_log *logrus.Entry, entry database.DataAPIPayloadDeliveredEntry) {
-		query := `UPDATE ` + database.TableDataAPIPayloadDelivered + ` SET
+		query := `UPDATE ` + dbvars.TableDataAPIPayloadDelivered + ` SET
 				block_number=:block_number,
 				extra_data=:extra_data,
 				slot_missed=:slot_missed,
@@ -259,6 +260,9 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		entryBlockHash := ethcommon.HexToHash(entry.BlockHash)
 
 		// query block by number to ensure that's what landed on-chain
+		//
+		// TODO: This reports "slot is missed" when actually an EL block with that number is there, but the hash is different.
+		//       Should refactor this to instead say elBlockHashMismatch (and save both hashes)
 		blockByNum, err := getHeaderByNumber(block.Number())
 		if err != nil {
 			_log.WithError(err).Fatalf("couldn't get block by number %d", block.NumberU64())

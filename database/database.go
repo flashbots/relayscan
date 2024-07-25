@@ -2,12 +2,14 @@
 package database
 
 import (
-	"fmt"
 	"os"
 	"time"
 
+	"github.com/flashbots/relayscan/database/migrations"
+	"github.com/flashbots/relayscan/database/vars"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	migrate "github.com/rubenv/sql-migrate"
 )
 
 type DatabaseService struct {
@@ -24,12 +26,9 @@ func NewDatabaseService(dsn string) (*DatabaseService, error) {
 	db.DB.SetMaxIdleConns(10)
 	db.DB.SetConnMaxIdleTime(0)
 
-	if os.Getenv("PRINT_SCHEMA") == "1" {
-		fmt.Println(schema)
-	}
-
 	if os.Getenv("DB_DONT_APPLY_SCHEMA") == "" {
-		_, err = db.Exec(schema)
+		migrate.SetTable(vars.TableMigrations)
+		_, err := migrate.Exec(db.DB, "postgres", migrations.Migrations, migrate.Up)
 		if err != nil {
 			return nil, err
 		}
@@ -45,7 +44,7 @@ func (s *DatabaseService) Close() error {
 }
 
 func (s *DatabaseService) SaveSignedBuilderBid(entry SignedBuilderBidEntry) error {
-	query := `INSERT INTO ` + TableSignedBuilderBid + `
+	query := `INSERT INTO ` + vars.TableSignedBuilderBid + `
 		(relay, requested_at, received_at, duration_ms, slot, parent_hash, proposer_pubkey, pubkey, signature, value, fee_recipient, block_hash, block_number, gas_limit, gas_used, extra_data, epoch, timestamp, prev_randao) VALUES
 		(:relay, :requested_at, :received_at, :duration_ms, :slot, :parent_hash, :proposer_pubkey, :pubkey, :signature, :value, :fee_recipient, :block_hash, :block_number, :gas_limit, :gas_used, :extra_data, :epoch, :timestamp, :prev_randao)
 		ON CONFLICT DO NOTHING`
@@ -54,13 +53,13 @@ func (s *DatabaseService) SaveSignedBuilderBid(entry SignedBuilderBidEntry) erro
 }
 
 func (s *DatabaseService) SaveBuilder(entry *BlockBuilderEntry) error {
-	query := `INSERT INTO ` + TableBlockBuilder + ` (builder_pubkey, description) VALUES (:builder_pubkey, :description) ON CONFLICT DO NOTHING`
+	query := `INSERT INTO ` + vars.TableBlockBuilder + ` (builder_pubkey, description) VALUES (:builder_pubkey, :description) ON CONFLICT DO NOTHING`
 	_, err := s.DB.NamedExec(query, entry)
 	return err
 }
 
 func (s *DatabaseService) SaveDataAPIPayloadDelivered(entry *DataAPIPayloadDeliveredEntry) error {
-	query := `INSERT INTO ` + TableDataAPIPayloadDelivered + `
+	query := `INSERT INTO ` + vars.TableDataAPIPayloadDelivered + `
 		(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number, extra_data) VALUES
 		(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value_claimed_wei, :value_claimed_eth, :num_tx, :block_number, :extra_data)
 		ON CONFLICT DO NOTHING`
@@ -73,7 +72,7 @@ func (s *DatabaseService) SaveDataAPIPayloadDeliveredBatch(entries []*DataAPIPay
 		return nil
 	}
 
-	query := `INSERT INTO ` + TableDataAPIPayloadDelivered + `
+	query := `INSERT INTO ` + vars.TableDataAPIPayloadDelivered + `
 	(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number, extra_data) VALUES
 	(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value_claimed_wei, :value_claimed_eth, :num_tx, :block_number, :extra_data)
 	ON CONFLICT DO NOTHING`
@@ -95,13 +94,13 @@ func (s *DatabaseService) SaveDataAPIPayloadDeliveredBatch(entries []*DataAPIPay
 
 func (s *DatabaseService) GetDataAPILatestPayloadDelivered(relay string) (*DataAPIPayloadDeliveredEntry, error) {
 	entry := new(DataAPIPayloadDeliveredEntry)
-	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number, extra_data, slot_missed, value_check_ok, value_check_method, value_delivered_wei, value_delivered_eth, value_delivered_diff_wei, value_delivered_diff_eth, block_coinbase_addr, block_coinbase_is_proposer, coinbase_diff_wei, coinbase_diff_eth, found_onchain, notes FROM ` + TableDataAPIPayloadDelivered + ` WHERE relay=$1 ORDER BY slot DESC LIMIT 1`
+	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number, extra_data, slot_missed, value_check_ok, value_check_method, value_delivered_wei, value_delivered_eth, value_delivered_diff_wei, value_delivered_diff_eth, block_coinbase_addr, block_coinbase_is_proposer, coinbase_diff_wei, coinbase_diff_eth, found_onchain, notes FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE relay=$1 ORDER BY slot DESC LIMIT 1`
 	err := s.DB.Get(entry, query, relay)
 	return entry, err
 }
 
 func (s *DatabaseService) SaveDataAPIBid(entry *DataAPIBuilderBidEntry) error {
-	query := `INSERT INTO ` + TableDataAPIBuilderBid + `
+	query := `INSERT INTO ` + vars.TableDataAPIBuilderBid + `
 		(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number, timestamp) VALUES
 		(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value, :num_tx, :block_number, :timestamp)
 		ON CONFLICT DO NOTHING`
@@ -113,7 +112,7 @@ func (s *DatabaseService) SaveDataAPIBids(entries []*DataAPIBuilderBidEntry) err
 	if len(entries) == 0 {
 		return nil
 	}
-	query := `INSERT INTO ` + TableDataAPIBuilderBid + `
+	query := `INSERT INTO ` + vars.TableDataAPIBuilderBid + `
 	(relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number, timestamp) VALUES
 	(:relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey, :proposer_fee_recipient, :gas_limit, :gas_used, :value, :num_tx, :block_number, :timestamp)
 	ON CONFLICT DO NOTHING`
@@ -123,7 +122,7 @@ func (s *DatabaseService) SaveDataAPIBids(entries []*DataAPIBuilderBidEntry) err
 
 func (s *DatabaseService) GetDataAPILatestBid(relay string) (*DataAPIBuilderBidEntry, error) {
 	entry := new(DataAPIBuilderBidEntry)
-	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number, timestamp FROM ` + TableDataAPIBuilderBid + ` WHERE relay=$1 ORDER BY slot DESC, timestamp DESC LIMIT 1`
+	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value, num_tx, block_number, timestamp FROM ` + vars.TableDataAPIBuilderBid + ` WHERE relay=$1 ORDER BY slot DESC, timestamp DESC LIMIT 1`
 	err := s.DB.Get(entry, query, relay)
 	return entry, err
 }
@@ -132,8 +131,8 @@ func (s *DatabaseService) GetTopRelays(since, until time.Time) (res []*TopRelayE
 	startSlot := timeToSlot(since)
 	endSlot := timeToSlot(until)
 
-	// query := `SELECT relay, count(relay) as payloads FROM ` + TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY relay ORDER BY payloads DESC;`
-	query := `SELECT relay, count(relay) as payloads FROM ` + TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL AND slot >= $1 AND slot <= $2 GROUP BY relay ORDER BY payloads DESC;`
+	// query := `SELECT relay, count(relay) as payloads FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY relay ORDER BY payloads DESC;`
+	query := `SELECT relay, count(relay) as payloads FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL AND slot >= $1 AND slot <= $2 GROUP BY relay ORDER BY payloads DESC;`
 	err = s.DB.Select(&res, query, startSlot, endSlot)
 	return res, err
 }
@@ -143,7 +142,7 @@ func (s *DatabaseService) GetTopBuilders(since, until time.Time, relay string) (
 	endSlot := timeToSlot(until)
 
 	query := `SELECT extra_data, count(extra_data) as blocks FROM (
-		SELECT distinct(slot), extra_data FROM ` + TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL AND slot >= $1 AND slot <= $2`
+		SELECT distinct(slot), extra_data FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL AND slot >= $1 AND slot <= $2`
 	if relay != "" {
 		query += ` AND relay = '` + relay + `'`
 	}
@@ -167,7 +166,7 @@ func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*Buil
 		round(sum(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 4) as total_profit,
 		round(abs(sum(CASE WHEN coinbase_diff_eth < 0 THEN coinbase_diff_eth ELSE 0 END)), 4) as total_subsidies
 	FROM (
-		SELECT distinct(slot), extra_data, coinbase_diff_eth FROM ` + TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL AND slot >= $1 AND slot <= $2
+		SELECT distinct(slot), extra_data, coinbase_diff_eth FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL AND slot >= $1 AND slot <= $2
 	) AS x
 	GROUP BY extra_data
 	ORDER BY total_profit DESC;`
@@ -195,7 +194,7 @@ func (s *DatabaseService) GetStatsForTimerange(since, until time.Time, relay str
 func (s *DatabaseService) GetDeliveredPayloadsForSlot(slot uint64) (res []*DataAPIPayloadDeliveredEntry, err error) {
 	query := `SELECT
 		id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number
-	FROM ` + TableDataAPIPayloadDelivered + ` WHERE slot=$1;`
+	FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE slot=$1;`
 	err = s.DB.Select(&res, query, slot)
 	return res, err
 }
@@ -203,7 +202,7 @@ func (s *DatabaseService) GetDeliveredPayloadsForSlot(slot uint64) (res []*DataA
 func (s *DatabaseService) GetLatestDeliveredPayload() (*DataAPIPayloadDeliveredEntry, error) {
 	query := `SELECT
 		id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number
-	FROM ` + TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL ORDER BY id DESC LIMIT 1;`
+	FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL ORDER BY id DESC LIMIT 1;`
 	entry := new(DataAPIPayloadDeliveredEntry)
 	err := s.DB.Get(entry, query)
 	return entry, err
@@ -212,7 +211,7 @@ func (s *DatabaseService) GetLatestDeliveredPayload() (*DataAPIPayloadDeliveredE
 func (s *DatabaseService) GetDeliveredPayloadsForSlots(slotStart, slotEnd uint64) (res []*DataAPIPayloadDeliveredEntry, err error) {
 	query := `SELECT
 		id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number, extra_data
-	FROM ` + TableDataAPIPayloadDelivered + ` WHERE slot>=$1 AND slot<=$2 ORDER BY slot ASC;`
+	FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE slot>=$1 AND slot<=$2 ORDER BY slot ASC;`
 	err = s.DB.Select(&res, query, slotStart, slotEnd)
 	return res, err
 }
@@ -220,7 +219,7 @@ func (s *DatabaseService) GetDeliveredPayloadsForSlots(slotStart, slotEnd uint64
 func (s *DatabaseService) GetSignedBuilderBidsForSlot(slot uint64) (res []*SignedBuilderBidEntry, err error) {
 	query := `SELECT
 		id, relay, requested_at, received_at, duration_ms, slot, parent_hash, proposer_pubkey, pubkey, signature, value, fee_recipient, block_hash, block_number, gas_limit, gas_used, extra_data, epoch, timestamp, prev_randao
-	FROM ` + TableSignedBuilderBid + ` WHERE slot=$1;`
+	FROM ` + vars.TableSignedBuilderBid + ` WHERE slot=$1;`
 	err = s.DB.Select(&res, query, slot)
 	return res, err
 }
@@ -229,7 +228,7 @@ func (s *DatabaseService) SaveBuilderStats(entries []*BuilderStatsEntry) error {
 	if len(entries) == 0 {
 		return nil
 	}
-	query := `INSERT INTO ` + TableBlockBuilderInclusionStats + `
+	query := `INSERT INTO ` + vars.TableBlockBuilderInclusionStats + `
 	(type, hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included) VALUES
 	(:type, :hours, :time_start, :time_end, :builder_name, :extra_data, :builder_pubkeys, :blocks_included)
 		ON CONFLICT (type, hours, time_start, time_end, builder_name) DO UPDATE SET
@@ -241,7 +240,7 @@ func (s *DatabaseService) SaveBuilderStats(entries []*BuilderStatsEntry) error {
 }
 
 func (s *DatabaseService) GetLastDailyBuilderStatsEntry(filterType string) (*BuilderStatsEntry, error) {
-	query := `SELECT type, hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included FROM ` + TableBlockBuilderInclusionStats + ` WHERE hours=24 AND type=$1 ORDER BY time_end DESC LIMIT 1;`
+	query := `SELECT type, hours, time_start, time_end, builder_name, extra_data, builder_pubkeys, blocks_included FROM ` + vars.TableBlockBuilderInclusionStats + ` WHERE hours=24 AND type=$1 ORDER BY time_end DESC LIMIT 1;`
 	entry := new(BuilderStatsEntry)
 	err := s.DB.Get(entry, query, filterType)
 	return entry, err
