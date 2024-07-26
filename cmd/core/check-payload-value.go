@@ -33,8 +33,8 @@ var (
 
 func init() {
 	checkPayloadValueCmd.Flags().Uint64Var(&slot, "slot", 0, "a specific slot")
-	checkPayloadValueCmd.Flags().Uint64Var(&slotMax, "slot-max", 0, "a specific max slot, only check slots before")
-	checkPayloadValueCmd.Flags().Uint64Var(&slotMin, "slot-min", 0, "only check slots after")
+	checkPayloadValueCmd.Flags().Uint64Var(&slotMax, "slot-max", 0, "a specific max slot, only check slots before (only works with --check-all)")
+	checkPayloadValueCmd.Flags().Uint64Var(&slotMin, "slot-min", 0, "only check slots after this one")
 	checkPayloadValueCmd.Flags().Uint64Var(&limit, "limit", 1000, "how many payloads")
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", vars.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
@@ -91,9 +91,6 @@ func checkPayloadValue(cmd *cobra.Command, args []string) {
 		if slotMax > 0 {
 			query += fmt.Sprintf(" WHERE slot<=%d", slotMax)
 		}
-		if slotMin > 0 {
-			query += fmt.Sprintf(" WHERE slot>=%d", slotMin)
-		}
 		query += ` ORDER BY slot DESC`
 		if limit > 0 {
 			query += fmt.Sprintf(" limit %d", limit)
@@ -129,6 +126,11 @@ func checkPayloadValue(cmd *cobra.Command, args []string) {
 	}
 
 	for _, entry := range entries {
+		// possibly skip
+		if slotMin != 0 && entry.Slot < slotMin {
+			continue
+		}
+
 		entryC <- entry
 	}
 	close(entryC)

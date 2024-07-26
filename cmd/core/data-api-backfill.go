@@ -20,7 +20,7 @@ var (
 	cliRelay   string
 	minSlot    int64
 	initCursor uint64
-	pageLimit  = 200 // 200 is max on some relays
+	pageLimit  = 100 // 100 is max on bloxroute
 )
 
 func init() {
