@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
 	"github.com/flashbots/relayscan/common"
@@ -19,7 +20,7 @@ var (
 	cliRelay   string
 	minSlot    int64
 	initCursor uint64
-	pageLimit  = 1000
+	pageLimit  = 200 // 200 is max on some relays
 )
 
 func init() {
@@ -34,6 +35,7 @@ var backfillDataAPICmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		var relays []common.RelayEntry
+		startTime := time.Now().UTC()
 
 		if cliRelay != "" {
 			var relayEntry common.RelayEntry
@@ -75,12 +77,16 @@ var backfillDataAPICmd = &cobra.Command{
 		}
 
 		for _, relay := range relays {
+			log.Infof("Starting backfilling for relay %s ...", relay.Hostname())
 			backfiller := newBackfiller(db, relay, initCursor, uint64(minSlot))
 			err = backfiller.backfillPayloadsDelivered()
 			if err != nil {
 				log.WithError(err).WithField("relay", relay).Error("backfill failed")
 			}
 		}
+
+		timeNeeded := time.Since(startTime)
+		log.WithField("timeNeeded", timeNeeded).Info("All done!")
 	},
 }
 
