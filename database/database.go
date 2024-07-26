@@ -209,7 +209,7 @@ func (s *DatabaseService) GetDeliveredPayloadsForSlot(slot uint64) (res []*DataA
 func (s *DatabaseService) GetLatestDeliveredPayload() (*DataAPIPayloadDeliveredEntry, error) {
 	query := `SELECT
 		id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number
-	FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL ORDER BY id DESC LIMIT 1;`
+	FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL ORDER BY slot DESC LIMIT 1;`
 	entry := new(DataAPIPayloadDeliveredEntry)
 	err := s.DB.Get(entry, query)
 	return entry, err
