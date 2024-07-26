@@ -21,6 +21,7 @@ import (
 var (
 	limit              uint64
 	slotMax            uint64
+	slotMin            uint64
 	ethNodeURI         string
 	ethNodeBackupURI   string
 	checkIncorrectOnly bool
@@ -31,7 +32,8 @@ var (
 
 func init() {
 	checkPayloadValueCmd.Flags().Uint64Var(&slot, "slot", 0, "a specific slot")
-	checkPayloadValueCmd.Flags().Uint64Var(&slotMax, "slot-max", 0, "a specific max slot, only check slots below this")
+	checkPayloadValueCmd.Flags().Uint64Var(&slotMax, "slot-max", 0, "a specific max slot, only check slots before")
+	checkPayloadValueCmd.Flags().Uint64Var(&slotMin, "slot-min", 0, "only check slots after")
 	checkPayloadValueCmd.Flags().Uint64Var(&limit, "limit", 1000, "how many payloads")
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", vars.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
@@ -87,6 +89,9 @@ var checkPayloadValueCmd = &cobra.Command{
 		} else if checkAll {
 			if slotMax > 0 {
 				query += fmt.Sprintf(" WHERE slot<=%d", slotMax)
+			}
+			if slotMin > 0 {
+				query += fmt.Sprintf(" WHERE slot>=%d", slotMin)
 			}
 			query += ` ORDER BY slot DESC`
 			if limit > 0 {
