@@ -10,5 +10,6 @@ var Migrations = migrate.MemoryMigrationSource{
 		Migration001InitDatabase,
 		Migration002AddBlobCount,
 		Migration003AddBlobIndexes,
+		Migration004AddBlockTimestamp,
 	},
 }

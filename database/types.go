@@ -26,6 +26,13 @@ func NewNullString(s string) sql.NullString {
 	}
 }
 
+func NewNullTime(t time.Time) sql.NullTime {
+	return sql.NullTime{
+		Time:  t,
+		Valid: true,
+	}
+}
+
 type DataAPIPayloadDeliveredEntry struct {
 	ID         int64     `db:"id"`
 	InsertedAt time.Time `db:"inserted_at"`
@@ -66,6 +73,9 @@ type DataAPIPayloadDeliveredEntry struct {
 	// Blob info added 2024-07-25
 	NumBlobTxs sql.NullInt64 `db:"num_blob_txs"`
 	NumBlobs   sql.NullInt64 `db:"num_blobs"`
+
+	// Block time added 2024-07-26
+	BlockTimestamp sql.NullTime `db:"block_timestamp"`
 }
 
 type DataAPIBuilderBidEntry struct {

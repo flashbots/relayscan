@@ -177,14 +177,6 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		return block, err
 	}
 
-	// getBlockByNumber := func(blockNumber int) (*types.Block, error) {
-	// 	block, err := client.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
-	// 	if err != nil || block == nil {
-	// 		block, err = client2.BlockByNumber(context.Background(), big.NewInt(int64(blockNumber)))
-	// 	}
-	// 	return block, err
-	// }
-
 	getHeaderByNumber := func(blockNumber *big.Int) (*types.Header, error) {
 		block, err := client.HeaderByNumber(context.Background(), blockNumber)
 		if err != nil || block == nil {
@@ -210,7 +202,8 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 				coinbase_diff_eth=:coinbase_diff_eth,
 				found_onchain=:found_onchain, -- should rename field, because getBlockByHash might succeed even though this slot was missed
 				num_blob_txs=:num_blob_txs,
-				num_blobs=:num_blobs
+				num_blobs=:num_blobs,
+				block_timestamp=:block_timestamp
 				WHERE slot=:slot`
 		_, err := db.DB.NamedExec(query, entry)
 		if err != nil {
@@ -356,6 +349,10 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		entry.ValueDeliveredEth = database.NewNullString(common.WeiToEth(proposerBalanceDiffWei).String())
 		entry.ValueDeliveredDiffWei = database.NewNullString(proposerValueDiffFromClaim.String())
 		entry.ValueDeliveredDiffEth = database.NewNullString(common.WeiToEth(proposerValueDiffFromClaim).String())
+
+		// set block timestamp
+		blockTime := time.Unix(int64(block.Time()), 0).UTC()
+		entry.BlockTimestamp = database.NewNullTime(blockTime)
 
 		log.WithFields(logrus.Fields{
 			"coinbaseIsProposer": coinbaseIsProposer,

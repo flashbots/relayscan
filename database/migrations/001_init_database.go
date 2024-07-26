@@ -87,7 +87,6 @@ CREATE INDEX IF NOT EXISTS ` + vars.TableDataAPIPayloadDelivered + `_value_wei_i
 CREATE INDEX IF NOT EXISTS ` + vars.TableDataAPIPayloadDelivered + `_valuecheck_ok_idx ON ` + vars.TableDataAPIPayloadDelivered + `("value_check_ok");
 CREATE INDEX IF NOT EXISTS ` + vars.TableDataAPIPayloadDelivered + `_slotmissed_idx ON ` + vars.TableDataAPIPayloadDelivered + `("slot_missed");
 CREATE INDEX IF NOT EXISTS ` + vars.TableDataAPIPayloadDelivered + `_cb_diff_eth_idx ON ` + vars.TableDataAPIPayloadDelivered + `("coinbase_diff_eth");
--- CREATE INDEX CONCURRENTLY IF NOT EXISTS ` + vars.TableDataAPIPayloadDelivered + `_insertedat_relay_idx ON ` + vars.TableDataAPIPayloadDelivered + `("inserted_at", "relay");
 
 
 CREATE TABLE IF NOT EXISTS ` + vars.TableDataAPIBuilderBid + ` (
