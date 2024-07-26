@@ -2,17 +2,18 @@ package core
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"math/big"
 	"strings"
 	"sync"
+	"time"
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
+	dbvars "github.com/flashbots/relayscan/database/vars"
 	"github.com/flashbots/relayscan/vars"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -21,6 +22,7 @@ import (
 var (
 	limit              uint64
 	slotMax            uint64
+	slotMin            uint64
 	ethNodeURI         string
 	ethNodeBackupURI   string
 	checkIncorrectOnly bool
@@ -31,7 +33,8 @@ var (
 
 func init() {
 	checkPayloadValueCmd.Flags().Uint64Var(&slot, "slot", 0, "a specific slot")
-	checkPayloadValueCmd.Flags().Uint64Var(&slotMax, "slot-max", 0, "a specific max slot, only check slots below this")
+	checkPayloadValueCmd.Flags().Uint64Var(&slotMax, "slot-max", 0, "a specific max slot, only check slots before (only works with --check-all)")
+	checkPayloadValueCmd.Flags().Uint64Var(&slotMin, "slot-min", 0, "only check slots after this one")
 	checkPayloadValueCmd.Flags().Uint64Var(&limit, "limit", 1000, "how many payloads")
 	checkPayloadValueCmd.Flags().Uint64Var(&numThreads, "threads", 10, "how many threads")
 	checkPayloadValueCmd.Flags().StringVar(&ethNodeURI, "eth-node", vars.DefaultEthNodeURI, "eth node URI (i.e. Infura)")
@@ -45,89 +48,96 @@ func init() {
 var checkPayloadValueCmd = &cobra.Command{
 	Use:   "check-payload-value",
 	Short: "Check payload value for delivered payloads",
-	Run: func(cmd *cobra.Command, args []string) {
-		var err error
+	Run:   checkPayloadValue,
+}
 
-		client, err := ethclient.Dial(ethNodeURI)
+func checkPayloadValue(cmd *cobra.Command, args []string) {
+	var err error
+	startTime := time.Now().UTC()
+
+	client, err := ethclient.Dial(ethNodeURI)
+	if err != nil {
+		log.Fatalf("Failed to create RPC client for '%s'", ethNodeURI)
+	}
+	log.Infof("Using eth node: %s", ethNodeURI)
+
+	client2 := client
+	if ethNodeBackupURI != "" {
+		client2, err = ethclient.Dial(ethNodeBackupURI)
 		if err != nil {
-			log.Fatalf("Failed to create RPC client for '%s'", ethNodeURI)
+			log.Fatalf("Failed to create backup RPC client for '%s'", ethNodeBackupURI)
 		}
-		log.Infof("Using eth node: %s", ethNodeURI)
+		log.Infof("Using eth backup node: %s", ethNodeBackupURI)
+	}
 
-		client2 := client
-		if ethNodeBackupURI != "" {
-			client2, err = ethclient.Dial(ethNodeBackupURI)
-			if err != nil {
-				log.Fatalf("Failed to create backup RPC client for '%s'", ethNodeBackupURI)
-			}
-			log.Infof("Using eth backup node: %s", ethNodeBackupURI)
+	// Connect to Postgres
+	db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
+
+	entries := []database.DataAPIPayloadDeliveredEntry{}
+	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + dbvars.TableDataAPIPayloadDelivered
+	if checkIncorrectOnly {
+		query += ` WHERE value_check_ok=false ORDER BY slot DESC`
+		if limit > 0 {
+			query += fmt.Sprintf(" limit %d", limit)
 		}
-
-		// Connect to Postgres
-		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
-
-		// Connect to BN
-		// bn, headSlot := common.MustConnectBeaconNode(log, beaconNodeURI, false)
-		// log.Infof("beacon node connected. headslot: %d", headSlot)
-
-		entries := []database.DataAPIPayloadDeliveredEntry{}
-		query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + database.TableDataAPIPayloadDelivered
-		if checkIncorrectOnly {
-			query += ` WHERE value_check_ok=false ORDER BY slot DESC`
-			if limit > 0 {
-				query += fmt.Sprintf(" limit %d", limit)
-			}
-			err = db.DB.Select(&entries, query)
-		} else if checkMissedOnly {
-			query += ` WHERE slot_missed=true ORDER BY slot DESC`
-			if limit > 0 {
-				query += fmt.Sprintf(" limit %d", limit)
-			}
-			err = db.DB.Select(&entries, query)
-		} else if checkAll {
-			if slotMax > 0 {
-				query += fmt.Sprintf(" WHERE slot<=%d", slotMax)
-			}
-			query += ` ORDER BY slot DESC`
-			if limit > 0 {
-				query += fmt.Sprintf(" limit %d", limit)
-			}
-			err = db.DB.Select(&entries, query)
-		} else if slot != 0 {
-			query += ` WHERE slot=$1`
-			err = db.DB.Select(&entries, query, slot)
-		} else {
-			// query += ` WHERE value_check_ok IS NULL AND slot_missed IS NULL ORDER BY slot DESC LIMIT $1`
-			query += ` WHERE value_check_ok IS NULL ORDER BY slot DESC LIMIT $1`
-			err = db.DB.Select(&entries, query, limit)
+		err = db.DB.Select(&entries, query)
+	} else if checkMissedOnly {
+		query += ` WHERE slot_missed=true ORDER BY slot DESC`
+		if limit > 0 {
+			query += fmt.Sprintf(" limit %d", limit)
 		}
-		if err != nil {
-			log.WithError(err).Fatalf("couldn't get entries")
+		err = db.DB.Select(&entries, query)
+	} else if checkAll {
+		if slotMax > 0 {
+			query += fmt.Sprintf(" WHERE slot<=%d", slotMax)
 		}
+		query += ` ORDER BY slot DESC`
+		if limit > 0 {
+			query += fmt.Sprintf(" limit %d", limit)
+		}
+		err = db.DB.Select(&entries, query)
+	} else if slot != 0 {
+		query += ` WHERE slot=$1`
+		err = db.DB.Select(&entries, query, slot)
+	} else {
+		// query += ` WHERE value_check_ok IS NULL AND slot_missed IS NULL ORDER BY slot DESC LIMIT $1`
+		query += ` WHERE value_check_ok IS NULL ORDER BY slot DESC LIMIT $1`
+		err = db.DB.Select(&entries, query, limit)
+	}
+	if err != nil {
+		log.WithError(err).Fatalf("couldn't get entries")
+	}
 
-		log.Infof("query: %s", query)
-		log.Infof("got %d entries", len(entries))
-		if len(entries) == 0 {
-			return
-		}
+	log.Infof("query: %s", query)
+	log.Infof("got %d entries", len(entries))
+	if len(entries) == 0 {
+		return
+	}
 
-		wg := new(sync.WaitGroup)
-		entryC := make(chan database.DataAPIPayloadDeliveredEntry)
-		if slot != 0 {
-			numThreads = 1
-		}
-		for i := 0; i < int(numThreads); i++ {
-			log.Infof("starting worker %d", i+1)
-			wg.Add(1)
-			go startUpdateWorker(wg, db, client, client2, entryC)
+	wg := new(sync.WaitGroup)
+	entryC := make(chan database.DataAPIPayloadDeliveredEntry)
+	if slot != 0 {
+		numThreads = 1
+	}
+	for i := 0; i < int(numThreads); i++ {
+		log.Infof("starting worker %d", i+1)
+		wg.Add(1)
+		go startUpdateWorker(wg, db, client, client2, entryC)
+	}
+
+	for _, entry := range entries {
+		// possibly skip
+		if slotMin != 0 && entry.Slot < slotMin {
+			continue
 		}
 
-		for _, entry := range entries {
-			entryC <- entry
-		}
-		close(entryC)
-		wg.Wait()
-	},
+		entryC <- entry
+	}
+	close(entryC)
+	wg.Wait()
+
+	timeNeeded := time.Since(startTime)
+	log.WithField("timeNeeded", timeNeeded).Info("All done!")
 }
 
 func _getBalanceDiff(ethClient *ethclient.Client, address ethcommon.Address, blockNumber *big.Int) (*big.Int, error) {
@@ -184,7 +194,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 	}
 
 	saveEntry := func(_log *logrus.Entry, entry database.DataAPIPayloadDeliveredEntry) {
-		query := `UPDATE ` + database.TableDataAPIPayloadDelivered + ` SET
+		query := `UPDATE ` + dbvars.TableDataAPIPayloadDelivered + ` SET
 				block_number=:block_number,
 				extra_data=:extra_data,
 				slot_missed=:slot_missed,
@@ -198,7 +208,9 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 				block_coinbase_is_proposer=:block_coinbase_is_proposer,
 				coinbase_diff_wei=:coinbase_diff_wei,
 				coinbase_diff_eth=:coinbase_diff_eth,
-				found_onchain=:found_onchain -- should rename field, because getBlockByHash might succeed even though this slot was missed
+				found_onchain=:found_onchain, -- should rename field, because getBlockByHash might succeed even though this slot was missed
+				num_blob_txs=:num_blob_txs,
+				num_blobs=:num_blobs
 				WHERE slot=:slot`
 		_, err := db.DB.NamedExec(query, entry)
 		if err != nil {
@@ -215,7 +227,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			"blockHash":   entry.BlockHash,
 			"relay":       entry.Relay,
 		})
-		_log.Infof("checking slot...")
+		_log.Infof("checking slot %d ...", entry.Slot)
 		claimedProposerValue, ok := new(big.Int).SetString(entry.ValueClaimedWei, 10)
 		if !ok {
 			_log.Fatalf("couldn't convert claimed value to big.Int: %s", entry.ValueClaimedWei)
@@ -239,15 +251,20 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		// query block by hash
 		block, err = getBlockByHash(entry.BlockHash)
 		if err != nil {
-			_log.WithError(err).Fatalf("couldn't get block %s", entry.BlockHash)
-		} else if block == nil {
-			_log.WithError(err).Warnf("block not found: %s", entry.BlockHash)
-			entry.FoundOnChain = database.NewNullBool(false)
-			saveEntry(_log, entry)
-			continue
+			if err.Error() == "not found" {
+				_log.WithError(err).Warnf("block by hash not found: %s", entry.BlockHash)
+				_log.WithError(err).Warnf("block not found: %s", entry.BlockHash)
+				entry.FoundOnChain = database.NewNullBool(false)
+				saveEntry(_log, entry)
+				continue
+			} else {
+				_log.WithError(err).Fatalf("error querying block by hash: %s", entry.BlockHash)
+			}
 		}
 
-		entry.FoundOnChain = sql.NullBool{} //nolint:exhaustruct
+		// We found this block by hash, it's on chain
+		entry.FoundOnChain = database.NewNullBool(true)
+
 		if !entry.BlockNumber.Valid {
 			entry.BlockNumber = database.NewNullInt64(block.Number().Int64())
 		}
@@ -259,6 +276,9 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		entryBlockHash := ethcommon.HexToHash(entry.BlockHash)
 
 		// query block by number to ensure that's what landed on-chain
+		//
+		// TODO: This reports "slot is missed" when actually an EL block with that number is there, but the hash is different.
+		//       Should refactor this to instead say elBlockHashMismatch (and save both hashes)
 		blockByNum, err := getHeaderByNumber(block.Number())
 		if err != nil {
 			_log.WithError(err).Fatalf("couldn't get block by number %d", block.NumberU64())
@@ -317,6 +337,18 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			}
 		}
 
+		// find number of blob transactions
+		numBlobTxs := 0
+		numBlobs := 0
+		for _, tx := range txs {
+			if tx.Type() == types.BlobTxType {
+				numBlobTxs++
+				numBlobs += len(tx.BlobHashes())
+			}
+		}
+		entry.NumBlobTxs = database.NewNullInt64(int64(numBlobTxs))
+		entry.NumBlobs = database.NewNullInt64(int64(numBlobs))
+
 		entry.ExtraData = database.ExtraDataToUtf8Str(block.Extra())
 		entry.ValueCheckOk = database.NewNullBool(proposerValueDiffFromClaim.String() == "0")
 		entry.ValueCheckMethod = database.NewNullString(checkMethod)
@@ -335,6 +367,8 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			"valueDeliveredEth": entry.ValueDeliveredEth.String,
 			// "valueDeliveredDiffWei":   entry.ValueDeliveredDiffWei,
 			"valueDeliveredDiffEth": entry.ValueDeliveredDiffEth.String,
+			"numBlobTxs":            numBlobTxs,
+			"numBlobs":              numBlobs,
 		}).Info("value check done")
 
 		if !coinbaseIsProposer {

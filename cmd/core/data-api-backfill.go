@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/database"
 	"github.com/flashbots/relayscan/vars"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -18,14 +20,13 @@ var (
 	cliRelay   string
 	minSlot    int64
 	initCursor uint64
-	// bidsOnly   bool
+	pageLimit  = 100 // 100 is max on bloxroute
 )
 
 func init() {
 	backfillDataAPICmd.Flags().StringVar(&cliRelay, "relay", "", "specific relay only")
 	backfillDataAPICmd.Flags().Uint64Var(&initCursor, "cursor", 0, "initial cursor")
 	backfillDataAPICmd.Flags().Int64Var(&minSlot, "min-slot", 0, "minimum slot (if unset, backfill until the merge, negative number for that number of slots before latest)")
-	// backfillDataAPICmd.Flags().BoolVar(&bidsOnly, "bids", false, "only bids")
 }
 
 var backfillDataAPICmd = &cobra.Command{
@@ -34,6 +35,7 @@ var backfillDataAPICmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		var relays []common.RelayEntry
+		startTime := time.Now().UTC()
 
 		if cliRelay != "" {
 			var relayEntry common.RelayEntry
@@ -56,7 +58,7 @@ var backfillDataAPICmd = &cobra.Command{
 		log.Infof("Relayscan %s", vars.Version)
 		log.Infof("Using %d relays", len(relays))
 		for index, relay := range relays {
-			log.Infof("relay #%d: %s", index+1, relay.Hostname())
+			log.Infof("- relay #%d: %s", index+1, relay.Hostname())
 		}
 
 		// Connect to Postgres
@@ -64,9 +66,9 @@ var backfillDataAPICmd = &cobra.Command{
 
 		// If needed, get latest slot (i.e. if min-slot is negative)
 		if minSlot < 0 {
-			log.Infof("Getting latest slot from beacon chain for offset %d", minSlot)
+			log.Infof("Getting latest slot from beaconcha.in for offset %d", minSlot)
 			latestSlotOnBeaconChain := common.MustGetLatestSlot()
-			log.Infof("- Latest slot from beacon chain: %d", latestSlotOnBeaconChain)
+			log.Infof("Latest slot from beaconcha.in: %d", latestSlotOnBeaconChain)
 			minSlot = int64(latestSlotOnBeaconChain) + minSlot
 		}
 
@@ -75,13 +77,16 @@ var backfillDataAPICmd = &cobra.Command{
 		}
 
 		for _, relay := range relays {
+			log.Infof("Starting backfilling for relay %s ...", relay.Hostname())
 			backfiller := newBackfiller(db, relay, initCursor, uint64(minSlot))
-			// backfiller.backfillDataAPIBids()
 			err = backfiller.backfillPayloadsDelivered()
 			if err != nil {
 				log.WithError(err).WithField("relay", relay).Error("backfill failed")
 			}
 		}
+
+		timeNeeded := time.Since(startTime)
+		log.WithField("timeNeeded", timeNeeded).Info("All done!")
 	},
 }
 
@@ -102,18 +107,19 @@ func newBackfiller(db *database.DatabaseService, relay common.RelayEntry, cursor
 }
 
 func (bf *backfiller) backfillPayloadsDelivered() error {
-	log.Infof("backfilling payloads data-api for relay %s ...", bf.relay.Hostname())
+	_log := log.WithField("relay", bf.relay.Hostname())
+	// _log.Info("backfilling payloads from relay data-api ...")
 
 	// 1. get latest entry from DB
 	latestEntry, err := bf.db.GetDataAPILatestPayloadDelivered(bf.relay.Hostname())
 	latestSlotInDB := uint64(0)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.WithError(err).Fatal("failed to get latest entry")
+		_log.WithError(err).Fatal("failed to get latest entry")
 		return err
 	} else {
 		latestSlotInDB = latestEntry.Slot
 	}
-	log.Infof("last payload in db at slot: %d", latestSlotInDB)
+	_log.Infof("Latest payload in DB for slot: %d", latestSlotInDB)
 
 	// 2. backfill until latest DB entry is reached
 	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/proposer_payload_delivered")
@@ -123,135 +129,88 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 
 	for {
 		payloadsNew := 0
-		url := baseURL
+		url := fmt.Sprintf("%s?limit=%d", baseURL, pageLimit)
 		if cursorSlot > 0 {
-			url = fmt.Sprintf("%s?cursor=%d", baseURL, cursorSlot)
+			url = fmt.Sprintf("%s&cursor=%d", url, cursorSlot)
 		}
-		log.Info("url: ", url)
+		_log.WithField("url: ", url).Info("Fetching payloads...")
 		var data []relaycommon.BidTraceV2JSON
 		_, err = common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
 		if err != nil {
 			return err
 		}
 
-		log.Infof("got %d entries", len(data))
-		entries := make([]*database.DataAPIPayloadDeliveredEntry, len(data))
+		_log.Infof("Response contains %d delivered payloads", len(data))
 
-		for index, dataEntry := range data {
-			log.Debugf("saving entry for slot %d", dataEntry.Slot)
-			dbEntry := database.BidTraceV2JSONToPayloadDeliveredEntry(bf.relay.Hostname(), dataEntry)
+		// build a list of entries for batch DB update
+		entries := make([]*database.DataAPIPayloadDeliveredEntry, len(data))
+		slotFirst := uint64(0)
+		slotLast := uint64(0)
+		for index, payload := range data {
+			_log.Debugf("saving entry for slot %d", payload.Slot)
+			dbEntry := database.BidTraceV2JSONToPayloadDeliveredEntry(bf.relay.Hostname(), payload)
 			entries[index] = &dbEntry
 
-			if !slotsReceived[dataEntry.Slot] {
-				slotsReceived[dataEntry.Slot] = true
+			// Set first and last slot
+			if slotFirst == 0 || payload.Slot < slotFirst {
+				slotFirst = payload.Slot
+			}
+			if slotLast == 0 || payload.Slot > slotLast {
+				slotLast = payload.Slot
+			}
+
+			// Count number of slots with payloads
+			if !slotsReceived[payload.Slot] {
+				slotsReceived[payload.Slot] = true
 				payloadsNew += 1
 			}
 
-			if cursorSlot == 0 {
-				log.Infof("latest received payload at slot %d", dataEntry.Slot)
-				cursorSlot = dataEntry.Slot
-			} else if cursorSlot > dataEntry.Slot {
-				cursorSlot = dataEntry.Slot
+			// Set cursor for next request
+			if cursorSlot == 0 || cursorSlot > payload.Slot {
+				cursorSlot = payload.Slot
 			}
 
-			builders[dataEntry.BuilderPubkey] = true
+			// Remember the builder
+			builders[payload.BuilderPubkey] = true
 		}
 
-		err := bf.db.SaveDataAPIPayloadDeliveredBatch(entries)
+		// Save entries
+		newEntries, err := bf.db.SaveDataAPIPayloadDeliveredBatch(entries)
 		if err != nil {
-			log.WithError(err).Fatal("failed to save entries")
+			_log.WithError(err).Fatal("failed to save entries")
 			return err
 		}
 
-		// save builders
+		_log.WithFields(logrus.Fields{
+			"newEntries": newEntries,
+			"slotFirst":  slotFirst,
+			"slotLast":   slotLast,
+		}).Info("Batch of payloads saved to database")
+
+		// Save builders
 		for builderPubkey := range builders {
 			err = bf.db.SaveBuilder(&database.BlockBuilderEntry{BuilderPubkey: builderPubkey})
 			if err != nil {
-				log.WithError(err).Error("failed to save builder")
+				_log.WithError(err).Error("failed to save builder")
 			}
 		}
 
+		// Stop as soon as no new payloads are received
 		if payloadsNew == 0 {
-			log.Infof("No new payloads, all done. Earliest payload for slot: %d", cursorSlot)
+			_log.Infof("No new payloads, all done. Earliest payload for slot: %d", cursorSlot)
 			return nil
 		}
 
+		// Stop if at the latest slot in DB
 		if cursorSlot < latestSlotInDB {
-			log.Infof("Payloads backfilled until last in DB - at slot %d", latestSlotInDB)
+			_log.Infof("Payloads backfilled until latest slot in DB: %d", latestSlotInDB)
 			return nil
 		}
 
+		// Stop if at min slot
 		if cursorSlot < bf.minSlot {
-			log.Infof("Payloads backfilled until min slot %d", bf.minSlot)
+			_log.Infof("Payloads backfilled until min slot: %d", bf.minSlot)
 			return nil
 		}
-		// time.Sleep(1 * time.Second)
 	}
 }
-
-// func (bf *backfiller) backfillDataAPIBids() error {
-// 	log.Infof("backfilling bids from relay %s ...", bf.relay.Hostname())
-
-// 	// 1. get latest entry from DB
-// 	latestEntry, err := bf.db.GetDataAPILatestBid(bf.relay.Hostname())
-// 	latestSlotInDB := uint64(0)
-// 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-// 		log.WithError(err).Fatal("failed to get latest entry")
-// 		return err
-// 	} else {
-// 		latestSlotInDB = latestEntry.Slot
-// 	}
-// 	log.Infof("last known slot: %d", latestSlotInDB)
-
-// 	// 2. backfill until latest DB entry is reached
-// 	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/builder_blocks_received")
-// 	cursorSlot := bf.cursorSlot
-// 	slotsReceived := make(map[uint64]bool)
-
-// 	for {
-// 		entriesNew := 0
-// 		url := baseURL
-// 		if cursorSlot > 0 {
-// 			url = fmt.Sprintf("%s?slot=%d", baseURL, cursorSlot)
-// 		}
-// 		log.Info("url: ", url)
-// 		var data []relaycommon.BidTraceV2WithTimestampJSON
-// 		common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &data)
-
-// 		log.Infof("got %d entries", len(data))
-// 		entries := make([]*database.DataAPIBuilderBidEntry, len(data))
-
-// 		for index, dataEntry := range data {
-// 			log.Debugf("saving entry for slot %d", dataEntry.Slot)
-// 			dbEntry := database.BidTraceV2WithTimestampJSONToBuilderBidEntry(bf.relay.Hostname(), dataEntry)
-// 			entries[index] = &dbEntry
-
-// 			if !slotsReceived[dataEntry.Slot] {
-// 				slotsReceived[dataEntry.Slot] = true
-// 				entriesNew += 1
-// 			}
-
-// 			if cursorSlot == 0 {
-// 				cursorSlot = dataEntry.Slot
-// 			}
-// 		}
-
-// 		err := bf.db.SaveDataAPIBids(entries)
-// 		if err != nil {
-// 			log.WithError(err).Fatal("failed to save bids")
-// 			return err
-// 		}
-
-// 		if entriesNew == 0 {
-// 			log.Info("No new bids, all done")
-// 			return nil
-// 		}
-
-// 		if cursorSlot < latestSlotInDB {
-// 			log.Infof("Bids backfilled until last in DB (%d)", latestSlotInDB)
-// 			return nil
-// 		}
-// 		cursorSlot -= 1
-// 		// time.Sleep(1 * time.Second)
-// 	}
-// }

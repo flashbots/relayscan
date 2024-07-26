@@ -62,6 +62,10 @@ type DataAPIPayloadDeliveredEntry struct {
 	CoinbaseDiffWei         sql.NullString `db:"coinbase_diff_wei"`
 	CoinbaseDiffEth         sql.NullString `db:"coinbase_diff_eth"`
 	Notes                   sql.NullString `db:"notes"`
+
+	// Blob info added 2024-07-25
+	NumBlobTxs sql.NullInt64 `db:"num_blob_txs"`
+	NumBlobs   sql.NullInt64 `db:"num_blobs"`
 }
 
 type DataAPIBuilderBidEntry struct {
