@@ -131,7 +131,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		payloadsNew := 0
 		url := fmt.Sprintf("%s?limit=%d", baseURL, pageLimit)
 		if cursorSlot > 0 {
-			url = fmt.Sprintf("%s&cursor=%d", baseURL, cursorSlot)
+			url = fmt.Sprintf("%s&cursor=%d", url, cursorSlot)
 		}
 		_log.WithField("url: ", url).Info("Fetching payloads...")
 		var data []relaycommon.BidTraceV2JSON
