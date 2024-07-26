@@ -19,6 +19,7 @@ var (
 	cliRelay   string
 	minSlot    int64
 	initCursor uint64
+	pageLimit  = 1000
 )
 
 func init() {
@@ -122,9 +123,9 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 
 	for {
 		payloadsNew := 0
-		url := baseURL
+		url := fmt.Sprintf("%s?limit=%d", baseURL, pageLimit)
 		if cursorSlot > 0 {
-			url = fmt.Sprintf("%s?cursor=%d", baseURL, cursorSlot)
+			url = fmt.Sprintf("%s&cursor=%d", baseURL, cursorSlot)
 		}
 		_log.WithField("url: ", url).Info("Fetching payloads...")
 		var data []relaycommon.BidTraceV2JSON
