@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+var (
+	BuilderStatsEntryTypeExtraData     = "extra_data"
+	BuilderStatsEntryTypeBuilderPubkey = "builder_pubkey"
+)
+
 func NewNullBool(b bool) sql.NullBool {
 	return sql.NullBool{
 		Bool:  b,
@@ -184,8 +189,9 @@ type BuilderStatsEntry struct {
 	BuilderPubkeys string `db:"builder_pubkeys" json:"builder_pubkeys"`
 	BlocksIncluded int    `db:"blocks_included" json:"blocks_included"`
 }
-
-var (
-	BuilderStatsEntryTypeExtraData     = "extra_data"
-	BuilderStatsEntryTypeBuilderPubkey = "builder_pubkey"
-)
+type TmpPayloadsForExtraDataEntry struct {
+	Slot           uint64       `db:"slot"`
+	ExtraData      string       `db:"extra_data"`
+	InsertedAt     time.Time    `db:"inserted_at"`
+	BlockTimestamp sql.NullTime `db:"block_timestamp"`
+}

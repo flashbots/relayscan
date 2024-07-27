@@ -8,6 +8,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"text/template"
@@ -141,6 +142,7 @@ func (srv *Webserver) getRouter() http.Handler {
 	r.HandleFunc("/stats/cowstats", srv.handleCowstatsJSON).Methods(http.MethodGet)
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}", srv.handleDailyStats).Methods(http.MethodGet)
 	r.HandleFunc("/stats/day/{day:[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}}/json", srv.handleDailyStatsJSON).Methods(http.MethodGet)
+	r.HandleFunc("/stats/_test/extradata-payloads", srv.handleExtraDataPayloads).Methods(http.MethodGet)
 
 	r.HandleFunc("/livez", srv.handleLivenessCheck)
 	r.HandleFunc("/healthz", srv.handleHealthCheck)
@@ -406,6 +408,67 @@ func (srv *Webserver) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 	}
 
 	srv.RespondOK(w, resp)
+}
+
+// Return recent payloads for a given extra data string
+func (srv *Webserver) handleExtraDataPayloads(w http.ResponseWriter, r *http.Request) {
+	type apiRespEntry struct {
+		Slot             uint64 `json:"slot"`
+		SlotTime         string `json:"slot_time"`
+		ExtraData        string `json:"extra_data"`
+		PrevSlot         uint64 `json:"prev_slot"`
+		MinSincePrevSlot uint64 `json:"min_since_prev_slot"`
+	}
+
+	extraData := r.URL.Query().Get("extra_data")
+	extraDataSlice := []string{extraData}
+	if extraData == "fb" {
+		extraDataSlice = []string{"Illuminate Dmocratize Dstribute", "Illuminate Dmocrtz Dstrib Prtct"}
+	}
+
+	limit := 20
+	limitArg := r.URL.Query().Get("limit")
+	if limitArg != "" {
+		l, err := strconv.Atoi(limitArg)
+		if err != nil {
+			srv.RespondError(w, http.StatusBadRequest, "invalid limit")
+			return
+		}
+		limit = l
+	}
+
+	payloads, err := srv.db.GetRecentPayloadsForExtraData(extraDataSlice, limit+1)
+	if err != nil {
+		srv.log.WithError(err).Error("error getting payloads")
+		srv.RespondError(w, http.StatusInternalServerError, "error getting payloads")
+		return
+	}
+
+	entries := make([]apiRespEntry, len(payloads))
+	var prevSlot uint64
+	var prevSlotTime time.Time
+
+	// iterate over payloads in reverse
+	for i := len(payloads) - 1; i >= 0; i-- {
+		payload := payloads[i]
+		slotStartTime := common.SlotToTime(payload.Slot)
+		entry := apiRespEntry{
+			Slot:      payload.Slot,
+			SlotTime:  slotStartTime.Format("2006-01-02 15:04:05"),
+			ExtraData: payload.ExtraData,
+		}
+		if prevSlot > 0 {
+			entry.PrevSlot = prevSlot
+			entry.MinSincePrevSlot = uint64(slotStartTime.Sub(prevSlotTime).Abs().Minutes())
+		}
+		entries[i] = entry
+		prevSlotTime = slotStartTime
+		prevSlot = payload.Slot
+	}
+
+	// trim last entry
+	entries = entries[:len(entries)-1]
+	srv.RespondOK(w, entries)
 }
 
 // func (srv *Webserver) updateHTML() {

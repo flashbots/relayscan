@@ -252,3 +252,22 @@ func (s *DatabaseService) GetLastDailyBuilderStatsEntry(filterType string) (*Bui
 	err := s.DB.Get(entry, query, filterType)
 	return entry, err
 }
+
+func (s *DatabaseService) GetRecentPayloadsForExtraData(extraData []string, limit int) (resp []*TmpPayloadsForExtraDataEntry, err error) {
+	query := `
+		SELECT
+			DISTINCT ON (slot) slot, extra_data, inserted_at, block_timestamp
+		FROM ` + vars.TableDataAPIPayloadDelivered + `
+		wHERE extra_data IN (?)
+		ORDER BY slot DESC
+		LIMIT ?;`
+
+	// See also https://jmoiron.github.io/sqlx/#inQueries
+	query, args, err := sqlx.In(query, extraData, limit)
+	if err != nil {
+		return nil, err
+	}
+	query = s.DB.Rebind(query)
+	err = s.DB.Select(&resp, query, args...)
+	return resp, err
+}
