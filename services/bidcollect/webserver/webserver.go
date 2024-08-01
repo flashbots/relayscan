@@ -20,10 +20,8 @@ type HTTPServerConfig struct {
 	ListenAddr string
 	Log        *logrus.Entry
 
-	DrainDuration            time.Duration
-	GracefulShutdownDuration time.Duration
-	ReadTimeout              time.Duration
-	WriteTimeout             time.Duration
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
 }
 
 type Server struct {
@@ -73,9 +71,7 @@ func (srv *Server) RunInBackground() {
 
 func (srv *Server) Shutdown() {
 	// api
-	ctx, cancel := context.WithTimeout(context.Background(), srv.cfg.GracefulShutdownDuration)
-	defer cancel()
-	if err := srv.srv.Shutdown(ctx); err != nil {
+	if err := srv.srv.Shutdown(context.Background()); err != nil {
 		srv.log.WithField("err", err).Error("Graceful HTTP server shutdown failed")
 	} else {
 		srv.log.Info("HTTP server gracefully stopped")
@@ -107,18 +103,15 @@ func (srv *Server) SendBid(ctx context.Context, bid *types.CommonBid) error {
 		return nil
 	}
 
-	// txRLP, err := common.TxToRLPString(tx.Tx)
-	// if err != nil {
-	// 	return err
-	// }
+	msg := bid.ToCSVLine("\t")
 
-	// // Send tx to all subscribers (only if channel is not full)
-	// for _, sub := range s.sseConnectionMap {
-	// 	select {
-	// 	case sub.txC <- txRLP:
-	// 	default:
-	// 	}
-	// }
+	// Send tx to all subscribers (only if channel is not full)
+	for _, sub := range srv.sseConnectionMap {
+		select {
+		case sub.msgC <- msg:
+		default:
+		}
+	}
 
 	return nil
 }

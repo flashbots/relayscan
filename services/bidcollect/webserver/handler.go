@@ -3,7 +3,9 @@ package webserver
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/flashbots/relayscan/services/bidcollect/types"
 	"github.com/google/uuid"
 )
 
@@ -30,7 +32,10 @@ func (srv *Server) handleSSESubscription(w http.ResponseWriter, r *http.Request)
 	}
 	srv.addSubscriber(&subscriber)
 
-	// pingTicker := time.NewTicker(5 * time.Second)
+	// Send CSV header
+	helloMsg := strings.Join(types.CommonBidCSVFields, "\t") + "\n"
+	fmt.Fprint(w, helloMsg)
+	w.(http.Flusher).Flush() //nolint:forcetypeassert
 
 	// Wait for txs or end of request...
 	for {
@@ -41,12 +46,8 @@ func (srv *Server) handleSSESubscription(w http.ResponseWriter, r *http.Request)
 			return
 
 		case msg := <-subscriber.msgC:
-			fmt.Fprintf(w, "data: %s\n\n", msg)
+			fmt.Fprintf(w, "%s\n", msg)
 			w.(http.Flusher).Flush() //nolint:forcetypeassert
-
-			// case <-pingTicker.C:
-			// 	fmt.Fprintf(w, ": ping\n\n")
-			// 	w.(http.Flusher).Flush() //nolint:forcetypeassert
 		}
 	}
 }

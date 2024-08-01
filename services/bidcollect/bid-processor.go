@@ -10,6 +10,7 @@ import (
 
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/services/bidcollect/types"
+	"github.com/flashbots/relayscan/services/bidcollect/webserver"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,10 +21,11 @@ import (
 //   - One CSV for top bids only
 
 type BidProcessorOpts struct {
-	Log       *logrus.Entry
-	UID       string
-	OutDir    string
-	OutputTSV bool
+	Log           *logrus.Entry
+	UID           string
+	OutDir        string
+	OutputTSV     bool
+	WebserverAddr string
 }
 
 type OutFiles struct {
@@ -44,6 +46,8 @@ type BidProcessor struct {
 
 	csvSeparator  string
 	csvFileEnding string
+
+	webserver *webserver.Server
 }
 
 func NewBidProcessor(opts *BidProcessorOpts) *BidProcessor {
@@ -63,10 +67,20 @@ func NewBidProcessor(opts *BidProcessorOpts) *BidProcessor {
 		c.csvFileEnding = "csv"
 	}
 
+	if opts.WebserverAddr != "" {
+		c.webserver = webserver.New(&webserver.HTTPServerConfig{
+			ListenAddr: opts.WebserverAddr,
+			Log:        opts.Log,
+		})
+	}
 	return c
 }
 
 func (c *BidProcessor) Start() {
+	if c.webserver != nil {
+		c.webserver.RunInBackground()
+	}
+
 	for {
 		time.Sleep(30 * time.Second)
 		c.housekeeping()
@@ -103,6 +117,7 @@ func (c *BidProcessor) processBids(bids []*types.CommonBid) {
 			isNewBid = true
 		}
 
+		// Send to subscribers
 		// Write to CSV
 		c.writeBidToFile(bid, isNewBid, isTopBid)
 	}
