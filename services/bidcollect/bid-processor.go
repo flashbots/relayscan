@@ -118,6 +118,10 @@ func (c *BidProcessor) processBids(bids []*types.CommonBid) {
 		}
 
 		// Send to subscribers
+		if c.webserver != nil {
+			c.webserver.SendBid(bid)
+		}
+
 		// Write to CSV
 		c.writeBidToFile(bid, isNewBid, isTopBid)
 	}

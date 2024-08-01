@@ -20,6 +20,8 @@ type BidCollectorOpts struct {
 
 	OutDir    string
 	OutputTSV bool
+
+	WebserverAddr string
 }
 
 type BidCollector struct {
@@ -50,10 +52,11 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 
 	// output
 	c.processor = NewBidProcessor(&BidProcessorOpts{
-		Log:       opts.Log,
-		UID:       opts.UID,
-		OutDir:    opts.OutDir,
-		OutputTSV: opts.OutputTSV,
+		Log:           opts.Log,
+		UID:           opts.UID,
+		OutDir:        opts.OutDir,
+		OutputTSV:     opts.OutputTSV,
+		WebserverAddr: opts.WebserverAddr,
 	})
 	return c
 }

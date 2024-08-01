@@ -4,14 +4,12 @@ package webserver
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/flashbots/go-utils/httplogger"
 	"github.com/flashbots/relayscan/services/bidcollect/types"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/atomic"
 )
@@ -43,21 +41,17 @@ func New(cfg *HTTPServerConfig) (srv *Server) {
 	}
 	srv.isReady.Swap(true)
 
+	router := chi.NewRouter()
+	router.Get("/v1/sse/bids", srv.handleSSESubscription)
+
 	srv.srv = &http.Server{
 		Addr:         cfg.ListenAddr,
-		Handler:      srv.getRouter(),
+		Handler:      router,
 		ReadTimeout:  cfg.ReadTimeout,
 		WriteTimeout: cfg.WriteTimeout,
 	}
 
 	return srv
-}
-
-func (srv *Server) getRouter() http.Handler {
-	r := mux.NewRouter()
-	r.HandleFunc("/", srv.handleRoot).Methods(http.MethodGet)
-	r.HandleFunc("/v1/sse/bids", srv.handleSSESubscription).Methods(http.MethodGet)
-	return httplogger.LoggingMiddlewareLogrus(srv.log, r)
 }
 
 func (srv *Server) RunInBackground() {
@@ -91,16 +85,11 @@ func (srv *Server) removeSubscriber(sub *SSESubscription) {
 	srv.log.WithField("subscribers", len(srv.sseConnectionMap)).Info("removed subscriber")
 }
 
-func (srv *Server) handleRoot(w http.ResponseWriter, req *http.Request) {
-	// write hello world
-	fmt.Fprintf(w, "Hello, world!")
-}
-
-func (srv *Server) SendBid(ctx context.Context, bid *types.CommonBid) error {
+func (srv *Server) SendBid(bid *types.CommonBid) {
 	srv.sseConnectionLock.RLock()
 	defer srv.sseConnectionLock.RUnlock()
 	if len(srv.sseConnectionMap) == 0 {
-		return nil
+		return
 	}
 
 	msg := bid.ToCSVLine("\t")
@@ -112,6 +101,4 @@ func (srv *Server) SendBid(ctx context.Context, bid *types.CommonBid) error {
 		default:
 		}
 	}
-
-	return nil
 }
