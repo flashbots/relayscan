@@ -1,11 +1,11 @@
-package bidcollect
+// Package types contains various types, consts and vars for bidcollect
+package types
 
 import (
 	"fmt"
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/flashbots/relayscan/common"
 )
 
@@ -123,69 +123,4 @@ func boolToString(b bool) string {
 		return "true"
 	}
 	return "false"
-}
-
-func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *CommonBid {
-	blockHash := hexutil.Encode(bid.Bid.BlockHash[:])
-	parentHash := hexutil.Encode(bid.Bid.ParentHash[:])
-	builderPubkey := hexutil.Encode(bid.Bid.BuilderPubkey[:])
-	blockFeeRecipient := hexutil.Encode(bid.Bid.FeeRecipient[:])
-
-	return &CommonBid{
-		SourceType:   SourceTypeUltrasoundStream,
-		ReceivedAtMs: bid.ReceivedAt.UnixMilli(),
-
-		TimestampMs:       int64(bid.Bid.Timestamp),
-		Slot:              bid.Bid.Slot,
-		BlockNumber:       bid.Bid.BlockNumber,
-		BlockHash:         strings.ToLower(blockHash),
-		ParentHash:        strings.ToLower(parentHash),
-		BuilderPubkey:     strings.ToLower(builderPubkey),
-		Value:             bid.Bid.Value.String(),
-		BlockFeeRecipient: strings.ToLower(blockFeeRecipient),
-		Relay:             bid.Relay,
-	}
-}
-
-func DataAPIToCommonBids(bids DataAPIPollerBidsMsg) []*CommonBid {
-	commonBids := make([]*CommonBid, 0, len(bids.Bids))
-	for _, bid := range bids.Bids {
-		// ensure it works even if some relays don't provide the timestamp in ms by converting regular timestamp to ms
-		bidTimestampMs := bid.TimestampMs
-		if bidTimestampMs == 0 && bid.Timestamp > 0 {
-			bidTimestampMs = bid.Timestamp * 1000
-		}
-
-		commonBids = append(commonBids, &CommonBid{
-			SourceType:   SourceTypeDataAPI,
-			ReceivedAtMs: bids.ReceivedAt.UnixMilli(),
-
-			TimestampMs:          bidTimestampMs,
-			Slot:                 bid.Slot,
-			BlockNumber:          bid.BlockNumber,
-			BlockHash:            strings.ToLower(bid.BlockHash),
-			ParentHash:           strings.ToLower(bid.ParentHash),
-			BuilderPubkey:        strings.ToLower(bid.BuilderPubkey),
-			Value:                bid.Value,
-			Relay:                bids.Relay.Hostname(),
-			ProposerPubkey:       strings.ToLower(bid.ProposerPubkey),
-			ProposerFeeRecipient: strings.ToLower(bid.ProposerFeeRecipient),
-			OptimisticSubmission: bid.OptimisticSubmission,
-		})
-	}
-	return commonBids
-}
-
-func GetHeaderToCommonBid(bid GetHeaderPollerBidsMsg) *CommonBid {
-	return &CommonBid{
-		SourceType:   SourceTypeGetHeader,
-		ReceivedAtMs: bid.ReceivedAt.UnixMilli(),
-		Relay:        bid.Relay.Hostname(),
-		Slot:         bid.Slot,
-
-		BlockNumber: bid.Bid.Data.Message.Header.BlockNumber,
-		BlockHash:   strings.ToLower(bid.Bid.Data.Message.Header.BlockHash.String()),
-		ParentHash:  strings.ToLower(bid.Bid.Data.Message.Header.ParentHash.String()),
-		Value:       bid.Bid.Data.Message.Value.String(),
-	}
 }

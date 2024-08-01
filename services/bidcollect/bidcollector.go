@@ -3,6 +3,7 @@ package bidcollect
 
 import (
 	"github.com/flashbots/relayscan/common"
+	"github.com/flashbots/relayscan/services/bidcollect/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -43,9 +44,9 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	}
 
 	// inputs
-	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, bidCollectorInputChannelSize)
-	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, bidCollectorInputChannelSize)
-	c.getHeaderBidC = make(chan GetHeaderPollerBidsMsg, bidCollectorInputChannelSize)
+	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, types.BidCollectorInputChannelSize)
+	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, types.BidCollectorInputChannelSize)
+	c.getHeaderBidC = make(chan GetHeaderPollerBidsMsg, types.BidCollectorInputChannelSize)
 
 	// output
 	c.processor = NewBidProcessor(&BidProcessorOpts{
@@ -91,13 +92,13 @@ func (c *BidCollector) MustStart() {
 		select {
 		case bid := <-c.ultrasoundBidC:
 			commonBid := UltrasoundStreamToCommonBid(&bid)
-			c.processor.processBids([]*CommonBid{commonBid})
+			c.processor.processBids([]*types.CommonBid{commonBid})
 		case bids := <-c.dataAPIBidC:
 			commonBids := DataAPIToCommonBids(bids)
 			c.processor.processBids(commonBids)
 		case bid := <-c.getHeaderBidC:
 			commonBid := GetHeaderToCommonBid(bid)
-			c.processor.processBids([]*CommonBid{commonBid})
+			c.processor.processBids([]*types.CommonBid{commonBid})
 		}
 	}
 }

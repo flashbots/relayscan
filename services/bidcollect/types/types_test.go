@@ -1,4 +1,4 @@
-package bidcollect
+package types
 
 import (
 	"testing"
