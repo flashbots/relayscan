@@ -74,6 +74,9 @@ Different data sources have different limitations:
 - Bids are deduplicated based on this key:
   - `fmt.Sprintf("%d-%s-%s-%s-%s", bid.Slot, bid.BlockHash, bid.ParentHash, bid.BuilderPubkey, bid.Value)`
   - this means only the first bid for a given key is stored, even if - for instance - other relays also deliver the same bid
+- Bids can be published to Redis (to be consumed by whatever, i.e. a webserver). The channel is called `bidcollect/bids`.
+  - Enable publishing to Redis with the `--redis` flag
+  - You can start a webserver that publishes the data via a SSE stream with `--webserver`
 
 ---
 
@@ -89,16 +92,27 @@ go run . service bidcollect --data-api --ultrasound-stream --all-relays
 go run . service bidcollect --get-header --beacon-uri http://localhost:3500 --all-relays
 ```
 
-To enable the SSE server, first run Redis:
-
-```
-docker run --name redis -d -p 6379:6379 redis
-```
-
-Then start the collector with the `--redis <addr>` flag:
+Publish new bids to Redis:
 
 ```bash
-go run . service bidcollect --data-api --ultrasound-stream --redis localhost:6379
+# Start Redis
+docker run --name redis -d -p 6379:6379 redis
+
+# Start the collector with the `--redis <addr>` flag:
+go run . service bidcollect --data-api --ultrasound-stream --redis
+
+# Subscribe to the `bidcollect/bids` channel
+redis-cli SUBSCRIBE bidcollect/bids
+```
+
+SSE stream of bids via the built-in webserver:
+
+```bash
+# Start the webserver in another process to subscribe to Redis and publish bids as SSE stream:
+go run . service bidcollect --webserver
+
+# Check if it works by subscribing with curl
+curl localhost:8080/v1/sse/bids
 ```
 
 ---

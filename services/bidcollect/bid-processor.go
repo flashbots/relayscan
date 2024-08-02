@@ -122,7 +122,7 @@ func (c *BidProcessor) processBids(bids []*types.CommonBid) {
 
 		// Send to Redis
 		if c.redisClient != nil {
-			err := c.redisClient.Publish(context.Background(), "bidcollect/bids", bid.ToCSVLine(",")).Err()
+			err := c.redisClient.Publish(context.Background(), types.RedisChannel, bid.ToCSVLine(",")).Err()
 			if err != nil {
 				c.log.WithError(err).Error("failed to publish bid to redis")
 			}

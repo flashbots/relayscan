@@ -7,6 +7,7 @@ package service
 import (
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/services/bidcollect"
+	"github.com/flashbots/relayscan/services/bidcollect/webserver"
 	"github.com/flashbots/relayscan/services/bidcollect/website"
 	"github.com/flashbots/relayscan/vars"
 	"github.com/lithammer/shortuuid"
@@ -23,6 +24,7 @@ var (
 	outputTSV bool   // by default: CSV, but can be changed to TSV with this setting
 	uid       string // used in output filenames, to avoid collissions between multiple collector instances
 
+	useRedis  bool
 	redisAddr string
 
 	runDevServerOnly    bool // used to play with file listing website
@@ -31,6 +33,9 @@ var (
 	buildWebsite       bool
 	buildWebsiteUpload bool
 	buildWebsiteOutDir string
+
+	runWebserverOnly    bool // provides a SSE stream of new bids
+	WebserverListenAddr string
 )
 
 func init() {
@@ -50,7 +55,12 @@ func init() {
 	bidCollectCmd.Flags().StringVar(&uid, "uid", "", "unique identifier for output files (to avoid collisions)")
 
 	// Redis for pushing bids to
-	bidCollectCmd.Flags().StringVar(&redisAddr, "redis", "", "Redis address for publishing bids (optional)")
+	bidCollectCmd.Flags().BoolVar(&useRedis, "redis", false, "Publish bids to Redis")
+	bidCollectCmd.Flags().StringVar(&redisAddr, "redis-addr", "localhost:6379", "Redis address for publishing bids (optional)")
+
+	// Webserver mode
+	bidCollectCmd.Flags().BoolVar(&runWebserverOnly, "webserver", false, "only run webserver for SSE stream")
+	bidCollectCmd.Flags().StringVar(&WebserverListenAddr, "webserver-addr", "localhost:8080", "listen address for webserver")
 
 	// devserver provides the file listing for playing with file HTML
 	bidCollectCmd.Flags().BoolVar(&runDevServerOnly, "devserver", false, "only run devserver to play with file listing website")
@@ -66,6 +76,15 @@ var bidCollectCmd = &cobra.Command{
 	Use:   "bidcollect",
 	Short: "Collect bids",
 	Run: func(cmd *cobra.Command, args []string) {
+		if runWebserverOnly {
+			srv := webserver.New(&webserver.HTTPServerConfig{
+				ListenAddr: WebserverListenAddr,
+				RedisAddr:  redisAddr,
+				Log:        log,
+			})
+			srv.MustStart()
+			return
+		}
 		if runDevServerOnly {
 			log.Infof("Bidcollect %s devserver starting on %s ...", vars.Version, devServerListenAddr)
 			fileListingDevServer()

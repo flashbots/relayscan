@@ -14,6 +14,8 @@ const (
 
 	// channel size for bid collector inputs
 	BidCollectorInputChannelSize = 1000
+
+	RedisChannel = "bidcollect/bids"
 )
 
 var (

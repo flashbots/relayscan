@@ -33,7 +33,7 @@ func (srv *Server) handleSSESubscription(w http.ResponseWriter, r *http.Request)
 	srv.addSubscriber(&subscriber)
 
 	// Send CSV header
-	helloMsg := strings.Join(types.CommonBidCSVFields, "\t") + "\n"
+	helloMsg := strings.Join(types.CommonBidCSVFields, ",") + "\n"
 	fmt.Fprint(w, helloMsg)
 	w.(http.Flusher).Flush() //nolint:forcetypeassert
 
