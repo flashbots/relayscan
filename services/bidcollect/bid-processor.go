@@ -1,6 +1,7 @@
 package bidcollect
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/flashbots/relayscan/common"
 	"github.com/flashbots/relayscan/services/bidcollect/types"
-	"github.com/flashbots/relayscan/services/bidcollect/webserver"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,11 +22,11 @@ import (
 //   - One CSV for top bids only
 
 type BidProcessorOpts struct {
-	Log           *logrus.Entry
-	UID           string
-	OutDir        string
-	OutputTSV     bool
-	WebserverAddr string
+	Log       *logrus.Entry
+	UID       string
+	OutDir    string
+	OutputTSV bool
+	RedisAddr string
 }
 
 type OutFiles struct {
@@ -47,10 +48,10 @@ type BidProcessor struct {
 	csvSeparator  string
 	csvFileEnding string
 
-	webserver *webserver.Server
+	redisClient *redis.Client
 }
 
-func NewBidProcessor(opts *BidProcessorOpts) *BidProcessor {
+func NewBidProcessor(opts *BidProcessorOpts) (*BidProcessor, error) {
 	c := &BidProcessor{
 		log:         opts.Log,
 		opts:        opts,
@@ -67,20 +68,22 @@ func NewBidProcessor(opts *BidProcessorOpts) *BidProcessor {
 		c.csvFileEnding = "csv"
 	}
 
-	if opts.WebserverAddr != "" {
-		c.webserver = webserver.New(&webserver.HTTPServerConfig{
-			ListenAddr: opts.WebserverAddr,
-			Log:        opts.Log,
+	if opts.RedisAddr != "" {
+		c.redisClient = redis.NewClient(&redis.Options{
+			Addr:     opts.RedisAddr,
+			Password: "", // no password set
+			DB:       0,  // use default DB
 		})
+
+		// Make sure we can connect to redis to connect to redis
+		if _, err := c.redisClient.Ping(context.Background()).Result(); err != nil {
+			return nil, err
+		}
 	}
-	return c
+	return c, nil
 }
 
 func (c *BidProcessor) Start() {
-	if c.webserver != nil {
-		c.webserver.RunInBackground()
-	}
-
 	for {
 		time.Sleep(30 * time.Second)
 		c.housekeeping()
@@ -117,9 +120,12 @@ func (c *BidProcessor) processBids(bids []*types.CommonBid) {
 			isNewBid = true
 		}
 
-		// Send to subscribers
-		if c.webserver != nil {
-			c.webserver.SendBid(bid)
+		// Send to Redis
+		if c.redisClient != nil {
+			err := c.redisClient.Publish(context.Background(), "bidcollect/bids", bid.ToCSVLine(",")).Err()
+			if err != nil {
+				c.log.WithError(err).Error("failed to publish bid to redis")
+			}
 		}
 
 		// Write to CSV

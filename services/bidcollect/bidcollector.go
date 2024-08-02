@@ -21,7 +21,7 @@ type BidCollectorOpts struct {
 	OutDir    string
 	OutputTSV bool
 
-	WebserverAddr string
+	RedisAddr string
 }
 
 type BidCollector struct {
@@ -35,8 +35,8 @@ type BidCollector struct {
 	processor *BidProcessor
 }
 
-func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
-	c := &BidCollector{
+func NewBidCollector(opts *BidCollectorOpts) (c *BidCollector, err error) {
+	c = &BidCollector{
 		log:  opts.Log,
 		opts: opts,
 	}
@@ -51,14 +51,14 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	c.getHeaderBidC = make(chan GetHeaderPollerBidsMsg, types.BidCollectorInputChannelSize)
 
 	// output
-	c.processor = NewBidProcessor(&BidProcessorOpts{
-		Log:           opts.Log,
-		UID:           opts.UID,
-		OutDir:        opts.OutDir,
-		OutputTSV:     opts.OutputTSV,
-		WebserverAddr: opts.WebserverAddr,
+	c.processor, err = NewBidProcessor(&BidProcessorOpts{
+		Log:       opts.Log,
+		UID:       opts.UID,
+		OutDir:    opts.OutDir,
+		OutputTSV: opts.OutputTSV,
+		RedisAddr: opts.RedisAddr,
 	})
-	return c
+	return c, err
 }
 
 func (c *BidCollector) MustStart() {

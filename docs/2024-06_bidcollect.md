@@ -89,6 +89,18 @@ go run . service bidcollect --data-api --ultrasound-stream --all-relays
 go run . service bidcollect --get-header --beacon-uri http://localhost:3500 --all-relays
 ```
 
+To enable the SSE server, first run Redis:
+
+```
+docker run --name redis -d -p 6379:6379 redis
+```
+
+Then start the collector with the `--redis <addr>` flag:
+
+```bash
+go run . service bidcollect --data-api --ultrasound-stream --redis localhost:6379
+```
+
 ---
 
 ## Useful Clickhouse queries

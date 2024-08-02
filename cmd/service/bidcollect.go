@@ -23,7 +23,7 @@ var (
 	outputTSV bool   // by default: CSV, but can be changed to TSV with this setting
 	uid       string // used in output filenames, to avoid collissions between multiple collector instances
 
-	webserverListenAddr string
+	redisAddr string
 
 	runDevServerOnly    bool // used to play with file listing website
 	devServerListenAddr string
@@ -49,8 +49,8 @@ func init() {
 	// utils
 	bidCollectCmd.Flags().StringVar(&uid, "uid", "", "unique identifier for output files (to avoid collisions)")
 
-	// webserver for SSE
-	bidCollectCmd.Flags().StringVar(&webserverListenAddr, "webserver-addr", "", "listen address for SSE subscription webserver")
+	// Redis for pushing bids to
+	bidCollectCmd.Flags().StringVar(&redisAddr, "redis", "", "Redis address for publishing bids (optional)")
 
 	// devserver provides the file listing for playing with file HTML
 	bidCollectCmd.Flags().BoolVar(&runDevServerOnly, "devserver", false, "only run devserver to play with file listing website")
@@ -108,10 +108,13 @@ var bidCollectCmd = &cobra.Command{
 			BeaconNodeURI:           beaconNodeURI,
 			OutDir:                  outDir,
 			OutputTSV:               outputTSV,
-			WebserverAddr:           webserverListenAddr,
+			RedisAddr:               redisAddr,
 		}
 
-		bidCollector := bidcollect.NewBidCollector(&opts)
+		bidCollector, err := bidcollect.NewBidCollector(&opts)
+		if err != nil {
+			log.WithError(err).Fatal("failed to create bid collector")
+		}
 		bidCollector.MustStart()
 	},
 }
