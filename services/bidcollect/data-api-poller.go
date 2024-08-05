@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
 	"github.com/flashbots/relayscan/common"
+	"github.com/flashbots/relayscan/services/bidcollect/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -126,4 +128,33 @@ func (poller *DataAPIPoller) _pollRelayForBids(slot uint64, relay common.RelayEn
 
 	// send data to channel
 	poller.BidC <- DataAPIPollerBidsMsg{Bids: data, Relay: relay, ReceivedAt: time.Now().UTC()}
+}
+
+func DataAPIToCommonBids(bids DataAPIPollerBidsMsg) []*types.CommonBid {
+	commonBids := make([]*types.CommonBid, 0, len(bids.Bids))
+	for _, bid := range bids.Bids {
+		// ensure it works even if some relays don't provide the timestamp in ms by converting regular timestamp to ms
+		bidTimestampMs := bid.TimestampMs
+		if bidTimestampMs == 0 && bid.Timestamp > 0 {
+			bidTimestampMs = bid.Timestamp * 1000
+		}
+
+		commonBids = append(commonBids, &types.CommonBid{
+			SourceType:   types.SourceTypeDataAPI,
+			ReceivedAtMs: bids.ReceivedAt.UnixMilli(),
+
+			TimestampMs:          bidTimestampMs,
+			Slot:                 bid.Slot,
+			BlockNumber:          bid.BlockNumber,
+			BlockHash:            strings.ToLower(bid.BlockHash),
+			ParentHash:           strings.ToLower(bid.ParentHash),
+			BuilderPubkey:        strings.ToLower(bid.BuilderPubkey),
+			Value:                bid.Value,
+			Relay:                bids.Relay.Hostname(),
+			ProposerPubkey:       strings.ToLower(bid.ProposerPubkey),
+			ProposerFeeRecipient: strings.ToLower(bid.ProposerFeeRecipient),
+			OptimisticSubmission: bid.OptimisticSubmission,
+		})
+	}
+	return commonBids
 }

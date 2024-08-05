@@ -11,6 +11,7 @@ import (
 	"github.com/flashbots/mev-boost-relay/beaconclient"
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
 	"github.com/flashbots/relayscan/common"
+	bidcollecttypes "github.com/flashbots/relayscan/services/bidcollect/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -192,4 +193,18 @@ func (poller *GetHeaderPoller) _pollRelayForBids(relay common.RelayEntry, t time
 
 	// send data to channel
 	poller.bidC <- GetHeaderPollerBidsMsg{Slot: slot, Bid: bid, Relay: relay, ReceivedAt: time.Now().UTC()}
+}
+
+func GetHeaderToCommonBid(bid GetHeaderPollerBidsMsg) *bidcollecttypes.CommonBid {
+	return &bidcollecttypes.CommonBid{
+		SourceType:   bidcollecttypes.SourceTypeGetHeader,
+		ReceivedAtMs: bid.ReceivedAt.UnixMilli(),
+		Relay:        bid.Relay.Hostname(),
+		Slot:         bid.Slot,
+
+		BlockNumber: bid.Bid.Data.Message.Header.BlockNumber,
+		BlockHash:   strings.ToLower(bid.Bid.Data.Message.Header.BlockHash.String()),
+		ParentHash:  strings.ToLower(bid.Bid.Data.Message.Header.ParentHash.String()),
+		Value:       bid.Bid.Data.Message.Value.String(),
+	}
 }

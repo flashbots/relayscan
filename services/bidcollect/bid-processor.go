@@ -1,6 +1,7 @@
 package bidcollect
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,8 @@ import (
 	"time"
 
 	"github.com/flashbots/relayscan/common"
+	"github.com/flashbots/relayscan/services/bidcollect/types"
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,6 +26,7 @@ type BidProcessorOpts struct {
 	UID       string
 	OutDir    string
 	OutputTSV bool
+	RedisAddr string
 }
 
 type OutFiles struct {
@@ -37,21 +41,23 @@ type BidProcessor struct {
 	outFiles     map[int64]*OutFiles // map[slot][bidUniqueKey]Bid
 	outFilesLock sync.RWMutex
 
-	bidCache     map[uint64]map[string]*CommonBid // map[slot][bidUniqueKey]Bid
-	topBidCache  map[uint64]*CommonBid            // map[slot]Bid
+	bidCache     map[uint64]map[string]*types.CommonBid // map[slot][bidUniqueKey]Bid
+	topBidCache  map[uint64]*types.CommonBid            // map[slot]Bid
 	bidCacheLock sync.RWMutex
 
 	csvSeparator  string
 	csvFileEnding string
+
+	redisClient *redis.Client
 }
 
-func NewBidProcessor(opts *BidProcessorOpts) *BidProcessor {
+func NewBidProcessor(opts *BidProcessorOpts) (*BidProcessor, error) {
 	c := &BidProcessor{
 		log:         opts.Log,
 		opts:        opts,
 		outFiles:    make(map[int64]*OutFiles),
-		bidCache:    make(map[uint64]map[string]*CommonBid),
-		topBidCache: make(map[uint64]*CommonBid),
+		bidCache:    make(map[uint64]map[string]*types.CommonBid),
+		topBidCache: make(map[uint64]*types.CommonBid),
 	}
 
 	if opts.OutputTSV {
@@ -62,7 +68,19 @@ func NewBidProcessor(opts *BidProcessorOpts) *BidProcessor {
 		c.csvFileEnding = "csv"
 	}
 
-	return c
+	if opts.RedisAddr != "" {
+		c.redisClient = redis.NewClient(&redis.Options{
+			Addr:     opts.RedisAddr,
+			Password: "", // no password set
+			DB:       0,  // use default DB
+		})
+
+		// Make sure we can connect to redis to connect to redis
+		if _, err := c.redisClient.Ping(context.Background()).Result(); err != nil {
+			return nil, err
+		}
+	}
+	return c, nil
 }
 
 func (c *BidProcessor) Start() {
@@ -72,7 +90,7 @@ func (c *BidProcessor) Start() {
 	}
 }
 
-func (c *BidProcessor) processBids(bids []*CommonBid) {
+func (c *BidProcessor) processBids(bids []*types.CommonBid) {
 	c.bidCacheLock.Lock()
 	defer c.bidCacheLock.Unlock()
 
@@ -80,7 +98,7 @@ func (c *BidProcessor) processBids(bids []*CommonBid) {
 	for _, bid := range bids {
 		isNewBid, isTopBid = false, false
 		if _, ok := c.bidCache[bid.Slot]; !ok {
-			c.bidCache[bid.Slot] = make(map[string]*CommonBid)
+			c.bidCache[bid.Slot] = make(map[string]*types.CommonBid)
 		}
 
 		// Check if bid is new top bid
@@ -102,12 +120,20 @@ func (c *BidProcessor) processBids(bids []*CommonBid) {
 			isNewBid = true
 		}
 
+		// Send to Redis
+		if c.redisClient != nil {
+			err := c.redisClient.Publish(context.Background(), types.RedisChannel, bid.ToCSVLine(",")).Err()
+			if err != nil {
+				c.log.WithError(err).Error("failed to publish bid to redis")
+			}
+		}
+
 		// Write to CSV
 		c.writeBidToFile(bid, isNewBid, isTopBid)
 	}
 }
 
-func (c *BidProcessor) writeBidToFile(bid *CommonBid, isNewBid, isTopBid bool) {
+func (c *BidProcessor) writeBidToFile(bid *types.CommonBid, isNewBid, isTopBid bool) {
 	fAll, fTop, err := c.getFiles(bid)
 	if err != nil {
 		c.log.WithError(err).Error("get get output file")
@@ -129,9 +155,9 @@ func (c *BidProcessor) writeBidToFile(bid *CommonBid, isNewBid, isTopBid bool) {
 	}
 }
 
-func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error) {
+func (c *BidProcessor) getFiles(bid *types.CommonBid) (fAll, fTop *os.File, err error) {
 	// hourlybucket
-	sec := int64(bucketMinutes * 60)
+	sec := int64(types.BucketMinutes * 60)
 	bucketTS := bid.ReceivedAtMs / 1000 / sec * sec // timestamp down-round to start of bucket
 	t := time.Unix(bucketTS, 0).UTC()
 
@@ -162,7 +188,7 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 		c.log.WithError(err).Fatal("failed stat on output file")
 	}
 	if fi.Size() == 0 {
-		_, err = fmt.Fprint(fAll, strings.Join(CommonBidCSVFields, c.csvSeparator)+"\n")
+		_, err = fmt.Fprint(fAll, strings.Join(types.CommonBidCSVFields, c.csvSeparator)+"\n")
 		if err != nil {
 			c.log.WithError(err).Fatal("failed to write header to output file")
 		}
@@ -179,7 +205,7 @@ func (c *BidProcessor) getFiles(bid *CommonBid) (fAll, fTop *os.File, err error)
 		c.log.WithError(err).Fatal("failed stat on output file")
 	}
 	if fi.Size() == 0 {
-		_, err = fmt.Fprint(fTop, strings.Join(CommonBidCSVFields, c.csvSeparator)+"\n")
+		_, err = fmt.Fprint(fTop, strings.Join(types.CommonBidCSVFields, c.csvSeparator)+"\n")
 		if err != nil {
 			c.log.WithError(err).Fatal("failed to write header to output file")
 		}
@@ -229,7 +255,7 @@ func (c *BidProcessor) housekeeping() {
 	filesBefore := len(c.outFiles)
 	c.outFilesLock.Lock()
 	for timestamp, outFiles := range c.outFiles {
-		usageSec := bucketMinutes * 60 * 2
+		usageSec := types.BucketMinutes * 60 * 2
 		if now-timestamp > int64(usageSec) { // remove all handles from 2x usage seconds ago
 			c.log.Info("closing output files", timestamp)
 			delete(c.outFiles, timestamp)

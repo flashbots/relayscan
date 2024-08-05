@@ -3,6 +3,7 @@ package bidcollect
 
 import (
 	"github.com/flashbots/relayscan/common"
+	"github.com/flashbots/relayscan/services/bidcollect/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -19,6 +20,8 @@ type BidCollectorOpts struct {
 
 	OutDir    string
 	OutputTSV bool
+
+	RedisAddr string
 }
 
 type BidCollector struct {
@@ -32,8 +35,8 @@ type BidCollector struct {
 	processor *BidProcessor
 }
 
-func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
-	c := &BidCollector{
+func NewBidCollector(opts *BidCollectorOpts) (c *BidCollector, err error) {
+	c = &BidCollector{
 		log:  opts.Log,
 		opts: opts,
 	}
@@ -43,18 +46,19 @@ func NewBidCollector(opts *BidCollectorOpts) *BidCollector {
 	}
 
 	// inputs
-	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, bidCollectorInputChannelSize)
-	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, bidCollectorInputChannelSize)
-	c.getHeaderBidC = make(chan GetHeaderPollerBidsMsg, bidCollectorInputChannelSize)
+	c.dataAPIBidC = make(chan DataAPIPollerBidsMsg, types.BidCollectorInputChannelSize)
+	c.ultrasoundBidC = make(chan UltrasoundStreamBidsMsg, types.BidCollectorInputChannelSize)
+	c.getHeaderBidC = make(chan GetHeaderPollerBidsMsg, types.BidCollectorInputChannelSize)
 
 	// output
-	c.processor = NewBidProcessor(&BidProcessorOpts{
+	c.processor, err = NewBidProcessor(&BidProcessorOpts{
 		Log:       opts.Log,
 		UID:       opts.UID,
 		OutDir:    opts.OutDir,
 		OutputTSV: opts.OutputTSV,
+		RedisAddr: opts.RedisAddr,
 	})
-	return c
+	return c, err
 }
 
 func (c *BidCollector) MustStart() {
@@ -91,13 +95,13 @@ func (c *BidCollector) MustStart() {
 		select {
 		case bid := <-c.ultrasoundBidC:
 			commonBid := UltrasoundStreamToCommonBid(&bid)
-			c.processor.processBids([]*CommonBid{commonBid})
+			c.processor.processBids([]*types.CommonBid{commonBid})
 		case bids := <-c.dataAPIBidC:
 			commonBids := DataAPIToCommonBids(bids)
 			c.processor.processBids(commonBids)
 		case bid := <-c.getHeaderBidC:
 			commonBid := GetHeaderToCommonBid(bid)
-			c.processor.processBids([]*CommonBid{commonBid})
+			c.processor.processBids([]*types.CommonBid{commonBid})
 		}
 	}
 }

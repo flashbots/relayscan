@@ -1,10 +1,12 @@
 package bidcollect
 
 import (
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/flashbots/relayscan/common"
+	"github.com/flashbots/relayscan/services/bidcollect/types"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 )
@@ -30,9 +32,9 @@ type UltrasoundStreamConnection struct {
 func NewUltrasoundStreamConnection(opts UltrasoundStreamOpts) *UltrasoundStreamConnection {
 	return &UltrasoundStreamConnection{
 		log:        opts.Log,
-		url:        ultrasoundStreamDefaultURL,
+		url:        types.UltrasoundStreamDefaultURL,
 		bidC:       opts.BidC,
-		backoffSec: initialBackoffSec,
+		backoffSec: types.InitialBackoffSec,
 	}
 }
 
@@ -47,8 +49,8 @@ func (ustream *UltrasoundStreamConnection) reconnect() {
 
 	// increase backoff timeout for next try
 	ustream.backoffSec *= 2
-	if ustream.backoffSec > maxBackoffSec {
-		ustream.backoffSec = maxBackoffSec
+	if ustream.backoffSec > types.MaxBackoffSec {
+		ustream.backoffSec = types.MaxBackoffSec
 	}
 
 	ustream.connect()
@@ -68,7 +70,7 @@ func (ustream *UltrasoundStreamConnection) connect() {
 	defer resp.Body.Close()
 
 	ustream.log.Info("[ultrasounds-stream] stream connection successful")
-	ustream.backoffSec = initialBackoffSec // reset backoff timeout
+	ustream.backoffSec = types.InitialBackoffSec // reset backoff timeout
 
 	bid := new(common.UltrasoundStreamBid)
 
@@ -95,5 +97,27 @@ func (ustream *UltrasoundStreamConnection) connect() {
 			Relay:      "relay.ultrasound.money",
 			ReceivedAt: time.Now().UTC(),
 		}
+	}
+}
+
+func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *types.CommonBid {
+	blockHash := hexutil.Encode(bid.Bid.BlockHash[:])
+	parentHash := hexutil.Encode(bid.Bid.ParentHash[:])
+	builderPubkey := hexutil.Encode(bid.Bid.BuilderPubkey[:])
+	blockFeeRecipient := hexutil.Encode(bid.Bid.FeeRecipient[:])
+
+	return &types.CommonBid{
+		SourceType:   types.SourceTypeUltrasoundStream,
+		ReceivedAtMs: bid.ReceivedAt.UnixMilli(),
+
+		TimestampMs:       int64(bid.Bid.Timestamp),
+		Slot:              bid.Bid.Slot,
+		BlockNumber:       bid.Bid.BlockNumber,
+		BlockHash:         strings.ToLower(blockHash),
+		ParentHash:        strings.ToLower(parentHash),
+		BuilderPubkey:     strings.ToLower(builderPubkey),
+		Value:             bid.Bid.Value.String(),
+		BlockFeeRecipient: strings.ToLower(blockFeeRecipient),
+		Relay:             bid.Relay,
 	}
 }

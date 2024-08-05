@@ -1,6 +1,10 @@
 // Package website contains the service delivering the website
 package website
 
+//
+// DevServer is a simple webserver for development purposes that simulates the file listing HTMLs
+//
+
 import (
 	"encoding/json"
 	"errors"
