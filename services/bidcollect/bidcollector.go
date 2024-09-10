@@ -22,6 +22,7 @@ type BidCollectorOpts struct {
 	OutputTSV bool
 
 	RedisAddr string
+	UseRedis  bool
 }
 
 type BidCollector struct {
@@ -57,6 +58,7 @@ func NewBidCollector(opts *BidCollectorOpts) (c *BidCollector, err error) {
 		OutDir:    opts.OutDir,
 		OutputTSV: opts.OutputTSV,
 		RedisAddr: opts.RedisAddr,
+		UseRedis:  opts.UseRedis,
 	})
 	return c, err
 }

@@ -128,6 +128,7 @@ var bidCollectCmd = &cobra.Command{
 			OutDir:                  outDir,
 			OutputTSV:               outputTSV,
 			RedisAddr:               redisAddr,
+			UseRedis:                useRedis,
 		}
 
 		bidCollector, err := bidcollect.NewBidCollector(&opts)
