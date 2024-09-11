@@ -27,6 +27,7 @@ type BidProcessorOpts struct {
 	OutDir    string
 	OutputTSV bool
 	RedisAddr string
+	UseRedis  bool
 }
 
 type OutFiles struct {
@@ -68,7 +69,7 @@ func NewBidProcessor(opts *BidProcessorOpts) (*BidProcessor, error) {
 		c.csvFileEnding = "csv"
 	}
 
-	if opts.RedisAddr != "" {
+	if opts.UseRedis && opts.RedisAddr != "" {
 		c.redisClient = redis.NewClient(&redis.Options{
 			Addr:     opts.RedisAddr,
 			Password: "", // no password set
