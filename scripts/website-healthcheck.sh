@@ -29,7 +29,7 @@ function send_notification() {
 }
 
 function error() {
-    # don't run if notification was alreaty sent
+    # don't run if notification was already sent
     if [ -f $check_fn ]; then
         return
     fi
