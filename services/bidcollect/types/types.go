@@ -70,7 +70,7 @@ func (bid *CommonBid) ToCSVFields() []string {
 	bidTimestampMsString := ""
 	bidIntoSlotTmsString := ""
 
-	// If we have a timestamp, can caculate how
+	// If we have a timestamp, can calculate how
 	if bid.TimestampMs > 0 {
 		bidTimestampMsString = fmt.Sprint(bid.TimestampMs)
 
