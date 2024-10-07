@@ -5,11 +5,7 @@ import (
     migrate "github.com/rubenv/sql-migrate"
 )
 
-func init() {
-    Migrations = append(Migrations, &migrate.Migration{
-        Id: "20230101000000_create_adjustments_table",
-        Up: []string{
-            `CREATE TABLE IF NOT EXISTS adjustments (
+var migration005SQL = `CREATE TABLE IF NOT EXISTS adjustments (
                 id SERIAL PRIMARY KEY,
                 inserted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 slot BIGINT NOT NULL,
@@ -22,10 +18,13 @@ func init() {
                 submitted_received_at TIMESTAMP WITH TIME ZONE NOT NULL,
                 submitted_value TEXT NOT NULL,
                 UNIQUE(slot, adjusted_block_hash)
-            );`,
-        },
-        Down: []string{
-            "DROP TABLE IF EXISTS adjustments;",
-        },
-    })
+            );`
+
+
+var Migration005CreateAdjustmentsTable = &migrate.Migration{
+	Id: "005-create-adjustments-table",
+	Up: []string{migration005SQL},
+
+	DisableTransactionUp:   false,
+	DisableTransactionDown: true,
 }
