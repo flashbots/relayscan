@@ -95,14 +95,16 @@ type backfiller struct {
 	db         *database.DatabaseService
 	cursorSlot uint64
 	minSlot    uint64
+	withAdjustments bool
 }
 
-func newBackfiller(db *database.DatabaseService, relay common.RelayEntry, cursorSlot, minSlot uint64) *backfiller {
+func newBackfiller(db *database.DatabaseService, relay common.RelayEntry, cursorSlot, minSlot uint64, withAdjustments bool) *backfiller {
 	return &backfiller{
 		relay:      relay,
 		db:         db,
 		cursorSlot: cursorSlot,
 		minSlot:    minSlot,
+		withAdjustments: withAdjustments,
 	}
 }
 
@@ -123,13 +125,16 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 
 	// 2. backfill until latest DB entry is reached
 	baseURL := bf.relay.GetURI("/relay/v1/data/bidtraces/proposer_payload_delivered")
+	if bf.withAdjustments {
+		baseURL += "?adjustments=1"
+	}
 	cursorSlot := bf.cursorSlot
 	slotsReceived := make(map[uint64]bool)
 	builders := make(map[string]bool)
 
 	for {
 		payloadsNew := 0
-		url := fmt.Sprintf("%s?limit=%d", baseURL, pageLimit)
+		url := fmt.Sprintf("%s&limit=%d", baseURL, pageLimit)
 		if cursorSlot > 0 {
 			url = fmt.Sprintf("%s&cursor=%d", url, cursorSlot)
 		}
@@ -149,6 +154,18 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		for index, payload := range data {
 			_log.Debugf("saving entry for slot %d", payload.Slot)
 			dbEntry := database.BidTraceV2JSONToPayloadDeliveredEntry(bf.relay.Hostname(), payload)
+			
+			if bf.withAdjustments && payload.AdjustmentData != nil {
+				dbEntry.AdjustmentData = &database.AdjustmentData{
+					StateRoot:           payload.AdjustmentData.StateRoot,
+					TransactionsRoot:    payload.AdjustmentData.TransactionsRoot,
+					ReceiptsRoot:        payload.AdjustmentData.ReceiptsRoot,
+					BuilderAddress:      payload.AdjustmentData.BuilderAddress,
+					FeeRecipientAddress: payload.AdjustmentData.FeeRecipientAddress,
+					FeePayerAddress:     payload.AdjustmentData.FeePayerAddress,
+				}
+			}
+			
 			entries[index] = &dbEntry
 
 			// Set first and last slot
