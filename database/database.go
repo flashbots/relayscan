@@ -271,3 +271,22 @@ func (s *DatabaseService) GetRecentPayloadsForExtraData(extraData []string, limi
 	err = s.DB.Select(&resp, query, args...)
 	return resp, err
 }
+
+func (s *DatabaseService) SaveAdjustments(entries []*AdjustmentEntry) error {
+    if len(entries) == 0 {
+        return nil
+    }
+    query := `INSERT INTO ` + vars.TableAdjustments + `
+    (slot, adjusted_block_hash, adjusted_value, block_number, builder_pubkey, delta, submitted_block_hash, submitted_received_at, submitted_value) VALUES
+    (:slot, :adjusted_block_hash, :adjusted_value, :block_number, :builder_pubkey, :delta, :submitted_block_hash, :submitted_received_at, :submitted_value)
+    ON CONFLICT (slot, adjusted_block_hash) DO NOTHING`
+    _, err := s.DB.NamedExec(query, entries)
+    return err
+}
+
+func (s *DatabaseService) GetLatestAdjustmentSlot() (uint64, error) {
+    var slot uint64
+    query := `SELECT COALESCE(MAX(slot), 0) FROM ` + vars.TableAdjustments
+    err := s.DB.Get(&slot, query)
+    return slot, err
+}

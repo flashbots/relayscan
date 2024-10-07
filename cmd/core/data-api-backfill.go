@@ -81,7 +81,13 @@ var backfillDataAPICmd = &cobra.Command{
 			backfiller := newBackfiller(db, relay, initCursor, uint64(minSlot))
 			err = backfiller.backfillPayloadsDelivered()
 			if err != nil {
-				log.WithError(err).WithField("relay", relay).Error("backfill failed")
+				log.WithError(err).WithField("relay", relay).Error("backfill payloads failed")
+			}
+			
+			// Add this new call
+			err = backfiller.backfillAdjustments()
+			if err != nil {
+				log.WithError(err).WithField("relay", relay).Error("backfill adjustments failed")
 			}
 		}
 
