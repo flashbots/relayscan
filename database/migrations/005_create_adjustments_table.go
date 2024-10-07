@@ -1,11 +1,11 @@
 package migrations
 
 import (
-    "database/sql"
-    migrate "github.com/rubenv/sql-migrate"
+	"github.com/flashbots/relayscan/database/vars"
+	migrate "github.com/rubenv/sql-migrate"
 )
 
-var migration005SQL = `CREATE TABLE IF NOT EXISTS adjustments (
+var migration005SQL = `CREATE TABLE IF NOT EXISTS ` + vars.TableAdjustments +` (
                 id SERIAL PRIMARY KEY,
                 inserted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 slot BIGINT NOT NULL,
