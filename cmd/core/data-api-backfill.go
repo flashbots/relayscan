@@ -114,6 +114,53 @@ func newBackfiller(db *database.DatabaseService, relay common.RelayEntry, cursor
 	}
 }
 
+func (bf *backfiller) backfillAdjustments() error {
+    if bf.relay.Hostname() != "relay-analytics.ultrasound.money" {
+        return nil // Skip if not the ultrasound relay
+    }
+
+    _log := log.WithField("relay", bf.relay.Hostname())
+    _log.Info("Backfilling adjustments from ultrasound relay...")
+
+    baseURL := "https://relay-analytics.ultrasound.money/ultrasound/v1/data/adjustments"
+
+    latestSlot, err := bf.db.GetLatestAdjustmentSlot()
+    if err != nil {
+        return fmt.Errorf("failed to get latest adjustment slot: %w", err)
+    }
+
+    if bf.cursorSlot == 0 || bf.cursorSlot < latestSlot {
+        bf.cursorSlot = latestSlot
+    }
+
+    for slot := bf.cursorSlot; slot >= bf.minSlot; slot-- {
+        url := fmt.Sprintf("%s?slot=%d", baseURL, slot)
+        _log.WithField("url", url).Debug("Fetching adjustments...")
+
+        var response struct {
+            Data []*database.AdjustmentEntry `json:"data"`
+        }
+        _, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &response)
+        if err != nil {
+            _log.WithError(err).Error("Failed to fetch adjustments")
+            continue
+        }
+
+        if len(response.Data) > 0 {
+            err = bf.db.SaveAdjustments(response.Data)
+            if err != nil {
+                _log.WithError(err).Error("Failed to save adjustments")
+            } else {
+                _log.WithField("count", len(response.Data)).Info("Saved adjustments")
+            }
+        }
+
+        time.Sleep(time.Second) // Rate limiting
+    }
+
+    return nil
+}
+
 func (bf *backfiller) backfillPayloadsDelivered() error {
 	_log := log.WithField("relay", bf.relay.Hostname())
 	// _log.Info("backfilling payloads from relay data-api ...")
