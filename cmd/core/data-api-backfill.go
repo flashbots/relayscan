@@ -84,12 +84,6 @@ var backfillDataAPICmd = &cobra.Command{
 			if err != nil {
 				log.WithError(err).WithField("relay", relay).Error("backfill payloads failed")
 			}
-
-			// Add this new call
-			err = backfiller.backfillAdjustments()
-			if err != nil {
-				log.WithError(err).WithField("relay", relay).Error("backfill adjustments failed")
-			}
 		}
 
 		timeNeeded := time.Since(startTime)
