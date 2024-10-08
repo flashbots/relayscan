@@ -84,6 +84,11 @@ func (bf *bidAdjustmentsBackfiller) backfillAdjustments() error {
 		bf.minSlot = latestSlot
 	}
 
+	// Hardcoded ultrasoiund first slot with data see https://github.com/ultrasoundmoney/docs/blob/main/bid_adjustment.md#data-api
+	if bf.minSlot < 7869470 {
+		bf.minSlot = 7869470
+	}
+
 	for slot := bf.minSlot; ; slot++ {
 		_log.WithField("slot", slot).Info("Fetching adjustments...")
 		url := fmt.Sprintf("%s?slot=%d", baseURL, slot)
@@ -140,7 +145,7 @@ func (bf *bidAdjustmentsBackfiller) backfillAdjustments() error {
 			// break
 		}
 
-		time.Sleep(time.Second) // Rate limiting
+		time.Sleep(time.Duration(50) * time.Microsecond) // Rate limiting
 	}
 
 	return nil
