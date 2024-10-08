@@ -78,12 +78,13 @@ var backfillDataAPICmd = &cobra.Command{
 
 		for _, relay := range relays {
 			log.Infof("Starting backfilling for relay %s ...", relay.Hostname())
+			log.Infof("minSlot=%d, initCursor=%d", minSlot, initCursor)
 			backfiller := newBackfiller(db, relay, initCursor, uint64(minSlot))
 			err = backfiller.backfillPayloadsDelivered()
 			if err != nil {
 				log.WithError(err).WithField("relay", relay).Error("backfill payloads failed")
 			}
-			
+
 			// Add this new call
 			err = backfiller.backfillAdjustments()
 			if err != nil {
@@ -113,49 +114,65 @@ func newBackfiller(db *database.DatabaseService, relay common.RelayEntry, cursor
 }
 
 func (bf *backfiller) backfillAdjustments() error {
-    if bf.relay.Hostname() != vars.RelayUltrasound {
-        return nil // Skip if not the ultrasound relay
-    }
+	if bf.relay.Hostname() != "relay.ultrasound.money" {
+		return nil // Skip if not the ultrasound relay
+	}
 
-    _log := log.WithField("relay", bf.relay.Hostname())
-    _log.Info("Backfilling adjustments from ultrasound relay...")
+	_log := log.WithField("relay", bf.relay.Hostname())
+	_log.Info("Backfilling adjustments...")
 
-    baseURL := bf.relay.GetURI("/ultrasound/v1/data/adjustments")
-    latestSlot, err := bf.db.GetLatestAdjustmentSlot()
-    if err != nil {
-        return fmt.Errorf("failed to get latest adjustment slot: %w", err)
-    }
+	baseURL := bf.relay.GetURI("/ultrasound/v1/data/adjustments")
+	_log.Info("Getting latest Slot")
+	latestSlot, err := bf.db.GetLatestAdjustmentSlot()
+	if err != nil {
+		return fmt.Errorf("failed to get latest adjustment slot: %w", err)
+	}
+	// _log.Info("Got latest Slot")
+	_log.WithField("cursorSlot", bf.cursorSlot).Info("Got latest Slot")
 
-    if bf.cursorSlot == 0 || bf.cursorSlot < latestSlot {
-        bf.cursorSlot = latestSlot
-    }
+	if bf.cursorSlot < bf.minSlot {
+		bf.cursorSlot = bf.minSlot
+	}
 
-    for slot := bf.cursorSlot; slot >= bf.minSlot; slot-- {
-        url := fmt.Sprintf("%s?slot=%d", baseURL, slot)
-        _log.WithField("url", url).Debug("Fetching adjustments...")
+	if bf.cursorSlot < latestSlot {
+		bf.cursorSlot = latestSlot
+	}
+	_log.Info("Loop")
+	_log.WithField("cursorSlot", bf.cursorSlot).Info("Loop starting")
+	_log.WithField("minSlot", bf.minSlot).Info("Loop starting")
+	_log.WithField("latestSlot", latestSlot).Info("Loop starting")
+	for slot := bf.cursorSlot; slot >= bf.minSlot; slot++ {
+		_log.WithField("slot", slot).Info("Fetching adjustments...")
+		url := fmt.Sprintf("%s?slot=%d", baseURL, slot)
+		_log.WithField("url", url).Debug("Fetching adjustments...")
 
-        var response struct {
-            Data []*database.AdjustmentEntry `json:"data"`
-        }
-        _, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &response)
-        if err != nil {
-            _log.WithError(err).Error("Failed to fetch adjustments")
-            continue
-        }
+		var response struct {
+			Data []*database.AdjustmentEntry `json:"data"`
+		}
+		_, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &response)
+		if err != nil {
+			_log.WithError(err).Error("Failed to fetch adjustments")
+			return nil
+		}
 
-        if len(response.Data) > 0 {
-            err = bf.db.SaveAdjustments(response.Data)
-            if err != nil {
-                _log.WithError(err).Error("Failed to save adjustments")
-            } else {
-                _log.WithField("count", len(response.Data)).Info("Saved adjustments")
-            }
-        }
+		if len(response.Data) > 0 {
+			err = bf.db.SaveAdjustments(response.Data)
+			if err != nil {
+				_log.WithError(err).Error("Failed to save adjustments")
+			} else {
+				// log the contents of response.Data
+				for _, entry := range response.Data {
+					_log.WithField("entry.Slot", entry.Slot).Info("Response data")
+					_log.WithField("entry.SubmittedValue", entry.SubmittedValue).Info("Response data")
+				}
+				_log.WithField("count", len(response.Data)).Info("Saved adjustments")
+			}
+		}
 
-        time.Sleep(time.Second) // Rate limiting
-    }
+		// time.Sleep(time.Second) // Rate limiting
+	}
 
-    return nil
+	return nil
 }
 
 func (bf *backfiller) backfillPayloadsDelivered() error {
@@ -181,7 +198,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 
 	for {
 		payloadsNew := 0
-    url := fmt.Sprintf("%s?limit=%d", baseURL, pageLimit)
+		url := fmt.Sprintf("%s?limit=%d", baseURL, pageLimit)
 		if cursorSlot > 0 {
 			url = fmt.Sprintf("%s&cursor=%d", url, cursorSlot)
 		}
@@ -201,7 +218,7 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		for index, payload := range data {
 			_log.Debugf("saving entry for slot %d", payload.Slot)
 			dbEntry := database.BidTraceV2JSONToPayloadDeliveredEntry(bf.relay.Hostname(), payload)
-			
+
 			entries[index] = &dbEntry
 
 			// Set first and last slot
