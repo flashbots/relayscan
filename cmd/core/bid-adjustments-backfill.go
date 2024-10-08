@@ -18,6 +18,11 @@ var (
 	bidAdjustmentRelay   string
 )
 
+func init() {
+	bidAdjustmentsBackfillCmd.Flags().StringVar(&bidAdjustmentRelay, "relay", "relay.ultrasound.money", "relay to fetch bid adjustments from")
+	bidAdjustmentsBackfillCmd.Flags().Int64Var(&minSlot, "min-slot", 0, "minimum slot (if unset, backfill until the merge, negative number for that number of slots before latest)")
+}
+
 var bidAdjustmentsBackfillCmd = &cobra.Command{
 	Use:   "bid-adjustments-backfill",
 	Short: "Backfill bid adjustments data",
@@ -30,17 +35,25 @@ var bidAdjustmentsBackfillCmd = &cobra.Command{
 			log.WithError(err).Fatal("failed to create relay entry")
 		}
 
+		log.Infof("minSlot %d", minSlot)
+		// If needed, get latest slot (i.e. if min-slot is negative)
+		if minSlot < 0 {
+			log.Infof("Getting latest slot from beaconcha.in for offset %d", minSlot)
+			latestSlotOnBeaconChain := common.MustGetLatestSlot()
+			log.Infof("Latest slot from beaconcha.in: %d", latestSlotOnBeaconChain)
+			minSlot = int64(latestSlotOnBeaconChain) + minSlot
+		}
+
+		if minSlot != 0 {
+			log.Infof("Using min slot: %d", minSlot)
+		}
+
 		backfiller := newBidAdjustmentsBackfiller(db, relay, uint64(bidAdjustmentMinSlot))
 		err = backfiller.backfillAdjustments()
 		if err != nil {
 			log.WithError(err).Fatal("failed to backfill adjustments")
 		}
 	},
-}
-
-func init() {
-	bidAdjustmentsBackfillCmd.Flags().StringVar(&bidAdjustmentRelay, "relay", "relay.ultrasound.money", "relay to fetch bid adjustments from")
-	bidAdjustmentsBackfillCmd.Flags().Int64Var(&bidAdjustmentMinSlot, "min-slot", 0, "minimum slot (if unset, backfill until the merge, negative number for that number of slots before latest)")
 }
 
 type bidAdjustmentsBackfiller struct {
