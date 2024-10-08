@@ -78,7 +78,6 @@ var backfillDataAPICmd = &cobra.Command{
 
 		for _, relay := range relays {
 			log.Infof("Starting backfilling for relay %s ...", relay.Hostname())
-			log.Infof("minSlot=%d, initCursor=%d", minSlot, initCursor)
 			backfiller := newBackfiller(db, relay, initCursor, uint64(minSlot))
 			err = backfiller.backfillPayloadsDelivered()
 			if err != nil {
@@ -105,91 +104,6 @@ func newBackfiller(db *database.DatabaseService, relay common.RelayEntry, cursor
 		cursorSlot: cursorSlot,
 		minSlot:    minSlot,
 	}
-}
-
-func (bf *backfiller) backfillAdjustments() error {
-	if bf.relay.Hostname() != "relay.ultrasound.money" {
-		return nil // Skip if not the ultrasound relay
-	}
-
-	_log := log.WithField("relay", bf.relay.Hostname())
-	_log.Info("Backfilling adjustments...")
-
-	baseURL := bf.relay.GetURI("/ultrasound/v1/data/adjustments")
-	_log.Info("Getting latest Slot")
-	latestSlot, err := bf.db.GetLatestAdjustmentSlot()
-	if err != nil {
-		return fmt.Errorf("failed to get latest adjustment slot: %w", err)
-	}
-	// _log.Info("Got latest Slot")
-	_log.WithField("cursorSlot", bf.cursorSlot).Info("Got latest Slot")
-
-	if bf.cursorSlot < bf.minSlot {
-		bf.cursorSlot = bf.minSlot
-	}
-
-	if bf.cursorSlot < latestSlot {
-		bf.cursorSlot = latestSlot
-	}
-	_log.Info("Loop")
-	_log.WithField("cursorSlot", bf.cursorSlot).Info("Loop starting")
-	_log.WithField("minSlot", bf.minSlot).Info("Loop starting")
-	_log.WithField("latestSlot", latestSlot).Info("Loop starting")
-	for slot := bf.cursorSlot; slot >= bf.minSlot; slot++ {
-		_log.WithField("slot", slot).Info("Fetching adjustments...")
-		url := fmt.Sprintf("%s?slot=%d", baseURL, slot)
-		_log.WithField("url", url).Debug("Fetching adjustments...")
-
-		var response common.UltrasoundAdjustmentResponse
-		_, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &response)
-		if err != nil {
-			_log.WithError(err).Error("Failed to fetch adjustments")
-			return nil
-		}
-
-		if len(response.Data) > 0 {
-			adjustments := make([]*database.AdjustmentEntry, len(response.Data))
-			for i, adjustment := range response.Data {
-				submittedReceivedAt, err := time.Parse(time.RFC3339, adjustment.SubmittedReceivedAt)
-				if err != nil {
-					_log.WithError(err).Error("Failed to parse SubmittedReceivedAt")
-					continue
-				}
-				adjustments[i] = &database.AdjustmentEntry{
-					Slot:                 slot, // Use the slot from the current iteration
-					AdjustedBlockHash:    adjustment.AdjustedBlockHash,
-					AdjustedValue:        adjustment.AdjustedValue,
-					BlockNumber:          adjustment.BlockNumber,
-					BuilderPubkey:        adjustment.BuilderPubkey,
-					Delta:                adjustment.Delta,
-					SubmittedBlockHash:   adjustment.SubmittedBlockHash,
-					SubmittedReceivedAt:  submittedReceivedAt,
-					SubmittedValue:       adjustment.SubmittedValue,
-				}
-			}
-
-			err = bf.db.SaveAdjustments(adjustments)
-			if err != nil {
-				_log.WithError(err).Error("Failed to save adjustments")
-			} else {
-				for _, entry := range adjustments {
-					_log.WithFields(logrus.Fields{
-						"Slot":           entry.Slot,
-						"SubmittedValue": entry.SubmittedValue,
-						"AdjustedValue":  entry.AdjustedValue,
-						"Delta":          entry.Delta,
-					}).Info("Adjustment data")
-				}
-				_log.WithField("count", len(adjustments)).Info("Saved adjustments")
-			}
-		} else {
-			_log.Info("No adjustments found for this slot")
-		}
-
-		// time.Sleep(time.Second) // Rate limiting
-	}
-
-	return nil
 }
 
 func (bf *backfiller) backfillPayloadsDelivered() error {
@@ -235,7 +149,6 @@ func (bf *backfiller) backfillPayloadsDelivered() error {
 		for index, payload := range data {
 			_log.Debugf("saving entry for slot %d", payload.Slot)
 			dbEntry := database.BidTraceV2JSONToPayloadDeliveredEntry(bf.relay.Hostname(), payload)
-
 			entries[index] = &dbEntry
 
 			// Set first and last slot
