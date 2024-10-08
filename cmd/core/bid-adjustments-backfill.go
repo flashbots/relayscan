@@ -14,8 +14,7 @@ import (
 )
 
 var (
-	bidAdjustmentMinSlot int64
-	bidAdjustmentRelay   string
+	bidAdjustmentRelay string
 )
 
 func init() {
