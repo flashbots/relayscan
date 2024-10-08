@@ -48,7 +48,7 @@ var bidAdjustmentsBackfillCmd = &cobra.Command{
 			log.Infof("Using min slot: %d", minSlot)
 		}
 
-		backfiller := newBidAdjustmentsBackfiller(db, relay, uint64(bidAdjustmentMinSlot))
+		backfiller := newBidAdjustmentsBackfiller(db, relay, uint64(minSlot))
 		err = backfiller.backfillAdjustments()
 		if err != nil {
 			log.WithError(err).Fatal("failed to backfill adjustments")
@@ -89,7 +89,12 @@ func (bf *bidAdjustmentsBackfiller) backfillAdjustments() error {
 		url := fmt.Sprintf("%s?slot=%d", baseURL, slot)
 
 		var response common.UltrasoundAdjustmentResponse
-		_, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &response)
+		statusCode, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &response)
+		_log.WithField("status code", statusCode).Info("Response")
+		if statusCode == 403 {
+			_log.WithField("Status Code", statusCode).Info("Stopping backfill due to 403")
+			break
+		}
 		if err != nil {
 			_log.WithError(err).Error("Failed to fetch adjustments")
 			return nil
@@ -132,7 +137,7 @@ func (bf *bidAdjustmentsBackfiller) backfillAdjustments() error {
 			}
 		} else {
 			_log.Info("No adjustments found for this slot")
-			break
+			// break
 		}
 
 		time.Sleep(time.Second) // Rate limiting
