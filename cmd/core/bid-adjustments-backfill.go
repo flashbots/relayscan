@@ -41,7 +41,6 @@ var bidAdjustmentsBackfillCmd = &cobra.Command{
 func init() {
 	bidAdjustmentsBackfillCmd.Flags().StringVar(&bidAdjustmentRelay, "relay", "relay.ultrasound.money", "relay to fetch bid adjustments from")
 	bidAdjustmentsBackfillCmd.Flags().Int64Var(&bidAdjustmentMinSlot, "min-slot", 0, "minimum slot (if unset, backfill until the merge, negative number for that number of slots before latest)")
-	CoreCmd.AddCommand(bidAdjustmentsBackfillCmd)
 }
 
 type bidAdjustmentsBackfiller struct {
@@ -92,15 +91,15 @@ func (bf *bidAdjustmentsBackfiller) backfillAdjustments() error {
 					continue
 				}
 				adjustments[i] = &database.AdjustmentEntry{
-					Slot:                 slot,
-					AdjustedBlockHash:    adjustment.AdjustedBlockHash,
-					AdjustedValue:        adjustment.AdjustedValue,
-					BlockNumber:          adjustment.BlockNumber,
-					BuilderPubkey:        adjustment.BuilderPubkey,
-					Delta:                adjustment.Delta,
-					SubmittedBlockHash:   adjustment.SubmittedBlockHash,
-					SubmittedReceivedAt:  submittedReceivedAt,
-					SubmittedValue:       adjustment.SubmittedValue,
+					Slot:                slot,
+					AdjustedBlockHash:   adjustment.AdjustedBlockHash,
+					AdjustedValue:       adjustment.AdjustedValue,
+					BlockNumber:         adjustment.BlockNumber,
+					BuilderPubkey:       adjustment.BuilderPubkey,
+					Delta:               adjustment.Delta,
+					SubmittedBlockHash:  adjustment.SubmittedBlockHash,
+					SubmittedReceivedAt: submittedReceivedAt,
+					SubmittedValue:      adjustment.SubmittedValue,
 				}
 			}
 
