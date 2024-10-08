@@ -146,9 +146,7 @@ func (bf *backfiller) backfillAdjustments() error {
 		url := fmt.Sprintf("%s?slot=%d", baseURL, slot)
 		_log.WithField("url", url).Debug("Fetching adjustments...")
 
-		var response struct {
-			Data []*database.AdjustmentEntry `json:"data"`
-		}
+		var response common.UltrasoundAdjustmentResponse
 		_, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &response)
 		if err != nil {
 			_log.WithError(err).Error("Failed to fetch adjustments")
@@ -156,17 +154,42 @@ func (bf *backfiller) backfillAdjustments() error {
 		}
 
 		if len(response.Data) > 0 {
-			err = bf.db.SaveAdjustments(response.Data)
+			adjustments := make([]*database.AdjustmentEntry, len(response.Data))
+			for i, adjustment := range response.Data {
+				submittedReceivedAt, err := time.Parse(time.RFC3339, adjustment.SubmittedReceivedAt)
+				if err != nil {
+					_log.WithError(err).Error("Failed to parse SubmittedReceivedAt")
+					continue
+				}
+				adjustments[i] = &database.AdjustmentEntry{
+					Slot:                 slot, // Use the slot from the current iteration
+					AdjustedBlockHash:    adjustment.AdjustedBlockHash,
+					AdjustedValue:        adjustment.AdjustedValue,
+					BlockNumber:          adjustment.BlockNumber,
+					BuilderPubkey:        adjustment.BuilderPubkey,
+					Delta:                adjustment.Delta,
+					SubmittedBlockHash:   adjustment.SubmittedBlockHash,
+					SubmittedReceivedAt:  submittedReceivedAt,
+					SubmittedValue:       adjustment.SubmittedValue,
+				}
+			}
+
+			err = bf.db.SaveAdjustments(adjustments)
 			if err != nil {
 				_log.WithError(err).Error("Failed to save adjustments")
 			} else {
-				// log the contents of response.Data
-				for _, entry := range response.Data {
-					_log.WithField("entry.Slot", entry.Slot).Info("Response data")
-					_log.WithField("entry.SubmittedValue", entry.SubmittedValue).Info("Response data")
+				for _, entry := range adjustments {
+					_log.WithFields(logrus.Fields{
+						"Slot":           entry.Slot,
+						"SubmittedValue": entry.SubmittedValue,
+						"AdjustedValue":  entry.AdjustedValue,
+						"Delta":          entry.Delta,
+					}).Info("Adjustment data")
 				}
-				_log.WithField("count", len(response.Data)).Info("Saved adjustments")
+				_log.WithField("count", len(adjustments)).Info("Saved adjustments")
 			}
+		} else {
+			_log.Info("No adjustments found for this slot")
 		}
 
 		// time.Sleep(time.Second) // Rate limiting
