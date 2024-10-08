@@ -25,4 +25,5 @@ func init() {
 	CoreCmd.AddCommand(checkPayloadValueCmd)
 	CoreCmd.AddCommand(backfillDataAPICmd)
 	CoreCmd.AddCommand(updateBuilderStatsCmd)
+	CoreCmd.AddCommand(bidAdjustmentsBackfillCmd)
 }
