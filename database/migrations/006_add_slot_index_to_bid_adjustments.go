@@ -14,4 +14,3 @@ var Migration006AddSlotIndexToAdjustments = &migrate.Migration{
 	DisableTransactionUp:   false,
 	DisableTransactionDown: true,
 }
-

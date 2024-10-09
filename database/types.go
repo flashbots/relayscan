@@ -197,15 +197,15 @@ type TmpPayloadsForExtraDataEntry struct {
 }
 
 type AdjustmentEntry struct {
-    ID                   int64     `db:"id"`
-    InsertedAt           time.Time `db:"inserted_at"`
-    Slot                 uint64    `db:"slot"`
-    AdjustedBlockHash    string    `db:"adjusted_block_hash"`
-    AdjustedValue        string    `db:"adjusted_value"`
-    BlockNumber          uint64    `db:"block_number"`
-    BuilderPubkey        string    `db:"builder_pubkey"`
-    Delta                string    `db:"delta"`
-    SubmittedBlockHash   string    `db:"submitted_block_hash"`
-    SubmittedReceivedAt  time.Time `db:"submitted_received_at"`
-    SubmittedValue       string    `db:"submitted_value"`
+	ID                  int64     `db:"id"`
+	InsertedAt          time.Time `db:"inserted_at"`
+	Slot                uint64    `db:"slot"`
+	AdjustedBlockHash   string    `db:"adjusted_block_hash"`
+	AdjustedValue       string    `db:"adjusted_value"`
+	BlockNumber         uint64    `db:"block_number"`
+	BuilderPubkey       string    `db:"builder_pubkey"`
+	Delta               string    `db:"delta"`
+	SubmittedBlockHash  string    `db:"submitted_block_hash"`
+	SubmittedReceivedAt time.Time `db:"submitted_received_at"`
+	SubmittedValue      string    `db:"submitted_value"`
 }

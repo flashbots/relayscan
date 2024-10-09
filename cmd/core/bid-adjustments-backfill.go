@@ -13,9 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	bidAdjustmentRelay string
-)
+var bidAdjustmentRelay string
 
 func init() {
 	bidAdjustmentsBackfillCmd.Flags().StringVar(&bidAdjustmentRelay, "relay", "relay.ultrasound.money", "relay to fetch bid adjustments from")
@@ -84,10 +82,12 @@ func (bf *bidAdjustmentsBackfiller) backfillAdjustments() error {
 	}
 
 	// Hardcoded ultrasoiund first slot with data see https://github.com/ultrasoundmoney/docs/blob/main/bid_adjustment.md#data-api
-	if bf.minSlot < 7869470 {
-		bf.minSlot = 7869470
+	const ultrasoundFirstBidAdjustmentSlot = 7869470
+	if bf.minSlot < ultrasoundFirstBidAdjustmentSlot {
+		bf.minSlot = ultrasoundFirstBidAdjustmentSlot
 	}
 
+	const ultrasoundEndStatusCode = 403
 	for slot := bf.minSlot; ; slot++ {
 		_log.WithField("slot", slot).Info("Fetching adjustments...")
 		url := fmt.Sprintf("%s?slot=%d", baseURL, slot)
@@ -95,7 +95,7 @@ func (bf *bidAdjustmentsBackfiller) backfillAdjustments() error {
 		var response common.UltrasoundAdjustmentResponse
 		statusCode, err := common.SendHTTPRequest(context.Background(), *http.DefaultClient, http.MethodGet, url, nil, &response)
 		_log.WithField("status code", statusCode).Info("Response")
-		if statusCode == 403 {
+		if statusCode == ultrasoundEndStatusCode {
 			_log.WithField("Status Code", statusCode).Info("Stopping backfill due to 403")
 			break
 		}

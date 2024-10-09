@@ -32,12 +32,12 @@ type UltrasoundAdjustmentResponse struct {
 }
 
 type UltrasoundAdjustment struct {
-	AdjustedBlockHash    string `json:"adjusted_block_hash"`
-	AdjustedValue        string `json:"adjusted_value"`
-	BlockNumber          uint64 `json:"block_number"`
-	BuilderPubkey        string `json:"builder_pubkey"`
-	Delta                string `json:"delta"`
-	SubmittedBlockHash   string `json:"submitted_block_hash"`
-	SubmittedReceivedAt  string `json:"submitted_received_at"`
-	SubmittedValue       string `json:"submitted_value"`
+	AdjustedBlockHash   string `json:"adjusted_block_hash"`
+	AdjustedValue       string `json:"adjusted_value"`
+	BlockNumber         uint64 `json:"block_number"`
+	BuilderPubkey       string `json:"builder_pubkey"`
+	Delta               string `json:"delta"`
+	SubmittedBlockHash  string `json:"submitted_block_hash"`
+	SubmittedReceivedAt string `json:"submitted_received_at"`
+	SubmittedValue      string `json:"submitted_value"`
 }

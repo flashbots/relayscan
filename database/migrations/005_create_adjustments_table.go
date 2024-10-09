@@ -5,7 +5,7 @@ import (
 	migrate "github.com/rubenv/sql-migrate"
 )
 
-var migration005SQL = `CREATE TABLE IF NOT EXISTS ` + vars.TableAdjustments +` (
+var migration005SQL = `CREATE TABLE IF NOT EXISTS ` + vars.TableAdjustments + ` (
                 id SERIAL PRIMARY KEY,
                 inserted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 slot BIGINT NOT NULL,
@@ -19,7 +19,6 @@ var migration005SQL = `CREATE TABLE IF NOT EXISTS ` + vars.TableAdjustments +` (
                 submitted_value TEXT NOT NULL,
                 UNIQUE(slot, adjusted_block_hash)
             );`
-
 
 var Migration005CreateAdjustmentsTable = &migrate.Migration{
 	Id: "005-create-adjustments-table",
