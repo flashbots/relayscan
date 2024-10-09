@@ -15,4 +15,5 @@ var (
 	TableError                      = tableBase + "_error"
 	TableBlockBuilder               = tableBase + "_blockbuilder"
 	TableBlockBuilderInclusionStats = tableBase + "_blockbuilder_stats_inclusion"
+	TableAdjustments                = tableBase + "_adjustments"
 )
