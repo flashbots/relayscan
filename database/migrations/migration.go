@@ -11,5 +11,7 @@ var Migrations = migrate.MemoryMigrationSource{
 		Migration002AddBlobCount,
 		Migration003AddBlobIndexes,
 		Migration004AddBlockTimestamp,
+		Migration005CreateAdjustmentsTable,
+		Migration006AddSlotBlockIndexToAdjustments,
 	},
 }

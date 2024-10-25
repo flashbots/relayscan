@@ -163,18 +163,36 @@ func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*Buil
 	startSlot := timeToSlot(since)
 	endSlot := timeToSlot(until)
 
-	query := `SELECT
-		extra_data,
-		count(extra_data) as blocks,
-		count(extra_data) filter (where coinbase_diff_eth > 0) as blocks_profit,
-		count(extra_data) filter (where coinbase_diff_eth < 0) as blocks_sub,
-		round(avg(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 4) as avg_profit_per_block,
-		round(PERCENTILE_DISC(0.5) WITHIN GROUP(ORDER BY CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 4) as median_profit_per_block,
-		round(sum(CASE WHEN coinbase_diff_eth IS NOT NULL THEN coinbase_diff_eth ELSE 0 END), 4) as total_profit,
-		round(abs(sum(CASE WHEN coinbase_diff_eth < 0 THEN coinbase_diff_eth ELSE 0 END)), 4) as total_subsidies
-	FROM (
-		SELECT distinct(slot), extra_data, coinbase_diff_eth FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL AND slot >= $1 AND slot <= $2
-	) AS x
+	query := `WITH 
+		payloads as (
+      SELECT 
+        distinct(slot), extra_data, coinbase_diff_eth, value_delivered_eth, block_hash
+      FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL AND slot >= $1 AND slot <= $2
+    )
+
+    , adjusted_payloads as (
+      select
+        p.slot,
+        p.extra_data,
+        CASE
+	  WHEN p.coinbase_diff_eth is null THEN 0
+          WHEN a.slot IS NOT NULL THEN p.coinbase_diff_eth - p.value_delivered_eth 
+          ELSE p.coinbase_diff_eth
+        END as coinbase_diff_eth
+      FROM payloads p
+      LEFT JOIN ` + vars.TableAdjustments + ` a ON p.slot=a.slot AND p.block_hash = a.adjusted_block_hash
+    )
+
+    SELECT
+      extra_data,
+      count(extra_data) as blocks,
+      count(extra_data) filter (where coinbase_diff_eth > 0) as blocks_profit,
+      count(extra_data) filter (where coinbase_diff_eth < 0) as blocks_sub,
+      round(avg(coinbase_diff_eth), 4) as avg_profit_per_block,
+      round(PERCENTILE_DISC(0.5) WITHIN GROUP(ORDER BY coinbase_diff_eth), 4) as median_profit_per_block,
+      round(sum(coinbase_diff_eth), 4) as total_profit,
+      round(abs(sum(CASE WHEN coinbase_diff_eth < 0 THEN coinbase_diff_eth ELSE 0 END)), 4) as total_subsidies
+    FROM adjusted_payloads
 	GROUP BY extra_data
 	ORDER BY total_profit DESC;`
 	err = s.DB.Select(&res, query, startSlot, endSlot)
@@ -270,4 +288,23 @@ func (s *DatabaseService) GetRecentPayloadsForExtraData(extraData []string, limi
 	query = s.DB.Rebind(query)
 	err = s.DB.Select(&resp, query, args...)
 	return resp, err
+}
+
+func (s *DatabaseService) SaveAdjustments(entries []*AdjustmentEntry) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	query := `INSERT INTO ` + vars.TableAdjustments + `
+    (slot, adjusted_block_hash, adjusted_value, block_number, builder_pubkey, delta, submitted_block_hash, submitted_received_at, submitted_value) VALUES
+    (:slot, :adjusted_block_hash, :adjusted_value, :block_number, :builder_pubkey, :delta, :submitted_block_hash, :submitted_received_at, :submitted_value)
+    ON CONFLICT (slot, adjusted_block_hash) DO NOTHING`
+	_, err := s.DB.NamedExec(query, entries)
+	return err
+}
+
+func (s *DatabaseService) GetLatestAdjustmentSlot() (uint64, error) {
+	var slot uint64
+	query := `SELECT COALESCE(MAX(slot), 0) FROM ` + vars.TableAdjustments
+	err := s.DB.Get(&slot, query)
+	return slot, err
 }
