@@ -81,6 +81,9 @@ More example commands:
 ./relayscan core update-builder-stats --start 2023-06-04                   # update daily stats for 2023-06-04 until today
 ./relayscan core update-builder-stats --backfill                           # update daily stats since last entry, until today
 
+# fetches bid adjustments to imporve builder profit estimation
+./relayscan core bid-adjustments-backfill 
+
 # Start the website (--dev reloads the template on every page load, for easier iteration)
 ./relayscan service website --dev
 ```
@@ -105,8 +108,11 @@ go run . core check-payload-value
 # Can also check a single slot only:
 go run . core check-payload-value --slot _N_
 
+# Fetch bid adjustments
+go run . core bid-adjustments-backfill --min-slot -2000
+
 # Reset DB
-dev-postgres-wipe
+make dev-postgres-wipe
 
 # See the Makefile for more commands
 make help
