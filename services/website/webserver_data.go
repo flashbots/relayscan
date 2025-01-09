@@ -58,6 +58,8 @@ func (srv *Webserver) latestSlotUpdateLoop() {
 }
 
 func (srv *Webserver) rootDataUpdateLoop(hours int) {
+	updateDelay := 1 * time.Minute
+
 	for {
 		startTime := time.Now()
 		srv.log.Infof("updating %dh stats...", hours)
@@ -65,7 +67,8 @@ func (srv *Webserver) rootDataUpdateLoop(hours int) {
 		// Get data from database
 		stats, err := srv.getStatsForHours(time.Duration(hours) * time.Hour)
 		if err != nil {
-			srv.log.WithError(err).Errorf("Failed to get stats for %dh", hours)
+			srv.log.WithError(err).WithField("duration", time.Since(startTime).String()).Errorf("Failed to get stats for %dh", hours)
+			time.Sleep(updateDelay)
 			continue
 		}
 
@@ -75,6 +78,7 @@ func (srv *Webserver) rootDataUpdateLoop(hours int) {
 		overviewBytes, profitBytes, err := srv._renderRootHTML(stats)
 		if err != nil {
 			srv.log.WithError(err).Error("Failed to render root HTML")
+			time.Sleep(updateDelay)
 			continue
 		}
 
@@ -89,7 +93,7 @@ func (srv *Webserver) rootDataUpdateLoop(hours int) {
 		srv.dataLock.Unlock()
 
 		// Wait a bit and then continue
-		time.Sleep(1 * time.Minute)
+		time.Sleep(updateDelay)
 	}
 }
 
