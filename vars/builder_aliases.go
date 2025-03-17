@@ -20,6 +20,9 @@ var BuilderAliases = map[string]func(string) bool{
 		match, _ := regexp.MatchString("s[0-9]+e[0-9].*(t|f)", in)
 		return match
 	},
+	"BuilderNet": func(in string) bool {
+		return strings.Contains(in, "BuilderNet")
+	},
 }
 
 // BuilderNameFromExtraData returns the builder name from the extra_data field
