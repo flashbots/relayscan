@@ -186,6 +186,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 	}
 
 	saveEntry := func(_log *logrus.Entry, entry database.DataAPIPayloadDeliveredEntry) {
+		// First update the main table
 		query := `UPDATE ` + dbvars.TableDataAPIPayloadDelivered + ` SET
 				block_number=:block_number,
 				extra_data=:extra_data,
@@ -208,6 +209,26 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		_, err := db.DB.NamedExec(query, entry)
 		if err != nil {
 			_log.WithError(err).Fatalf("failed to save entry")
+		}
+
+		// Then insert into history table
+		historyQuery := `INSERT INTO ` + dbvars.TableDataAPIPayloadDeliveredHistory + `
+			(payload_id, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, 
+			proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, 
+			num_tx, block_number, extra_data, slot_missed, value_check_ok, value_check_method,
+			value_delivered_wei, value_delivered_eth, value_delivered_diff_wei, value_delivered_diff_eth,
+			block_coinbase_addr, block_coinbase_is_proposer, coinbase_diff_wei, coinbase_diff_eth,
+			found_onchain, notes, num_blob_txs, num_blobs, block_timestamp)
+			VALUES
+			(:id, :relay, :epoch, :slot, :parent_hash, :block_hash, :builder_pubkey, :proposer_pubkey,
+			:proposer_fee_recipient, :gas_limit, :gas_used, :value_claimed_wei, :value_claimed_eth,
+			:num_tx, :block_number, :extra_data, :slot_missed, :value_check_ok, :value_check_method,
+			:value_delivered_wei, :value_delivered_eth, :value_delivered_diff_wei, :value_delivered_diff_eth,
+			:block_coinbase_addr, :block_coinbase_is_proposer, :coinbase_diff_wei, :coinbase_diff_eth,
+			:found_onchain, :notes, :num_blob_txs, :num_blobs, :block_timestamp)`
+		_, err = db.DB.NamedExec(historyQuery, entry)
+		if err != nil {
+			_log.WithError(err).Fatalf("failed to save history entry")
 		}
 	}
 
