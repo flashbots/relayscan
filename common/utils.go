@@ -92,12 +92,12 @@ func StringSliceContains(haystack []string, needle string) bool {
 }
 
 func TimeToSlot(t time.Time) uint64 {
-	return uint64((t.Unix() - int64(vars.Genesis)) / 12)
+	return uint64((t.Unix() - int64(vars.Genesis)) / 12) //nolint:gosec
 }
 
 func SlotToTime(slot uint64) time.Time {
-	timestamp := (slot * 12) + uint64(vars.Genesis)
-	return time.Unix(int64(timestamp), 0).UTC()
+	timestamp := (slot * 12) + uint64(vars.Genesis) //nolint:gosec
+	return time.Unix(int64(timestamp), 0).UTC()     //nolint:gosec
 }
 
 func MustParseDateTimeStr(s string) time.Time {

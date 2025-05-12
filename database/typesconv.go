@@ -32,11 +32,11 @@ func BidTraceV2JSONToPayloadDeliveredEntry(relay string, entry relaycommon.BidTr
 	}
 
 	if entry.NumTx > 0 {
-		ret.NumTx = NewNullInt64(int64(entry.NumTx))
+		ret.NumTx = NewNullInt64(int64(entry.NumTx)) //nolint:gosec
 	}
 
 	if entry.BlockNumber > 0 {
-		ret.BlockNumber = NewNullInt64(int64(entry.BlockNumber))
+		ret.BlockNumber = NewNullInt64(int64(entry.BlockNumber)) //nolint:gosec
 	}
 	return ret
 }
@@ -58,11 +58,11 @@ func BidTraceV2WithTimestampJSONToBuilderBidEntry(relay string, entry relaycommo
 	}
 
 	if entry.NumTx > 0 {
-		ret.NumTx = NewNullInt64(int64(entry.NumTx))
+		ret.NumTx = NewNullInt64(int64(entry.NumTx)) //nolint:gosec
 	}
 
 	if entry.BlockNumber > 0 {
-		ret.BlockNumber = NewNullInt64(int64(entry.BlockNumber))
+		ret.BlockNumber = NewNullInt64(int64(entry.BlockNumber)) //nolint:gosec
 	}
 	return ret
 }

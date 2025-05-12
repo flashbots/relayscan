@@ -8,8 +8,8 @@ import (
 
 func TestSlotTimeConversion(t *testing.T) {
 	slot := 8901362
-	slotTime := slotToTime(uint64(slot))
+	slotTime := slotToTime(uint64(slot)) //nolint:gosec
 	require.Equal(t, 1713640367, int(slotTime.Unix()))
 	convertedSlot := timeToSlot(slotTime)
-	require.Equal(t, uint64(slot), convertedSlot)
+	require.Equal(t, uint64(slot), convertedSlot) //nolint:gosec
 }

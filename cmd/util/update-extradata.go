@@ -56,7 +56,7 @@ var backfillExtradataCmd = &cobra.Command{
 		if slot != 0 {
 			numThreads = 1
 		}
-		for i := 0; i < int(numThreads); i++ {
+		for i := 0; i < int(numThreads); i++ { //nolint:intrange
 			log.Infof("starting worker %d", i+1)
 			wg.Add(1)
 			go startBackfillWorker(wg, db, client, client2, entryC)

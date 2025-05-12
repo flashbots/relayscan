@@ -119,7 +119,7 @@ func checkPayloadValue(cmd *cobra.Command, args []string) {
 	if slot != 0 {
 		numThreads = 1
 	}
-	for i := 0; i < int(numThreads); i++ {
+	for i := 0; i < int(numThreads); i++ { //nolint:gosec,intrange
 		log.Infof("starting worker %d", i+1)
 		wg.Add(1)
 		go startUpdateWorker(wg, db, client, client2, entryC)
@@ -351,7 +351,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		entry.ValueDeliveredDiffEth = database.NewNullString(common.WeiToEth(proposerValueDiffFromClaim).String())
 
 		// set block timestamp
-		blockTime := time.Unix(int64(block.Time()), 0).UTC()
+		blockTime := time.Unix(int64(block.Time()), 0).UTC() //nolint:gosec
 		entry.BlockTimestamp = database.NewNullTime(blockTime)
 
 		log.WithFields(logrus.Fields{

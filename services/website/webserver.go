@@ -401,7 +401,7 @@ func (srv *Webserver) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 		SlotsSinceUpdate: currentSlot - latestSlotInDB,
 	}
 
-	if currentSlot-latestSlotInDB > uint64(maxSlotsSinceLastUpdate) {
+	if currentSlot-latestSlotInDB > uint64(maxSlotsSinceLastUpdate) { //nolint:gosec
 		resp.IsHealthy = false
 		resp.Message = "No updates for too long"
 		srv.RespondErrorJSON(w, http.StatusInternalServerError, resp)

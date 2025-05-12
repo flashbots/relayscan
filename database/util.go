@@ -22,10 +22,10 @@ func MustConnectPostgres(log *logrus.Entry, dsn string) *DatabaseService {
 }
 
 func slotToTime(slot uint64) time.Time {
-	timestamp := (slot * 12) + 1606824023 // mainnet
-	return time.Unix(int64(timestamp), 0).UTC()
+	timestamp := (slot * 12) + 1606824023       // mainnet
+	return time.Unix(int64(timestamp), 0).UTC() //nolint:gosec
 }
 
 func timeToSlot(t time.Time) uint64 {
-	return uint64(t.UTC().Unix()-1606824023) / 12 // mainnet
+	return uint64(t.UTC().Unix()-1606824023) / 12 //nolint:gosec // mainnet
 }
