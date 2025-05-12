@@ -9,14 +9,12 @@ linters:
     - gocritic
     - godot
     - godox
-    - gomnd
     - lll
     - nestif
     - nilnil
     - nlreturn
     - noctx
     - nonamedreturns
-    - nosnakecase
     - paralleltest
     - revive
     - testpackage
@@ -24,10 +22,9 @@ linters:
     - varnamelen
     - wrapcheck
     - wsl
-    - deadcode
-    - varcheck
     - interfacebloat
     - dupword
+    - mnd
 
     #
     # Disabled because of generics:
@@ -35,18 +32,11 @@ linters:
     - contextcheck
     - rowserrcheck
     - sqlclosecheck
-    - structcheck
     - wastedassign
 
     #
     # Disabled because deprecated:
     #
-    - exhaustivestruct
-    - golint
-    - ifshort
-    - interfacer
-    - maligned
-    - scopelint
 
     # disabled with update to Go 1.22
     - perfsprint
@@ -54,6 +44,7 @@ linters:
     - depguard
     - tagalign
     - goconst
+    - tenv
 
 linters-settings:
   #

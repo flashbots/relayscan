@@ -110,7 +110,7 @@ func UltrasoundStreamToCommonBid(bid *UltrasoundStreamBidsMsg) *types.CommonBid 
 		SourceType:   types.SourceTypeUltrasoundStream,
 		ReceivedAtMs: bid.ReceivedAt.UnixMilli(),
 
-		TimestampMs:       int64(bid.Bid.Timestamp),
+		TimestampMs:       int64(bid.Bid.Timestamp), //nolint:gosec
 		Slot:              bid.Bid.Slot,
 		BlockNumber:       bid.Bid.BlockNumber,
 		BlockHash:         strings.ToLower(blockHash),

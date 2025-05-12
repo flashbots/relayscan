@@ -140,7 +140,7 @@ func (s *DatabaseService) GetTopRelays(since, until time.Time) (res []*TopRelayE
 
 	// query := `SELECT relay, count(relay) as payloads FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE inserted_at > $1 AND inserted_at < $2 GROUP BY relay ORDER BY payloads DESC;`
 	query := `SELECT relay, count(relay) as payloads FROM ` + vars.TableDataAPIPayloadDelivered + ` WHERE value_check_ok IS NOT NULL AND slot >= $1 AND slot <= $2 GROUP BY relay ORDER BY payloads DESC;`
-	err = s.DB.Select(&res, query, startSlot, endSlot)
+	err = s.DB.Select(&res, query, startSlot, endSlot) //nolint:musttag
 	return res, err
 }
 
@@ -155,7 +155,7 @@ func (s *DatabaseService) GetTopBuilders(since, until time.Time, relay string) (
 	}
 	query += ` GROUP BY slot, extra_data
 	) as x GROUP BY extra_data ORDER BY blocks DESC;`
-	err = s.DB.Select(&res, query, startSlot, endSlot)
+	err = s.DB.Select(&res, query, startSlot, endSlot) //nolint:musttag
 	return res, err
 }
 
@@ -177,7 +177,7 @@ func (s *DatabaseService) GetBuilderProfits(since, until time.Time) (res []*Buil
 	) AS x
 	GROUP BY extra_data
 	ORDER BY total_profit DESC;`
-	err = s.DB.Select(&res, query, startSlot, endSlot)
+	err = s.DB.Select(&res, query, startSlot, endSlot) //nolint:musttag
 	return res, err
 }
 

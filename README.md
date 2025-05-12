@@ -1,7 +1,7 @@
 # relayscan
 
 [![Goreport status](https://goreportcard.com/badge/github.com/flashbots/relayscan)](https://goreportcard.com/report/github.com/flashbots/relayscan)
-[![Test status](https://github.com/flashbots/relayscan/workflows/Checks/badge.svg)](https://github.com/flashbots/relayscan/actions?query=workflow%3A%22Checks%22)
+[![Test status](https://github.com/flashbots/relayscan/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/flashbots/relayscan/actions?query=workflow%3A%22Checks%22)
 [![Docker hub](https://badgen.net/docker/size/flashbots/relayscan?icon=docker&label=image)](https://hub.docker.com/r/flashbots/relayscan/tags)
 
 Monitoring, analytics & data for Ethereum MEV-Boost builders and relays
