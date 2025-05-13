@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/flashbots/go-utils/cli"
-
 	relaycommon "github.com/flashbots/mev-boost-relay/common"
 )
 
