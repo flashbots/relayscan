@@ -16,17 +16,17 @@ type Stats struct {
 	TimeStr string // i.e. 24h, 12h, 1h or 7d
 
 	TopRelays          []*database.TopRelayEntry
-	TopBuilders        []*database.TopBuilderEntry
+	TopBuilders        []*database.TopBuilderDisplayEntry
 	BuilderProfits     []*database.BuilderProfitEntry
-	TopBuildersByRelay map[string][]*database.TopBuilderEntry
+	TopBuildersByRelay map[string][]*database.TopBuilderDisplayEntry
 }
 
 func NewStats() *Stats {
 	return &Stats{
 		TopRelays:          make([]*database.TopRelayEntry, 0),
-		TopBuilders:        make([]*database.TopBuilderEntry, 0),
+		TopBuilders:        make([]*database.TopBuilderDisplayEntry, 0),
 		BuilderProfits:     make([]*database.BuilderProfitEntry, 0),
-		TopBuildersByRelay: make(map[string][]*database.TopBuilderEntry),
+		TopBuildersByRelay: make(map[string][]*database.TopBuilderDisplayEntry),
 	}
 }
 
@@ -53,7 +53,7 @@ type HTMLDataDailyStats struct {
 	TimeUntil string
 
 	TopRelays            []*database.TopRelayEntry
-	TopBuildersBySummary []*database.TopBuilderEntry
+	TopBuildersBySummary []*database.TopBuilderDisplayEntry
 	BuilderProfits       []*database.BuilderProfitEntry
 }
 

@@ -52,13 +52,13 @@ func percent(cnt, total uint64) string {
 	return printer.Sprintf("%.2f", p)
 }
 
-func builderTable(builders []*database.TopBuilderEntry) string {
+func builderTable(builders []*database.TopBuilderDisplayEntry) string {
 	buildersEntries := [][]string{}
 	for _, builder := range builders {
 		buildersEntries = append(buildersEntries, []string{
-			builder.ExtraData,
-			printer.Sprintf("%d", builder.NumBlocks),
-			builder.Percent,
+			builder.Info.ExtraData,
+			printer.Sprintf("%d", builder.Info.NumBlocks),
+			builder.Info.Percent,
 		})
 	}
 	tableString := &strings.Builder{}
@@ -136,45 +136,87 @@ func divFloatStrings(f1, f2 string, decimals int) string {
 	return new(big.Float).Quo(bf1, bf2).Text('f', decimals)
 }
 
-func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database.TopBuilderEntry {
+func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database.TopBuilderDisplayEntry {
 	// Get total builder payloads, and build consolidated builder list
-	buildersMap := make(map[string]*database.TopBuilderEntry)
+	buildersMap := make(map[string]*database.TopBuilderDisplayEntry)
 	buildersNumPayloads := uint64(0)
 	for _, entry := range builders {
 		buildersNumPayloads += entry.NumBlocks
+
 		updated := false
-		for k, v := range vars.BuilderAliases {
-			// Check if this is one of the known aliases.
+
+
+		// Find out if this builder belongs to any group.
+		for k, v := range vars.BuilderGroups {
 			if v(entry.ExtraData) {
 				updated = true
-				topBuilderEntry, isKnown := buildersMap[k]
+				groupEntry, isKnown := buildersMap[k]
 				if isKnown {
-					topBuilderEntry.NumBlocks += entry.NumBlocks
-					topBuilderEntry.Aliases = append(topBuilderEntry.Aliases, entry.ExtraData)
+					groupEntry.Info.NumBlocks += entry.NumBlocks
+					groupEntry.Children = append(groupEntry.Children, entry)
 				} else {
-					buildersMap[k] = &database.TopBuilderEntry{
-						ExtraData: k,
-						NumBlocks: entry.NumBlocks,
-						Aliases:   []string{entry.ExtraData},
+					buildersMap[k] = &database.TopBuilderDisplayEntry{
+						Info: &database.TopBuilderEntry{
+							ExtraData: k,
+							NumBlocks: entry.NumBlocks,
+						},
+						Children: []*database.TopBuilderEntry{entry},
+						
 					}
 				}
 				break
 			}
 		}
+
+		
+		// for k, v := range vars.BuilderAliases {
+		// 	// Check if this is one of the known aliases.
+		// 	if v(entry.ExtraData) {
+		// 		updated = true
+		// 		topBuilderEntry, isKnown := buildersMap[k]
+		// 		if isKnown {
+		// 			topBuilderEntry.NumBlocks += entry.NumBlocks
+		// 			topBuilderEntry.Aliases = append(topBuilderEntry.Aliases, entry.ExtraData)
+		// 		} else {
+		// 			buildersMap[k] = &database.TopBuilderEntry{
+		// 				ExtraData: k,
+		// 				NumBlocks: entry.NumBlocks,
+		// 				Aliases:   []string{entry.ExtraData},
+		// 			}
+		// 		}
+		// 		break
+		// 	}
+		// }
+
+
 		if !updated {
-			buildersMap[entry.ExtraData] = entry
+			buildersMap[entry.ExtraData] = &database.TopBuilderDisplayEntry{
+				Info: entry,
+				Children: []*database.TopBuilderEntry{},
+			}
 		}
 	}
 
 	// Prepare top builders by summary stats
-	resp := []*database.TopBuilderEntry{}
+	resp := []*database.TopBuilderDisplayEntry{}
 	for _, entry := range buildersMap {
-		p := float64(entry.NumBlocks) / float64(buildersNumPayloads) * 100
-		entry.Percent = fmt.Sprintf("%.2f", p)
+		p := float64(entry.Info.NumBlocks) / float64(buildersNumPayloads) * 100
+		entry.Info.Percent = fmt.Sprintf("%.2f", p)
+		
+
+		for _, child := range entry.Children {
+			p := float64(child.NumBlocks) / float64(buildersNumPayloads) * 100
+			child.Percent = fmt.Sprintf("%.2f", p)
+		}
+
+		sort.Slice(entry.Children, func(i, j int) bool {
+			return entry.Children[i].NumBlocks > entry.Children[j].NumBlocks
+		})
+
 		resp = append(resp, entry)
 	}
 	sort.Slice(resp, func(i, j int) bool {
-		return resp[i].NumBlocks > resp[j].NumBlocks
+		return resp[i].Info.NumBlocks > resp[j].Info.NumBlocks
 	})
 	return resp
 }

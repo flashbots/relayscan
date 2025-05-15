@@ -61,20 +61,21 @@
                             <th>Builder (extra_data)</th>
                             <th>Blocks</th>
                             <th style="min-width: 100px;">Percent</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="tbody-builders-all" class="tbody-builders">
                         {{ range .Stats.TopBuilders }}
-                        <tr>
+                        <tr class="tr-parent">
                             <td class="td-builder-extradata">
-                                {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
-                                {{ if ne (len .Aliases) 0 }}
+                                {{ if .Info.ExtraData }}{{ .Info.ExtraData }}{{ else }}&nbsp;{{ end }}
+                                {{ if ne (len .Info.Aliases) 0 }}
                                 <span class="tooltip-wrapper">
                                     <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
                                     <div id="tooltip-builder-alias" class="tooltip builder-aliases" role="tooltip">
                                         <b>extra_data values:</b>
                                         <ul>
-                                            {{ range .Aliases }}
+                                            {{ range .Info.Aliases }}
                                             <li>{{ . }}</li>
                                             {{ end }}
                                         </ul>
@@ -82,11 +83,23 @@
                                     </div>
                                 </span>
                                 {{ end }}
-
                             </td>
-                            <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
-                            <td class="td-builder-percent">{{ .Percent }} %</td>
+                            <td class="td-builder-num-blocks">{{ .Info.NumBlocks | prettyInt }}</td>
+                            <td class="td-builder-percent">{{ .Info.Percent }} %</td>
+                            <td>
+                                {{ if ne (len .Children) 0 }}
+                                <span class="chevron">⌄</span>
+                                {{ end }}
+                            </td>
                         </tr>
+                            {{ range .Children }}
+                            <tr class="tr-child" style="background-color: rgb(243, 241, 241);">
+                                <td class="td-builder-extradata td-builder-extradata-child" style="margin-left: 10px;">{{ .ExtraData }}</td>
+                                <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
+                                <td class="td-builder-percent">{{ .Percent }} %</td>
+                                <td></td>
+                            </tr>
+                            {{ end }}
                         {{ end }}
                     </tbody>
 
@@ -95,13 +108,13 @@
                         {{ range $builders }}
                         <tr>
                             <td class="td-builder-extradata">
-                                {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
-                                {{ if ne (len .Aliases) 0 }}
+                                {{ if .Info.ExtraData }}{{ .Info.ExtraData }}{{ else }}&nbsp;{{ end }}
+                                {{ if ne (len .Info.Aliases) 0 }}
                                 <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
                                 {{ end}}
                             </td>
-                            <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
-                            <td class="td-builder-percent">{{ .Percent }} %</td>
+                            <td class="td-builder-num-blocks">{{ .Info.NumBlocks | prettyInt }}</td>
+                            <td class="td-builder-percent">{{ .Info.Percent }} %</td>
                         </tr>
                         {{ end }}
                     </tbody>

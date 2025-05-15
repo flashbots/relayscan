@@ -333,9 +333,9 @@ func (srv *Webserver) handleDailyStatsJSON(w http.ResponseWriter, req *http.Requ
 	}
 
 	type apiResp struct {
-		Date     string                      `json:"date"`
-		Relays   []*database.TopRelayEntry   `json:"relays"`
-		Builders []*database.TopBuilderEntry `json:"builders"`
+		Date     string                             `json:"date"`
+		Relays   []*database.TopRelayEntry          `json:"relays"`
+		Builders []*database.TopBuilderDisplayEntry `json:"builders"`
 	}
 
 	resp := apiResp{
@@ -350,9 +350,9 @@ func (srv *Webserver) handleDailyStatsJSON(w http.ResponseWriter, req *http.Requ
 func (srv *Webserver) handleCowstatsJSON(w http.ResponseWriter, req *http.Request) {
 	// builder stats for wednesday utc 00:00 to next wednesday 00:00
 	type apiResp struct {
-		DateFrom    string                      `json:"date_from"`
-		DateTo      string                      `json:"date_to"`
-		TopBuilders []*database.TopBuilderEntry `json:"top_builders"`
+		DateFrom    string                             `json:"date_from"`
+		DateTo      string                             `json:"date_to"`
+		TopBuilders []*database.TopBuilderDisplayEntry `json:"top_builders"`
 	}
 
 	wednesday1 := getLastWednesday()

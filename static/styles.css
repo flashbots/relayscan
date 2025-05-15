@@ -550,6 +550,18 @@ h1 {
     width: 99%;
 }
 
+.tr-parent {
+    cursor: pointer;
+}
+
+.tr-child {
+    background-color: #999;
+}
+
+.td-builder-extradata-child {
+    margin-left: 5px;
+}
+
 .td-builder-percent {
     min-width: 106px;
 }

@@ -152,6 +152,11 @@ type TopBuilderEntry struct {
 	Aliases   []string `json:"aliases,omitempty"`
 }
 
+type TopBuilderDisplayEntry struct {
+	Info     *TopBuilderEntry    `json:"info"`
+	Children []*TopBuilderEntry `json:"children"`
+}
+
 // type RelayProfitability struct {
 // 	Relay       string `db:"relay" json:"relay"`
 // 	TimeSince   time.Time
