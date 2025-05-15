@@ -153,7 +153,7 @@ type TopBuilderEntry struct {
 }
 
 type TopBuilderDisplayEntry struct {
-	Info     *TopBuilderEntry    `json:"info"`
+	Info     *TopBuilderEntry   `json:"info"`
 	Children []*TopBuilderEntry `json:"children"`
 }
 

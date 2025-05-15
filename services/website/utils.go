@@ -145,7 +145,6 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 
 		updated := false
 
-
 		// Find out if this builder belongs to any group.
 		for k, v := range vars.BuilderGroups {
 			if v(entry.ExtraData) {
@@ -161,14 +160,12 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 							NumBlocks: entry.NumBlocks,
 						},
 						Children: []*database.TopBuilderEntry{entry},
-						
 					}
 				}
 				break
 			}
 		}
 
-		
 		// for k, v := range vars.BuilderAliases {
 		// 	// Check if this is one of the known aliases.
 		// 	if v(entry.ExtraData) {
@@ -188,10 +185,9 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 		// 	}
 		// }
 
-
 		if !updated {
 			buildersMap[entry.ExtraData] = &database.TopBuilderDisplayEntry{
-				Info: entry,
+				Info:     entry,
 				Children: []*database.TopBuilderEntry{},
 			}
 		}
@@ -202,7 +198,6 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 	for _, entry := range buildersMap {
 		p := float64(entry.Info.NumBlocks) / float64(buildersNumPayloads) * 100
 		entry.Info.Percent = fmt.Sprintf("%.2f", p)
-		
 
 		for _, child := range entry.Children {
 			p := float64(child.NumBlocks) / float64(buildersNumPayloads) * 100

@@ -22,7 +22,7 @@ var BuilderAliases = map[string]func(string) bool{
 	},
 }
 
-var BuilderGroups = map[string]func(string) bool {
+var BuilderGroups = map[string]func(string) bool{
 	"BuilderNet": func(in string) bool {
 		return strings.Contains(in, "BuilderNet")
 	},
