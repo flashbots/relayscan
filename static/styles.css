@@ -550,12 +550,12 @@ h1 {
     width: 99%;
 }
 
-.tr-parent {
-    cursor: pointer;
+.tr-builder-child {
+    background-color: rgb(249 249 249);
 }
 
-.tr-child {
-    background-color: #999;
+.tr-builder-child td {
+    padding-left: 30px;
 }
 
 .td-builder-extradata-child {

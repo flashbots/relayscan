@@ -166,25 +166,6 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*TopBuild
 			}
 		}
 
-		// for k, v := range vars.BuilderAliases {
-		// 	// Check if this is one of the known aliases.
-		// 	if v(entry.ExtraData) {
-		// 		updated = true
-		// 		topBuilderEntry, isKnown := buildersMap[k]
-		// 		if isKnown {
-		// 			topBuilderEntry.NumBlocks += entry.NumBlocks
-		// 			topBuilderEntry.Aliases = append(topBuilderEntry.Aliases, entry.ExtraData)
-		// 		} else {
-		// 			buildersMap[k] = &database.TopBuilderEntry{
-		// 				ExtraData: k,
-		// 				NumBlocks: entry.NumBlocks,
-		// 				Aliases:   []string{entry.ExtraData},
-		// 			}
-		// 		}
-		// 		break
-		// 	}
-		// }
-
 		if !updated {
 			buildersMap[entry.ExtraData] = &TopBuilderDisplayEntry{
 				Info:     entry,
@@ -222,7 +203,7 @@ func consolidateBuilderProfitEntries(entries []*database.BuilderProfitEntry) []*
 	for _, entry := range entries {
 		buildersNumPayloads += entry.NumBlocks
 		updated := false
-		for k, v := range vars.BuilderAliases {
+		for k, v := range vars.BuilderGroups {
 			// Check if this is one of the known aliases.
 			if v(entry.ExtraData) {
 				updated = true
