@@ -52,7 +52,7 @@ func percent(cnt, total uint64) string {
 	return printer.Sprintf("%.2f", p)
 }
 
-func builderTable(builders []*database.TopBuilderDisplayEntry) string {
+func builderTable(builders []*TopBuilderDisplayEntry) string {
 	buildersEntries := [][]string{}
 	for _, builder := range builders {
 		buildersEntries = append(buildersEntries, []string{
@@ -136,9 +136,9 @@ func divFloatStrings(f1, f2 string, decimals int) string {
 	return new(big.Float).Quo(bf1, bf2).Text('f', decimals)
 }
 
-func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database.TopBuilderDisplayEntry {
+func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*TopBuilderDisplayEntry {
 	// Get total builder payloads, and build consolidated builder list
-	buildersMap := make(map[string]*database.TopBuilderDisplayEntry)
+	buildersMap := make(map[string]*TopBuilderDisplayEntry)
 	buildersNumPayloads := uint64(0)
 	for _, entry := range builders {
 		buildersNumPayloads += entry.NumBlocks
@@ -154,7 +154,7 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 					groupEntry.Info.NumBlocks += entry.NumBlocks
 					groupEntry.Children = append(groupEntry.Children, entry)
 				} else {
-					buildersMap[k] = &database.TopBuilderDisplayEntry{
+					buildersMap[k] = &TopBuilderDisplayEntry{
 						Info: &database.TopBuilderEntry{
 							ExtraData: k,
 							NumBlocks: entry.NumBlocks,
@@ -186,7 +186,7 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 		// }
 
 		if !updated {
-			buildersMap[entry.ExtraData] = &database.TopBuilderDisplayEntry{
+			buildersMap[entry.ExtraData] = &TopBuilderDisplayEntry{
 				Info:     entry,
 				Children: []*database.TopBuilderEntry{},
 			}
@@ -194,7 +194,7 @@ func consolidateBuilderEntries(builders []*database.TopBuilderEntry) []*database
 	}
 
 	// Prepare top builders by summary stats
-	resp := []*database.TopBuilderDisplayEntry{}
+	resp := []*TopBuilderDisplayEntry{}
 	for _, entry := range buildersMap {
 		p := float64(entry.Info.NumBlocks) / float64(buildersNumPayloads) * 100
 		entry.Info.Percent = fmt.Sprintf("%.2f", p)
