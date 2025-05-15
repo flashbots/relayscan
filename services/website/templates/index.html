@@ -70,11 +70,7 @@
                             <td class="td-builder-extradata">{{ if .Info.ExtraData }}{{ .Info.ExtraData }}{{ else }}&nbsp;{{ end }}</td>
                             <td class="td-builder-num-blocks">{{ .Info.NumBlocks | prettyInt }}</td>
                             <td class="td-builder-percent">{{ .Info.Percent }} %</td>
-                            <td>
-                                {{ if gt (len .Children) 1 }}
-                                <span class="chevron"><i class="bi bi-caret-down"></i></span>
-                                {{ end }}
-                            </td>
+                            <td>{{ if gt (len .Children) 1 }}<i class="bi bi-caret-down"></i>{{ end }}</td>
                         </tr>
                         {{ if gt (len .Children) 1 }}
                         {{ range .Children }}
@@ -92,16 +88,22 @@
                     {{ range $relay, $builders := .Stats.TopBuildersByRelay }}
                     <tbody id="tbody-builders-{{ $relay }}" class="tbody-builders" style="display:none;">
                         {{ range $builders }}
-                        <tr>
-                            <td class="td-builder-extradata">
-                                {{ if .Info.ExtraData }}{{ .Info.ExtraData }}{{ else }}&nbsp;{{ end }}
-                                {{ if ne (len .Info.Aliases) 0 }}
-                                <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
-                                {{ end}}
-                            </td>
+                        <tr class="tr-builder-parent">
+                            <td class="td-builder-extradata">{{ if .Info.ExtraData }}{{ .Info.ExtraData }}{{ else }}&nbsp;{{ end }}</td>
                             <td class="td-builder-num-blocks">{{ .Info.NumBlocks | prettyInt }}</td>
                             <td class="td-builder-percent">{{ .Info.Percent }} %</td>
+                            <td>{{ if gt (len .Children) 1 }}<i class="bi bi-caret-down"></i>{{ end }}</td>
                         </tr>
+                        {{ if gt (len .Children) 1 }}
+                        {{ range .Children }}
+                        <tr class="tr-builder-child">
+                            <td class="td-builder-extradata td-builder-extradata-child" style="margin-left: 10px;">{{ .ExtraData }}</td>
+                            <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
+                            <td class="td-builder-percent">{{ .Percent }} %</td>
+                            <td></td>
+                        </tr>
+                        {{ end }}
+                        {{ end }}
                         {{ end }}
                     </tbody>
                     {{ end }}
