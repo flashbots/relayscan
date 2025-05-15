@@ -97,16 +97,22 @@ source .env.local
 make dev-postgres-start
 
 # Query only a single relay, and for the shortest time possible
-go run . core data-api-backfill --relay fb --min-slot -2000
+go run . core data-api-backfill --relay us --min-slot -2000
 
 # Now the DB has data, check it (and update in DB)
 go run . core check-payload-value
 
 # Can also check a single slot only:
-go run . core check-payload-value --slot _N_
+go run . core check-payload-value --slot <your_slot>
 
-# Reset DB
-dev-postgres-wipe
+# Run the website
+go run . service website --dev
+
+# Now you can open http://localhost:9060 in your browser and see the data
+open http://localhost:9060
+
+# You can also reset the database:
+make dev-postgres-wipe
 
 # See the Makefile for more commands
 make help
