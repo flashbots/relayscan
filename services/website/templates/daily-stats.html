@@ -22,6 +22,7 @@
                             <th>Relay</th>
                             <th>Payloads</th>
                             <th>Percent</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="tbody-relays" class="tbody-relays">
@@ -49,11 +50,22 @@
                     </thead>
                     <tbody id="tbody-builders-all" class="tbody-builders">
                         {{ range .TopBuildersBySummary }}
-                        <tr>
-                            <td class="td-builder-extradata">{{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}</td>
+                        <tr class="tr-builder-parent">
+                            <td class="td-builder-extradata">{{ if .Info.ExtraData }}{{ .Info.ExtraData }}{{ else }}&nbsp;{{ end }}</td>
+                            <td class="td-builder-num-blocks">{{ .Info.NumBlocks | prettyInt }}</td>
+                            <td class="td-builder-percent">{{ .Info.Percent }} %</td>
+                            <td>{{ if gt (len .Children) 1 }}<i class="bi bi-caret-down"></i>{{ end }}</td>
+                        </tr>
+                        {{ if gt (len .Children) 1 }}
+                        {{ range .Children }}
+                        <tr class="tr-builder-child">
+                            <td class="td-builder-extradata td-builder-extradata-child" style="margin-left: 10px;">{{ .ExtraData }}</td>
                             <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
                             <td class="td-builder-percent">{{ .Percent }} %</td>
+                            <td></td>
                         </tr>
+                        {{ end }}
+                        {{ end }}
                         {{ end }}
                     </tbody>
                 </table>
