@@ -20,42 +20,39 @@ func TestConsolidateBuilderEntries(t *testing.T) {
 			Aliases:   []string{"builder0x69"},
 		},
 		{
-			ExtraData: "s3e6f",
-			NumBlocks: 1,
-			Aliases:   []string{"bob the builder"},
-		},
-		{
-			ExtraData: "s0e3f",
-			NumBlocks: 1,
-			Aliases:   []string{"bob the builder"},
-		},
-		{
-			ExtraData: "s0e2ts10e11t",
-			NumBlocks: 1,
-			Aliases:   []string{"bob the builder"},
-		},
-		{
-			ExtraData: "manta-builder",
+			ExtraData: "foo-builder",
 			NumBlocks: 1,
 		},
 	}
-	expected := []*database.TopBuilderEntry{
+	expected := []*TopBuilderDisplayEntry{
 		{
-			ExtraData: "bob the builder",
-			NumBlocks: 3,
-			Percent:   "50.00",
-			Aliases:   []string{"s3e6f", "s0e3f", "s0e2ts10e11t"},
+			Info: &database.TopBuilderEntry{
+				ExtraData: "builder0x69",
+				NumBlocks: 2,
+				Percent:   "66.67",
+			},
+			Children: []*database.TopBuilderEntry{
+				{
+					ExtraData: "made by builder0x69",
+					NumBlocks: 1,
+					Percent:   "33.33",
+					Aliases:   []string{"builder0x69"},
+				},
+				{
+					ExtraData: "builder0x69",
+					NumBlocks: 1,
+					Percent:   "33.33",
+					Aliases:   []string{"builder0x69"},
+				},
+			},
 		},
 		{
-			ExtraData: "builder0x69",
-			NumBlocks: 2,
-			Percent:   "33.33",
-			Aliases:   []string{"made by builder0x69", "builder0x69"},
-		},
-		{
-			ExtraData: "manta-builder",
-			Percent:   "16.67",
-			NumBlocks: 1,
+			Info: &database.TopBuilderEntry{
+				ExtraData: "foo-builder",
+				NumBlocks: 1,
+				Percent:   "33.33",
+			},
+			Children: []*database.TopBuilderEntry{},
 		},
 	}
 
@@ -147,4 +144,9 @@ func TestConsolidateBuilderProfitEntries(t *testing.T) {
 	for i, o := range out {
 		require.Equal(t, expected[i], o)
 	}
+}
+
+func TestLowercaseNoWhitespace(t *testing.T) {
+	c1 := lowercaseNoWhitespace("abCD 123!@#")
+	require.Equal(t, "abcd123!@#", c1)
 }

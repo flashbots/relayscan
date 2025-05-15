@@ -550,6 +550,10 @@ h1 {
     width: 99%;
 }
 
+.tr-builder-parent {
+    cursor: pointer;
+}
+
 .tr-builder-child {
     background-color: rgb(249 249 249);
 }

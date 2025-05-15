@@ -108,6 +108,9 @@ go run . core check-payload-value --slot <your_slot>
 # Run the website
 go run . service website --dev
 
+# Simplify working with read-only DB or large amount of data:
+ DB_DONT_APPLY_SCHEMA=1 SKIP_7D_STATS=1 go run . service website --dev
+
 # Now you can open http://localhost:9060 in your browser and see the data
 open http://localhost:9060
 

@@ -66,7 +66,8 @@
                     </thead>
                     <tbody id="tbody-builders-all" class="tbody-builders">
                         {{ range .Stats.TopBuilders }}
-                        <tr class="tr-builder-parent">
+                        {{ $parent := .Info.ExtraData | lowercaseNoWhitespace }}
+                        <tr class="tr-builder-parent" onclick="toggleBuilderChildren('{{ $parent }}');">
                             <td class="td-builder-extradata">{{ if .Info.ExtraData }}{{ .Info.ExtraData }}{{ else }}&nbsp;{{ end }}</td>
                             <td class="td-builder-num-blocks">{{ .Info.NumBlocks | prettyInt }}</td>
                             <td class="td-builder-percent">{{ .Info.Percent }} %</td>
@@ -74,7 +75,7 @@
                         </tr>
                         {{ if gt (len .Children) 1 }}
                         {{ range .Children }}
-                        <tr class="tr-builder-child">
+                        <tr class="tr-builder-child builder-child-{{ $parent }}">
                             <td class="td-builder-extradata td-builder-extradata-child" style="margin-left: 10px;">{{ .ExtraData }}</td>
                             <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
                             <td class="td-builder-percent">{{ .Percent }} %</td>
@@ -301,6 +302,17 @@
     window.onload = (event) => {
         // fix for table sorting (it's already sorted, and this click makes the sortable plugin think it has done it)
         document.getElementById("th-builderprofit-profittotal").click()
+    }
+
+    toggleBuilderChildren = function (parent) {
+        var children = document.getElementsByClassName("builder-child-" + parent);
+        for (var i = 0; i < children.length; i++) {
+            if (children[i].style.display === "none") {
+                children[i].style.display = "table-row";
+            } else {
+                children[i].style.display = "none";
+            }
+        }
     }
 </script>
 

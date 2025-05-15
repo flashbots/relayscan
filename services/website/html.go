@@ -58,14 +58,15 @@ type HTMLDataDailyStats struct {
 }
 
 var funcMap = template.FuncMap{
-	"weiToEth":           weiToEth,
-	"prettyInt":          prettyInt,
-	"caseIt":             caseIt,
-	"percent":            percent,
-	"relayTable":         relayTable,
-	"builderTable":       builderTable,
-	"builderProfitTable": builderProfitTable,
-	"humanTime":          humanize.Time,
+	"weiToEth":              weiToEth,
+	"prettyInt":             prettyInt,
+	"caseIt":                caseIt,
+	"percent":               percent,
+	"relayTable":            relayTable,
+	"builderTable":          builderTable,
+	"builderProfitTable":    builderProfitTable,
+	"humanTime":             humanize.Time,
+	"lowercaseNoWhitespace": lowercaseNoWhitespace,
 }
 
 func ParseIndexTemplate() (*template.Template, error) {

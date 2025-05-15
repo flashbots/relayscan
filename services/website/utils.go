@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/flashbots/relayscan/database"
 	"github.com/flashbots/relayscan/vars"
@@ -273,4 +274,13 @@ func getLastWednesday() time.Time {
 		targetDate = targetDate.AddDate(0, 0, -7)
 	}
 	return targetDate
+}
+
+func lowercaseNoWhitespace(str string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) {
+			return -1
+		}
+		return unicode.ToLower(r)
+	}, str)
 }
