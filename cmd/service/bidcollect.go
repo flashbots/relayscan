@@ -22,7 +22,7 @@ var (
 
 	outDir    string
 	outputTSV bool   // by default: CSV, but can be changed to TSV with this setting
-	uid       string // used in output filenames, to avoid collissions between multiple collector instances
+	uid       string // used in output filenames, to avoid collisions between multiple collector instances
 
 	useRedis  bool
 	redisAddr string
