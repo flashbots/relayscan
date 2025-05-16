@@ -16,17 +16,17 @@ type Stats struct {
 	TimeStr string // i.e. 24h, 12h, 1h or 7d
 
 	TopRelays          []*database.TopRelayEntry
-	TopBuilders        []*database.TopBuilderEntry
+	TopBuilders        []*TopBuilderDisplayEntry
 	BuilderProfits     []*database.BuilderProfitEntry
-	TopBuildersByRelay map[string][]*database.TopBuilderEntry
+	TopBuildersByRelay map[string][]*TopBuilderDisplayEntry
 }
 
 func NewStats() *Stats {
 	return &Stats{
 		TopRelays:          make([]*database.TopRelayEntry, 0),
-		TopBuilders:        make([]*database.TopBuilderEntry, 0),
+		TopBuilders:        make([]*TopBuilderDisplayEntry, 0),
 		BuilderProfits:     make([]*database.BuilderProfitEntry, 0),
-		TopBuildersByRelay: make(map[string][]*database.TopBuilderEntry),
+		TopBuildersByRelay: make(map[string][]*TopBuilderDisplayEntry),
 	}
 }
 
@@ -53,19 +53,20 @@ type HTMLDataDailyStats struct {
 	TimeUntil string
 
 	TopRelays            []*database.TopRelayEntry
-	TopBuildersBySummary []*database.TopBuilderEntry
+	TopBuildersBySummary []*TopBuilderDisplayEntry
 	BuilderProfits       []*database.BuilderProfitEntry
 }
 
 var funcMap = template.FuncMap{
-	"weiToEth":           weiToEth,
-	"prettyInt":          prettyInt,
-	"caseIt":             caseIt,
-	"percent":            percent,
-	"relayTable":         relayTable,
-	"builderTable":       builderTable,
-	"builderProfitTable": builderProfitTable,
-	"humanTime":          humanize.Time,
+	"weiToEth":              weiToEth,
+	"prettyInt":             prettyInt,
+	"caseIt":                caseIt,
+	"percent":               percent,
+	"relayTable":            relayTable,
+	"builderTable":          builderTable,
+	"builderProfitTable":    builderProfitTable,
+	"humanTime":             humanize.Time,
+	"lowercaseNoWhitespace": lowercaseNoWhitespace,
 }
 
 func ParseIndexTemplate() (*template.Template, error) {

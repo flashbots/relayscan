@@ -61,48 +61,50 @@
                             <th>Builder (extra_data)</th>
                             <th>Blocks</th>
                             <th style="min-width: 100px;">Percent</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody id="tbody-builders-all" class="tbody-builders">
                         {{ range .Stats.TopBuilders }}
-                        <tr>
-                            <td class="td-builder-extradata">
-                                {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
-                                {{ if ne (len .Aliases) 0 }}
-                                <span class="tooltip-wrapper">
-                                    <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
-                                    <div id="tooltip-builder-alias" class="tooltip builder-aliases" role="tooltip">
-                                        <b>extra_data values:</b>
-                                        <ul>
-                                            {{ range .Aliases }}
-                                            <li>{{ . }}</li>
-                                            {{ end }}
-                                        </ul>
-                                        <div id="arrow" data-popper-arrow></div>
-                                    </div>
-                                </span>
-                                {{ end }}
-
-                            </td>
+                        {{ $parent := .Info.ExtraData | lowercaseNoWhitespace }}
+                        <tr class="tr-builder-parent" onclick="toggleBuilderChildren('{{ $parent }}');">
+                            <td class="td-builder-extradata">{{ if .Info.ExtraData }}{{ .Info.ExtraData }}{{ else }}&nbsp;{{ end }}</td>
+                            <td class="td-builder-num-blocks">{{ .Info.NumBlocks | prettyInt }}</td>
+                            <td class="td-builder-percent">{{ .Info.Percent }} %</td>
+                            <td>{{ if gt (len .Children) 1 }}<i class="bi bi-caret-down"></i>{{ end }}</td>
+                        </tr>
+                        {{ if gt (len .Children) 1 }}
+                        {{ range .Children }}
+                        <tr class="tr-builder-child builder-child-{{ $parent }}">
+                            <td class="td-builder-extradata td-builder-extradata-child" style="margin-left: 10px;">{{ .ExtraData }}</td>
                             <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
                             <td class="td-builder-percent">{{ .Percent }} %</td>
+                            <td></td>
                         </tr>
+                        {{ end }}
+                        {{ end }}
                         {{ end }}
                     </tbody>
 
                     {{ range $relay, $builders := .Stats.TopBuildersByRelay }}
                     <tbody id="tbody-builders-{{ $relay }}" class="tbody-builders" style="display:none;">
                         {{ range $builders }}
-                        <tr>
-                            <td class="td-builder-extradata">
-                                {{ if .ExtraData }}{{ .ExtraData }}{{ else }}&nbsp;{{ end }}
-                                {{ if ne (len .Aliases) 0 }}
-                                <i class="tooltip-icon bi bi-info-circle" aria-describedby="tooltip-builder-alias"></i>
-                                {{ end}}
-                            </td>
+                        <tr class="tr-builder-parent">
+                            <td class="td-builder-extradata">{{ if .Info.ExtraData }}{{ .Info.ExtraData }}{{ else }}&nbsp;{{ end }}</td>
+                            <td class="td-builder-num-blocks">{{ .Info.NumBlocks | prettyInt }}</td>
+                            <td class="td-builder-percent">{{ .Info.Percent }} %</td>
+                            <td>{{ if gt (len .Children) 1 }}<i class="bi bi-caret-down"></i>{{ end }}</td>
+                        </tr>
+                        {{ if gt (len .Children) 1 }}
+                        {{ range .Children }}
+                        <tr class="tr-builder-child">
+                            <td class="td-builder-extradata td-builder-extradata-child" style="margin-left: 10px;">{{ .ExtraData }}</td>
                             <td class="td-builder-num-blocks">{{ .NumBlocks | prettyInt }}</td>
                             <td class="td-builder-percent">{{ .Percent }} %</td>
+                            <td></td>
                         </tr>
+                        {{ end }}
+                        {{ end }}
                         {{ end }}
                     </tbody>
                     {{ end }}
@@ -300,6 +302,17 @@
     window.onload = (event) => {
         // fix for table sorting (it's already sorted, and this click makes the sortable plugin think it has done it)
         document.getElementById("th-builderprofit-profittotal").click()
+    }
+
+    toggleBuilderChildren = function (parent) {
+        var children = document.getElementsByClassName("builder-child-" + parent);
+        for (var i = 0; i < children.length; i++) {
+            if (children[i].style.display === "none") {
+                children[i].style.display = "table-row";
+            } else {
+                children[i].style.display = "none";
+            }
+        }
     }
 </script>
 

@@ -550,6 +550,22 @@ h1 {
     width: 99%;
 }
 
+.tr-builder-parent {
+    cursor: pointer;
+}
+
+.tr-builder-child {
+    background-color: rgb(249 249 249);
+}
+
+.tr-builder-child td {
+    padding-left: 30px;
+}
+
+.td-builder-extradata-child {
+    margin-left: 5px;
+}
+
 .td-builder-percent {
     min-width: 106px;
 }

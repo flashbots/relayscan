@@ -141,7 +141,7 @@ func (srv *Webserver) getStatsForHours(duration time.Duration) (stats *Stats, er
 		TopRelays:          prepareRelaysEntries(topRelays),
 		TopBuilders:        consolidateBuilderEntries(topBuilders),
 		BuilderProfits:     consolidateBuilderProfitEntries(builderProfits),
-		TopBuildersByRelay: make(map[string][]*database.TopBuilderEntry),
+		TopBuildersByRelay: make(map[string][]*TopBuilderDisplayEntry),
 	}
 
 	// Query builders for each relay
