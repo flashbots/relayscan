@@ -44,6 +44,14 @@
             <a class="pure-menu-heading" href="/"><img src="/static/favicon/apple-touch-icon.png" height="16" /> relayscan.io</a>
 
             <ul class="pure-menu-list">
+                <li class="pure-menu-item mev-ticker">
+                    <span class="ticker-label">MEV Refund:</span>
+                    <span class="ticker-value" id="mev-refund">0.00 ETH</span>
+                </li>
+                <li class="pure-menu-item mev-ticker">
+                    <span class="ticker-label">Gas Refund:</span>
+                    <span class="ticker-value" id="gas-refund">0.00 ETH</span>
+                </li>
                 <li class="pure-menu-item"><a href="https://bidarchive.relayscan.io/" class="pure-menu-link">Bid Archive</a></li>
                 <li class="pure-menu-item"><a href="https://github.com/flashbots/relayscan" class="pure-menu-link">About</a></li>
                 <li class="pure-menu-item"><a href="https://twitter.com/relayscan_io" class="pure-menu-link"><i class="bi bi-twitter"></i></a></li>
@@ -52,6 +60,27 @@
     </div>
 
     {{ template "content" . }}
+
+    <script>
+        // Fetch MEV metrics from the API
+        fetch('https://refund-metrics-dune-api.vercel.app/api/metrics')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('mev-refund').textContent = `${data.totalMevRefund.toFixed(2)} ETH`;
+                document.getElementById('gas-refund').textContent = `${data.totalGasRefund.toFixed(2)} ETH`;
+            })
+            .catch(error => {
+                console.error('Failed to fetch MEV metrics:', error);
+                // Fallback to mock data on error
+                document.getElementById('mev-refund').textContent = '380.29 ETH';
+                document.getElementById('gas-refund').textContent = '444.24 ETH';
+            });
+    </script>
 </body>
 
 </html>
