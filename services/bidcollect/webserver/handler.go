@@ -34,7 +34,7 @@ func (srv *Server) handleSSESubscription(w http.ResponseWriter, r *http.Request)
 
 	// Send CSV header
 	helloMsg := strings.Join(types.CommonBidCSVFields, ",") + "\n"
-	fmt.Fprint(w, helloMsg)
+	fmt.Fprint(w, helloMsg)  //nolint:errcheck
 	w.(http.Flusher).Flush() //nolint:forcetypeassert
 
 	// Wait for txs or end of request...
@@ -46,8 +46,8 @@ func (srv *Server) handleSSESubscription(w http.ResponseWriter, r *http.Request)
 			return
 
 		case msg := <-subscriber.msgC:
-			fmt.Fprintf(w, "%s\n", msg)
-			w.(http.Flusher).Flush() //nolint:forcetypeassert
+			fmt.Fprintf(w, "%s\n", msg) //nolint:errcheck
+			w.(http.Flusher).Flush()    //nolint:forcetypeassert
 		}
 	}
 }

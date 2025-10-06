@@ -156,7 +156,7 @@ func getJSON(url string, target interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer r.Body.Close()
+	defer r.Body.Close() //nolint:errcheck
 	return json.NewDecoder(r.Body).Decode(target)
 }
 

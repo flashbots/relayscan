@@ -22,9 +22,9 @@ func NewDatabaseService(dsn string) (*DatabaseService, error) {
 		return nil, err
 	}
 
-	db.DB.SetMaxOpenConns(50)
-	db.DB.SetMaxIdleConns(10)
-	db.DB.SetConnMaxIdleTime(0)
+	db.SetMaxOpenConns(50)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxIdleTime(0)
 
 	if os.Getenv("DB_DONT_APPLY_SCHEMA") == "" {
 		migrate.SetTable(vars.TableMigrations)
