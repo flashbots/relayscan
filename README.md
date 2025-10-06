@@ -13,9 +13,14 @@ Additional URLs:
 - Builder profit:
   - Last 24h: https://www.relayscan.io/builder-profit?t=24h
   - Last 7d: https://www.relayscan.io/builder-profit?t=7d
-- Current stats in markdown:
+- Stats in markdown:
   - https://www.relayscan.io/overview/md
   - https://www.relayscan.io/builder-profit/md
+- Stats in JSON:
+  - https://www.relayscan.io/overview/json
+  - https://www.relayscan.io/overview/json?t=7d
+  - https://www.relayscan.io/builder-profit/json
+  - https://www.relayscan.io/builder-profit/json?t=7d
 - Daily stats:
   - https://www.relayscan.io/stats/day/2023-06-20
   - https://www.relayscan.io/stats/day/2023-06-20/json
