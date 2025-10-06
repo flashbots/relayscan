@@ -66,8 +66,8 @@ func (ustream *UltrasoundStreamConnection) connect() {
 		go ustream.reconnect()
 		return
 	}
-	defer wsSubscriber.Close()
-	defer resp.Body.Close()
+	defer wsSubscriber.Close() //nolint:errcheck
+	defer resp.Body.Close()    //nolint:errcheck
 
 	ustream.log.Info("[ultrasounds-stream] stream connection successful")
 	ustream.backoffSec = types.InitialBackoffSec // reset backoff timeout

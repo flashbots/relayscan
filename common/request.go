@@ -41,7 +41,7 @@ func SendHTTPRequest(ctx context.Context, client http.Client, method, url string
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode == http.StatusNoContent {
 		return resp.StatusCode, nil

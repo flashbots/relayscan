@@ -1,3 +1,4 @@
+version: "2"
 linters:
   enable-all: true
   disable:
@@ -37,14 +38,6 @@ linters:
     #
     # Disabled because deprecated:
     #
-
-    # disabled with update to Go 1.22
-    - perfsprint
-    - exhaustruct
-    - depguard
-    - tagalign
-    - goconst
-    - tenv
 
 linters-settings:
   #
@@ -101,3 +94,19 @@ linters-settings:
       - 'MockBeaconClient'
       - 'RelayAPI'
       - 'Webserver'
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      extra-rules: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
