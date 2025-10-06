@@ -137,6 +137,7 @@ func (srv *Webserver) getRouter() http.Handler {
 	r.HandleFunc("/builder-profit", srv.handleRoot).Methods(http.MethodGet)
 
 	r.HandleFunc("/overview/md", srv.handleOverviewMarkdown).Methods(http.MethodGet)
+	r.HandleFunc("/overview/json", srv.handleOverviewJSON).Methods(http.MethodGet)
 	r.HandleFunc("/builder-profit/md", srv.handleBuilderProfitMarkdown).Methods(http.MethodGet)
 
 	r.HandleFunc("/stats/cowstats", srv.handleCowstatsJSON).Methods(http.MethodGet)
@@ -247,6 +248,40 @@ func (srv *Webserver) handleOverviewMarkdown(w http.ResponseWriter, req *http.Re
 	defer srv.markdownSummaryRespLock.RUnlock()
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(*srv.markdownOverview)
+}
+
+func (srv *Webserver) handleOverviewJSON(w http.ResponseWriter, req *http.Request) {
+	timespan := req.URL.Query().Get("t")
+	if timespan == "" {
+		timespan = "24h"
+	}
+
+	srv.dataLock.RLock()
+	stats, dataFound := srv.stats[timespan]
+	srv.dataLock.RUnlock()
+
+	if !dataFound {
+		srv.RespondError(w, http.StatusInternalServerError, "no data for timespan")
+		return
+	}
+
+	type apiResp struct {
+		Timespan string                    `json:"timespan"`
+		Since    string                    `json:"since"`
+		Until    string                    `json:"until"`
+		Relays   []*database.TopRelayEntry `json:"relays"`
+		Builders []*TopBuilderDisplayEntry `json:"builders"`
+	}
+
+	resp := apiResp{
+		Timespan: stats.TimeStr,
+		Since:    stats.Since.Format("2006-01-02 15:04:05"),
+		Until:    stats.Until.Format("2006-01-02 15:04:05"),
+		Relays:   stats.TopRelays,
+		Builders: stats.TopBuilders,
+	}
+
+	srv.RespondOK(w, resp)
 }
 
 func (srv *Webserver) handleBuilderProfitMarkdown(w http.ResponseWriter, req *http.Request) {

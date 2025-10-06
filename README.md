@@ -16,6 +16,9 @@ Additional URLs:
 - Current stats in markdown:
   - https://www.relayscan.io/overview/md
   - https://www.relayscan.io/builder-profit/md
+- Current stats in JSON:
+  - https://www.relayscan.io/overview/json
+  - https://www.relayscan.io/overview/json?t=7d
 - Daily stats:
   - https://www.relayscan.io/stats/day/2023-06-20
   - https://www.relayscan.io/stats/day/2023-06-20/json
