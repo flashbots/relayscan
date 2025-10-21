@@ -368,13 +368,39 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			"numBlobs":              numBlobs,
 		}).Info("value check done")
 
+		builderAdrresses := map[string]bool{}
+		builderAdrresses[strings.ToLower(entry.ProposerFeeRecipient)] = true // make configurable by CLI
+
 		if !coinbaseIsProposer {
-			// Get builder balance diff
+			// Get builder profit/subsidy
+			// (difference in coinbase balance, minus transactions to builder-owned addresses)
+
+			// First, get the overall balance diff
 			builderBalanceDiffWei, err := getBalanceDiff(block.Coinbase(), block.Number())
 			if err != nil {
 				_log.WithError(err).Fatalf("couldn't get balance diff")
 			}
-			// fmt.Println("builder diff", block.Miner, builderBalanceDiffWei)
+
+			// Second, adjust for any tx from coinbase to builderAddress.
+			// - If there's loss (subsity), then the tx reduces the subsidy amounts
+			// - If there's profit, then the tx reduces the profit amount
+			for _, tx := range txs {
+				txFrom, _ := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
+				isFromBuilderCoinbase := txFrom.Hex() == block.Coinbase().Hex()
+				isToBuilderOwnedAddress := builderAdrresses[strings.ToLower(tx.To().Hex())]
+				if isFromBuilderCoinbase && isToBuilderOwnedAddress {
+					_log.Infof("adjusting builder profit for tx from coinbase to builder address: %s", tx.Hash().Hex())
+					if builderBalanceDiffWei.Sign() >= 0 {
+						// builder made a profit, reduce by tx value
+						builderBalanceDiffWei = new(big.Int).Sub(builderBalanceDiffWei, tx.Value())
+					} else {
+						// builder had a subsidy (negative profit), reduce the subsidy by adding back the tx value
+						builderBalanceDiffWei = new(big.Int).Add(builderBalanceDiffWei, tx.Value())
+					}
+				}
+			}
+
+			// save
 			entry.CoinbaseDiffWei = database.NewNullString(builderBalanceDiffWei.String())
 			entry.CoinbaseDiffEth = database.NewNullString(common.WeiToEth(builderBalanceDiffWei).String())
 		}
