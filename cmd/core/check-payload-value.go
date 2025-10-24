@@ -382,6 +382,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 
 			// Second, adjust for any tx from coinbase to builder-owned address.
 			builderOwnedAddresses := vars.BuilderAddresses[strings.ToLower(block.Coinbase().Hex())]
+			_log.Infof("builderOwnedAddresses for %s: %+v", block.Coinbase().Hex(), builderOwnedAddresses)
 			for _, tx := range txs {
 				if tx.ChainId().Uint64() == 0 {
 					continue
@@ -395,7 +396,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 				}
 
 				if isFromBuilderCoinbase && isToBuilderOwnedAddress {
-					_log.Infof("adjusting builder profit for tx from coinbase to builder address: %s", tx.Hash().Hex())
+					_log.Infof("- Tx from coinbase to builder address found: %s -- adjusting value by +%s ETH", tx.Hash().Hex(), common.WeiToEth(tx.Value()).String())
 					builderBalanceDiffWei = new(big.Int).Add(builderBalanceDiffWei, tx.Value())
 				}
 			}
