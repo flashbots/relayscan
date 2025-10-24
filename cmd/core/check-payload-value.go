@@ -319,7 +319,11 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		// check for transactions to/from proposer feeRecipient
 		if checkTx {
 			log.Infof("checking %d tx...", len(txs))
+
 			for i, tx := range txs {
+				if tx.ChainId().Uint64() == 0 {
+					continue
+				}
 				txFrom, _ := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 				if txFrom.Hex() == entry.ProposerFeeRecipient {
 					_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value().String())
@@ -368,26 +372,28 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 			"numBlobs":              numBlobs,
 		}).Info("value check done")
 
-		builderAdrresses := map[string]bool{}
-		builderAdrresses[strings.ToLower(entry.ProposerFeeRecipient)] = true // make configurable by CLI
-
 		if !coinbaseIsProposer {
-			// Get builder profit/subsidy
-			// (difference in coinbase balance, minus transactions to builder-owned addresses)
-
+			// Get builder profit/subsidy, taking into account possible tx from coinbase to builder-owned address
 			// First, get the overall balance diff
 			builderBalanceDiffWei, err := getBalanceDiff(block.Coinbase(), block.Number())
 			if err != nil {
 				_log.WithError(err).Fatalf("couldn't get balance diff")
 			}
 
-			// Second, adjust for any tx from coinbase to builderAddress.
-			// - If there's loss (subsity), then the tx reduces the subsidy amounts
-			// - If there's profit, then the tx reduces the profit amount
+			// Second, adjust for any tx from coinbase to builder-owned address.
+			builderOwnedAddresses := vars.BuilderAddresses[strings.ToLower(block.Coinbase().Hex())]
 			for _, tx := range txs {
+				if tx.ChainId().Uint64() == 0 {
+					continue
+				}
+
 				txFrom, _ := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 				isFromBuilderCoinbase := txFrom.Hex() == block.Coinbase().Hex()
-				isToBuilderOwnedAddress := builderAdrresses[strings.ToLower(tx.To().Hex())]
+				isToBuilderOwnedAddress := false
+				if builderOwnedAddresses != nil && builderOwnedAddresses[strings.ToLower(tx.To().Hex())] {
+					isToBuilderOwnedAddress = true
+				}
+
 				if isFromBuilderCoinbase && isToBuilderOwnedAddress {
 					_log.Infof("adjusting builder profit for tx from coinbase to builder address: %s", tx.Hash().Hex())
 					builderBalanceDiffWei = new(big.Int).Add(builderBalanceDiffWei, tx.Value())
