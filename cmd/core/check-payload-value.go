@@ -390,13 +390,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 				isToBuilderOwnedAddress := builderAdrresses[strings.ToLower(tx.To().Hex())]
 				if isFromBuilderCoinbase && isToBuilderOwnedAddress {
 					_log.Infof("adjusting builder profit for tx from coinbase to builder address: %s", tx.Hash().Hex())
-					if builderBalanceDiffWei.Sign() >= 0 {
-						// builder made a profit, reduce by tx value
-						builderBalanceDiffWei = new(big.Int).Sub(builderBalanceDiffWei, tx.Value())
-					} else {
-						// builder had a subsidy (negative profit), reduce the subsidy by adding back the tx value
-						builderBalanceDiffWei = new(big.Int).Add(builderBalanceDiffWei, tx.Value())
-					}
+					builderBalanceDiffWei = new(big.Int).Add(builderBalanceDiffWei, tx.Value())
 				}
 			}
 
