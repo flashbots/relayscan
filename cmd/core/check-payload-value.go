@@ -382,7 +382,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 
 			// Second, adjust for any tx from coinbase to builder-owned address.
 			builderOwnedAddresses := vars.BuilderAddresses[strings.ToLower(block.Coinbase().Hex())]
-			_log.Infof("builderOwnedAddresses for %s: %+v", block.Coinbase().Hex(), builderOwnedAddresses)
+			_log.Infof("builderOwnedAddresses for %s: %+v (slot %d)", block.Coinbase().Hex(), builderOwnedAddresses, entry.Slot)
 			for _, tx := range txs {
 				if tx.ChainId().Uint64() == 0 {
 					continue
@@ -391,7 +391,7 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 				txFrom, _ := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 				isFromBuilderCoinbase := txFrom.Hex() == block.Coinbase().Hex()
 				isToBuilderOwnedAddress := false
-				if builderOwnedAddresses != nil && builderOwnedAddresses[strings.ToLower(tx.To().Hex())] {
+				if builderOwnedAddresses != nil && tx.To() != nil && builderOwnedAddresses[strings.ToLower(tx.To().Hex())] {
 					isToBuilderOwnedAddress = true
 				}
 
