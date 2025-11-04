@@ -319,7 +319,11 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		// check for transactions to/from proposer feeRecipient
 		if checkTx {
 			log.Infof("checking %d tx...", len(txs))
+
 			for i, tx := range txs {
+				if tx.ChainId().Uint64() == 0 {
+					continue
+				}
 				txFrom, _ := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 				if txFrom.Hex() == entry.ProposerFeeRecipient {
 					_log.Infof("- tx %d from feeRecipient with value %s", i, tx.Value().String())
@@ -369,12 +373,35 @@ func startUpdateWorker(wg *sync.WaitGroup, db *database.DatabaseService, client,
 		}).Info("value check done")
 
 		if !coinbaseIsProposer {
-			// Get builder balance diff
+			// Get builder profit/subsidy, taking into account possible tx from coinbase to builder-owned address
+			// First, get the overall balance diff
 			builderBalanceDiffWei, err := getBalanceDiff(block.Coinbase(), block.Number())
 			if err != nil {
 				_log.WithError(err).Fatalf("couldn't get balance diff")
 			}
-			// fmt.Println("builder diff", block.Miner, builderBalanceDiffWei)
+
+			// Second, adjust for any tx from coinbase to builder-owned address.
+			builderOwnedAddresses := vars.BuilderAddresses[strings.ToLower(block.Coinbase().Hex())]
+			_log.Infof("builderOwnedAddresses for %s: %+v (slot %d)", block.Coinbase().Hex(), builderOwnedAddresses, entry.Slot)
+			for _, tx := range txs {
+				if tx.ChainId().Uint64() == 0 {
+					continue
+				}
+
+				txFrom, _ := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
+				isFromBuilderCoinbase := txFrom.Hex() == block.Coinbase().Hex()
+				isToBuilderOwnedAddress := false
+				if builderOwnedAddresses != nil && tx.To() != nil && builderOwnedAddresses[strings.ToLower(tx.To().Hex())] {
+					isToBuilderOwnedAddress = true
+				}
+
+				if isFromBuilderCoinbase && isToBuilderOwnedAddress {
+					_log.Infof("- Tx from coinbase to builder address found: %s -- adjusting value by +%s ETH", tx.Hash().Hex(), common.WeiToEth(tx.Value()).String())
+					builderBalanceDiffWei = new(big.Int).Add(builderBalanceDiffWei, tx.Value())
+				}
+			}
+
+			// save
 			entry.CoinbaseDiffWei = database.NewNullString(builderBalanceDiffWei.String())
 			entry.CoinbaseDiffEth = database.NewNullString(common.WeiToEth(builderBalanceDiffWei).String())
 		}
