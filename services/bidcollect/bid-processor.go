@@ -22,12 +22,13 @@ import (
 //   - One CSV for top bids only
 
 type BidProcessorOpts struct {
-	Log       *logrus.Entry
-	UID       string
-	OutDir    string
-	OutputTSV bool
-	RedisAddr string
-	UseRedis  bool
+	Log            *logrus.Entry
+	UID            string
+	OutDir         string
+	OutputTSV      bool
+	RedisAddr      string
+	UseRedis       bool
+	WithDuplicates bool
 }
 
 type OutFiles struct {
@@ -114,10 +115,18 @@ func (c *BidProcessor) processBids(bids []*types.CommonBid) {
 			}
 		}
 
-		// process regular bids only once per unique key (slot+blockhash+parenthash+builderpubkey+value)
-		if _, ok := c.bidCache[bid.Slot][bid.UniqueKey()]; !ok {
+		var uniqueKey string
+		if c.opts.WithDuplicates {
+			// process regular bids only once per unique key (slot+blockhash+parenthash+relay+builderpubkey+value)
+			uniqueKey = bid.UniqueKeyWithRelay()
+		} else {
+			// process regular bids only once per unique key (slot+blockhash+parenthash+builderpubkey+value)
+			uniqueKey = bid.UniqueKey()
+		}
+
+		if _, ok := c.bidCache[bid.Slot][uniqueKey]; !ok {
 			// yet unknown bid, save it
-			c.bidCache[bid.Slot][bid.UniqueKey()] = bid
+			c.bidCache[bid.Slot][uniqueKey] = bid
 			isNewBid = true
 		}
 
