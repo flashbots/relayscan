@@ -36,6 +36,8 @@ var (
 
 	runWebserverOnly    bool // provides a SSE stream of new bids
 	WebserverListenAddr string
+
+	withDuplicates bool
 )
 
 func init() {
@@ -70,6 +72,7 @@ func init() {
 	bidCollectCmd.Flags().BoolVar(&buildWebsite, "build-website", false, "build file listing website")
 	bidCollectCmd.Flags().BoolVar(&buildWebsiteUpload, "build-website-upload", false, "upload after building")
 	bidCollectCmd.Flags().StringVar(&buildWebsiteOutDir, "build-website-out", "build", "output directory for website")
+	bidCollectCmd.Flags().BoolVar(&withDuplicates, "with-duplicates", false, "store all bids, including duplicates from different relays")
 }
 
 var bidCollectCmd = &cobra.Command{
@@ -129,6 +132,7 @@ var bidCollectCmd = &cobra.Command{
 			OutputTSV:               outputTSV,
 			RedisAddr:               redisAddr,
 			UseRedis:                useRedis,
+			WithDuplicates:          withDuplicates,
 		}
 
 		bidCollector, err := bidcollect.NewBidCollector(&opts)
