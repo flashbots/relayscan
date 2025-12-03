@@ -88,6 +88,30 @@ More example commands:
 
 # Start the website (--dev reloads the template on every page load, for easier iteration)
 ./relayscan service website --dev
+
+#
+# backfill-runner: Backfill + Check Service
+# - a single service to continuously run these
+# - default interval: 5 minutes
+#
+# Test with just one relay (flashbots)
+./relayscan service backfill-runner --relay fb
+
+# Test with ultrasound relay and limited slots (last 50 slots)
+./relayscan service backfill-runner --relay us --min-slot -50
+
+# Combine flags for quick testing
+./relayscan service backfill-runner --relay fb --min-slot -50 --skip-check-value
+
+# Custom interval
+./relayscan service backfill-runner --interval 10m
+
+# Run once and exit (useful for testing)
+./relayscan service backfill-runner --once
+
+# Skip one of the steps
+./relayscan service backfill-runner --skip-backfill
+./relayscan service backfill-runner --skip-check-value
 ```
 
 ### Test & development

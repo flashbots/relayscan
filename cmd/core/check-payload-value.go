@@ -48,78 +48,110 @@ func init() {
 var checkPayloadValueCmd = &cobra.Command{
 	Use:   "check-payload-value",
 	Short: "Check payload value for delivered payloads",
-	Run:   checkPayloadValue,
+	Run: func(cmd *cobra.Command, args []string) {
+		client, err := ethclient.Dial(ethNodeURI)
+		if err != nil {
+			log.Fatalf("Failed to create RPC client for '%s'", ethNodeURI)
+		}
+		log.Infof("Using eth node: %s", ethNodeURI)
+
+		client2 := client
+		if ethNodeBackupURI != "" {
+			client2, err = ethclient.Dial(ethNodeBackupURI)
+			if err != nil {
+				log.Fatalf("Failed to create backup RPC client for '%s'", ethNodeBackupURI)
+			}
+			log.Infof("Using eth backup node: %s", ethNodeBackupURI)
+		}
+
+		// Connect to Postgres
+		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
+
+		opts := CheckPayloadValueOpts{
+			Limit:              limit,
+			Slot:               slot,
+			SlotMax:            slotMax,
+			SlotMin:            slotMin,
+			NumThreads:         numThreads,
+			CheckIncorrectOnly: checkIncorrectOnly,
+			CheckMissedOnly:    checkMissedOnly,
+			CheckTx:            checkTx,
+			CheckAll:           checkAll,
+		}
+
+		err = RunCheckPayloadValue(db, client, client2, opts)
+		if err != nil {
+			log.WithError(err).Fatal("check payload value failed")
+		}
+	},
 }
 
-func checkPayloadValue(cmd *cobra.Command, args []string) {
-	var err error
+// CheckPayloadValueOpts contains options for running the payload value check
+type CheckPayloadValueOpts struct {
+	Limit              uint64
+	Slot               uint64
+	SlotMax            uint64
+	SlotMin            uint64
+	NumThreads         uint64
+	CheckIncorrectOnly bool
+	CheckMissedOnly    bool
+	CheckTx            bool
+	CheckAll           bool
+}
+
+// RunCheckPayloadValue checks payload values for delivered payloads
+func RunCheckPayloadValue(db *database.DatabaseService, client, client2 *ethclient.Client, opts CheckPayloadValueOpts) error {
 	startTime := time.Now().UTC()
-
-	client, err := ethclient.Dial(ethNodeURI)
-	if err != nil {
-		log.Fatalf("Failed to create RPC client for '%s'", ethNodeURI)
-	}
-	log.Infof("Using eth node: %s", ethNodeURI)
-
-	client2 := client
-	if ethNodeBackupURI != "" {
-		client2, err = ethclient.Dial(ethNodeBackupURI)
-		if err != nil {
-			log.Fatalf("Failed to create backup RPC client for '%s'", ethNodeBackupURI)
-		}
-		log.Infof("Using eth backup node: %s", ethNodeBackupURI)
-	}
-
-	// Connect to Postgres
-	db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
 	entries := []database.DataAPIPayloadDeliveredEntry{}
 	query := `SELECT id, inserted_at, relay, epoch, slot, parent_hash, block_hash, builder_pubkey, proposer_pubkey, proposer_fee_recipient, gas_limit, gas_used, value_claimed_wei, value_claimed_eth, num_tx, block_number FROM ` + dbvars.TableDataAPIPayloadDelivered
-	if checkIncorrectOnly {
+
+	var err error
+	if opts.CheckIncorrectOnly {
 		query += ` WHERE value_check_ok=false ORDER BY slot DESC`
-		if limit > 0 {
-			query += fmt.Sprintf(" limit %d", limit)
+		if opts.Limit > 0 {
+			query += fmt.Sprintf(" limit %d", opts.Limit)
 		}
 		err = db.DB.Select(&entries, query)
-	} else if checkMissedOnly {
+	} else if opts.CheckMissedOnly {
 		query += ` WHERE slot_missed=true ORDER BY slot DESC`
-		if limit > 0 {
-			query += fmt.Sprintf(" limit %d", limit)
+		if opts.Limit > 0 {
+			query += fmt.Sprintf(" limit %d", opts.Limit)
 		}
 		err = db.DB.Select(&entries, query)
-	} else if checkAll {
-		if slotMax > 0 {
-			query += fmt.Sprintf(" WHERE slot<=%d", slotMax)
+	} else if opts.CheckAll {
+		if opts.SlotMax > 0 {
+			query += fmt.Sprintf(" WHERE slot<=%d", opts.SlotMax)
 		}
 		query += ` ORDER BY slot DESC`
-		if limit > 0 {
-			query += fmt.Sprintf(" limit %d", limit)
+		if opts.Limit > 0 {
+			query += fmt.Sprintf(" limit %d", opts.Limit)
 		}
 		err = db.DB.Select(&entries, query)
-	} else if slot != 0 {
+	} else if opts.Slot != 0 {
 		query += ` WHERE slot=$1`
-		err = db.DB.Select(&entries, query, slot)
+		err = db.DB.Select(&entries, query, opts.Slot)
 	} else {
-		// query += ` WHERE value_check_ok IS NULL AND slot_missed IS NULL ORDER BY slot DESC LIMIT $1`
 		query += ` WHERE value_check_ok IS NULL ORDER BY slot DESC LIMIT $1`
-		err = db.DB.Select(&entries, query, limit)
+		err = db.DB.Select(&entries, query, opts.Limit)
 	}
 	if err != nil {
-		log.WithError(err).Fatalf("couldn't get entries")
+		return fmt.Errorf("couldn't get entries: %w", err)
 	}
 
 	log.Infof("query: %s", query)
 	log.Infof("got %d entries", len(entries))
 	if len(entries) == 0 {
-		return
+		return nil
 	}
 
 	wg := new(sync.WaitGroup)
 	entryC := make(chan database.DataAPIPayloadDeliveredEntry)
-	if slot != 0 {
-		numThreads = 1
+	threads := opts.NumThreads
+	if opts.Slot != 0 {
+		threads = 1
 	}
-	for i := 0; i < int(numThreads); i++ { //nolint:gosec,intrange
+	for i := 0; i < int(threads); i++ { //nolint:gosec,intrange
 		log.Infof("starting worker %d", i+1)
 		wg.Add(1)
 		go startUpdateWorker(wg, db, client, client2, entryC)
@@ -127,7 +159,7 @@ func checkPayloadValue(cmd *cobra.Command, args []string) {
 
 	for _, entry := range entries {
 		// possibly skip
-		if slotMin != 0 && entry.Slot < slotMin {
+		if opts.SlotMin != 0 && entry.Slot < opts.SlotMin {
 			continue
 		}
 
@@ -137,7 +169,8 @@ func checkPayloadValue(cmd *cobra.Command, args []string) {
 	wg.Wait()
 
 	timeNeeded := time.Since(startTime)
-	log.WithField("timeNeeded", timeNeeded).Info("All done!")
+	log.WithField("timeNeeded", timeNeeded).Info("Check payload value done!")
+	return nil
 }
 
 func _getBalanceDiff(ethClient *ethclient.Client, address ethcommon.Address, blockNumber *big.Int) (*big.Int, error) {
