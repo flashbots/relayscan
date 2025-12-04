@@ -28,11 +28,11 @@ var (
 )
 
 func init() {
-	backfillRunnerCmd.Flags().DurationVar(&runnerInterval, "interval", 5*time.Minute, "interval between runs")
+	backfillRunnerCmd.Flags().DurationVar(&runnerInterval, "interval", time.Duration(vars.DefaultBackfillRunnerInterval)*time.Minute, "interval between runs")
 	backfillRunnerCmd.Flags().StringVar(&runnerEthNodeURI, "eth-node", vars.DefaultEthNodeURI, "eth node URI")
 	backfillRunnerCmd.Flags().StringVar(&runnerEthBackupURI, "eth-node-backup", vars.DefaultEthBackupNodeURI, "eth backup node URI")
 	backfillRunnerCmd.Flags().Uint64Var(&runnerLimit, "limit", 1000, "limit for check-payload-value")
-	backfillRunnerCmd.Flags().Uint64Var(&runnerNumThreads, "threads", 10, "number of threads for check-payload-value")
+	backfillRunnerCmd.Flags().Uint64Var(&runnerNumThreads, "threads", uint64(vars.DefaultBackfillRunnerNumThreads), "number of threads for check-payload-value")
 	backfillRunnerCmd.Flags().BoolVar(&runnerRunOnce, "once", false, "run once and exit")
 	backfillRunnerCmd.Flags().BoolVar(&runnerSkipBackfill, "skip-backfill", false, "skip data-api-backfill step")
 	backfillRunnerCmd.Flags().BoolVar(&runnerSkipCheckValue, "skip-check-value", false, "skip check-payload-value step")
