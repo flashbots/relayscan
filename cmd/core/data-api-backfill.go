@@ -70,12 +70,6 @@ var backfillDataAPICmd = &cobra.Command{
 	},
 }
 
-// BackfillOpts contains options for running the backfill
-type BackfillOpts struct {
-	InitCursor uint64
-	MinSlot    int64
-}
-
 // RunBackfill runs the data API backfill for all given relays
 func RunBackfill(db *database.DatabaseService, relays []common.RelayEntry, initCursor uint64, minSlot int64) error {
 	startTime := time.Now().UTC()
