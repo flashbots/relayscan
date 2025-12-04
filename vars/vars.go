@@ -19,4 +19,7 @@ var (
 	DefaultLogLevel         = relaycommon.GetEnv("LOG_LEVEL", "info")
 	DefaultEthNodeURI       = relaycommon.GetEnv("ETH_NODE_URI", "")
 	DefaultEthBackupNodeURI = relaycommon.GetEnv("ETH_NODE_BACKUP_URI", "")
+
+	DefaultBackfillRunnerInterval   = cli.GetEnvInt("BACKFILL_RUNNER_INTERVAL_MIN", 5)
+	DefaultBackfillRunnerNumThreads = cli.GetEnvInt("BACKFILL_RUNNER_NUM_THREADS", 10)
 )

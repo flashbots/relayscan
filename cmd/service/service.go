@@ -22,4 +22,5 @@ var ServiceCmd = &cobra.Command{
 func init() {
 	ServiceCmd.AddCommand(websiteCmd)
 	ServiceCmd.AddCommand(bidCollectCmd)
+	ServiceCmd.AddCommand(backfillRunnerCmd)
 }

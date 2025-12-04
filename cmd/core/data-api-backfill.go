@@ -35,7 +35,6 @@ var backfillDataAPICmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		var relays []common.RelayEntry
-		startTime := time.Now().UTC()
 
 		if cliRelay != "" {
 			var relayEntry common.RelayEntry
@@ -59,38 +58,51 @@ var backfillDataAPICmd = &cobra.Command{
 		}
 
 		log.Infof("Relayscan %s", vars.Version)
-		log.Infof("Using %d relays", len(relays))
-		for index, relay := range relays {
-			log.Infof("- relay #%d: %s", index+1, relay.Hostname())
-		}
 
 		// Connect to Postgres
 		db := database.MustConnectPostgres(log, vars.DefaultPostgresDSN)
 
-		// If needed, get latest slot (i.e. if min-slot is negative)
-		if minSlot < 0 {
-			log.Infof("Getting latest slot from beaconcha.in for offset %d", minSlot)
-			latestSlotOnBeaconChain := common.MustGetLatestSlot()
-			log.Infof("Latest slot from beaconcha.in: %d", latestSlotOnBeaconChain)
-			minSlot = int64(latestSlotOnBeaconChain) + minSlot
+		// Run backfill
+		err = RunBackfill(db, relays, initCursor, minSlot)
+		if err != nil {
+			log.WithError(err).Fatal("backfill failed")
 		}
-
-		if minSlot != 0 {
-			log.Infof("Using min slot: %d", minSlot)
-		}
-
-		for _, relay := range relays {
-			log.Infof("Starting backfilling for relay %s ...", relay.Hostname())
-			backfiller := newBackfiller(db, relay, initCursor, uint64(minSlot))
-			err = backfiller.backfillPayloadsDelivered()
-			if err != nil {
-				log.WithError(err).WithField("relay", relay).Error("backfill failed")
-			}
-		}
-
-		timeNeeded := time.Since(startTime)
-		log.WithField("timeNeeded", timeNeeded).Info("All done!")
 	},
+}
+
+// RunBackfill runs the data API backfill for all given relays
+func RunBackfill(db *database.DatabaseService, relays []common.RelayEntry, initCursor uint64, minSlot int64) error {
+	startTime := time.Now().UTC()
+
+	log.Infof("Using %d relays", len(relays))
+	for index, relay := range relays {
+		log.Infof("- relay #%d: %s", index+1, relay.Hostname())
+	}
+
+	// If needed, get latest slot (i.e. if min-slot is negative)
+	if minSlot < 0 {
+		log.Infof("Getting latest slot from beaconcha.in for offset %d", minSlot)
+		latestSlotOnBeaconChain := common.MustGetLatestSlot()
+		log.Infof("Latest slot from beaconcha.in: %d", latestSlotOnBeaconChain)
+		minSlot = int64(latestSlotOnBeaconChain) + minSlot
+	}
+
+	if minSlot != 0 {
+		log.Infof("Using min slot: %d", minSlot)
+	}
+
+	for _, relay := range relays {
+		log.Infof("Starting backfilling for relay %s ...", relay.Hostname())
+		backfiller := newBackfiller(db, relay, initCursor, uint64(minSlot))
+		err := backfiller.backfillPayloadsDelivered()
+		if err != nil {
+			log.WithError(err).WithField("relay", relay).Error("backfill failed")
+		}
+	}
+
+	timeNeeded := time.Since(startTime)
+	log.WithField("timeNeeded", timeNeeded).Info("Backfill done!")
+	return nil
 }
 
 type backfiller struct {
