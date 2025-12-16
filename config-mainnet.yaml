@@ -1,0 +1,32 @@
+# Mainnet beacon chain genesis timestamp (Dec 1, 2020)
+genesis: 1606824023
+
+relays:
+  flashbots: "https://0xac6e77dfe25ecd6110b8e780608cce0dab71fdd5ebea22a16c0205200f2f8e2e3ad3b71d3499c54ad14d6c21b41a37ae@boost-relay.flashbots.net"
+  ultrasound: "https://0xa1559ace749633b997cb3fdacffb890aeebdb0f5a3b6aaa7eeeaf1a38af0a8fe88b9e4b1f61f236d2e64d95733327a62@relay.ultrasound.money"
+  all:
+    - "https://0xac6e77dfe25ecd6110b8e780608cce0dab71fdd5ebea22a16c0205200f2f8e2e3ad3b71d3499c54ad14d6c21b41a37ae@boost-relay.flashbots.net"
+    - "https://0xa1559ace749633b997cb3fdacffb890aeebdb0f5a3b6aaa7eeeaf1a38af0a8fe88b9e4b1f61f236d2e64d95733327a62@relay.ultrasound.money"
+    - "https://0x8b5d2e73e2a3a55c6c87b8b6eb92e0149a125c852751db1422fa951e42a09b82c142c3ea98d0d9930b056a3bc9896b8f@bloxroute.max-profit.blxrbdn.com"
+    - "https://0xb0b07cd0abef743db4260b0ed50619cf6ad4d82064cb4fbec9d3ec530f7c5e6793d9f286c4e082c0244ffb9f2658fe88@bloxroute.regulated.blxrbdn.com"
+    - "https://0xb3ee7afcf27f1f1259ac1787876318c6584ee353097a50ed84f51a1f21a323b3736f271a895c7ce918c038e4265918be@relay.edennetwork.io"
+    - "https://0xa7ab7a996c8584251c8f925da3170bdfd6ebc75d50f5ddc4050a6fdc77f2a3b5fce2cc750d0865e05d7228af97d69561@agnostic-relay.net"
+    - "https://0xa15b52576bcbf1072f4a011c0f99f9fb6c66f3e1ff321f11f461d15e31b1cb359caa092c71bbded0bae5b5ea401aab7e@aestus.live"
+    - "https://0x8c4ed5e24fe5c6ae21018437bde147693f68cda427cd1122cf20819c30eda7ed74f72dece09bb313f2a1855595ab677d@titanrelay.xyz"
+    - "https://0x88ef3061f598101ca713d556cf757763d9be93d33c3092d3ab6334a36855b6b4a4020528dd533a62d25ea6648251e62e@relay.ethgas.com"
+    - "https://0xb66921e917a8f4cfc3c52e10c1e5c77b1255693d9e6ed6f5f444b71ca4bb610f2eff4fa98178efbf4dd43a30472c497e@relay.btcs.com"
+
+builder_addresses:
+  # Coinbase addresses mapped to their owned addresses
+  "0xdadb0d80178819f2319190d340ce9a924f783711":
+    - "0x59cadf9199248b50d40a6891c9e329ea13a88d31"
+    - "0x75cc09358f100583d66f5277138bfb476345dc1b"
+    - "0x397b28d85d77fef1576e129bb35b322c2bee1ba1"
+  "0x4838b106fce9647bdf1e7877bf73ce8b0bad5f97":
+    - "0x9fc3da866e7df3a1c57ade1a97c9f00a70f010c8"
+    - "0xb29b9fd58cdb2e3bb068bc8560d8c13b2454684d"
+  "0x1f9090aae28b8a3dceadf281b0f12828e676c326":
+    - "0x0affb0a96fbefaa97dce488dfd97512346cf3ab8"
+  "0x95222290dd7278aa3ddd389cc1e1d165cc4bafe5":
+    - "0xa83114a443da1cecefc50368531cace9f37fcccb"
+    - "0x28c74c0f29b686f21ea731bd2a8b88b6954475ba"
