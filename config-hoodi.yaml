@@ -1,0 +1,18 @@
+# Hoodi beacon chain genesis timestamp (Mar/17, 2025, 12:10 UTC) - https://github.com/eth-clients/hoodi
+genesis: 1742213400
+
+relays:
+  flashbots: "https://0xafa4c6985aa049fb79dd37010438cfebeb0f2bd42b115b89dd678dab0670c1de38da0c4e9138c9290a398ecd9a0b3110@boost-relay-hoodi.flashbots.net"
+  ultrasound: "https://0xb1559beef7b5ba3127485bbbb090362d9f497ba64e177ee2c8e7db74746306efad687f2cf8574e38d70067d40ef136dc@relay-hoodi.ultrasound.money"
+  all:
+    - "https://0xafa4c6985aa049fb79dd37010438cfebeb0f2bd42b115b89dd678dab0670c1de38da0c4e9138c9290a398ecd9a0b3110@boost-relay-hoodi.flashbots.net"
+    - "https://0xb1559beef7b5ba3127485bbbb090362d9f497ba64e177ee2c8e7db74746306efad687f2cf8574e38d70067d40ef136dc@relay-hoodi.ultrasound.money"
+    - "https://0x821f2a65afb70e7f2e820a925a9b4c80a159620582c1766b1b09729fec178b11ea22abb3a51f07b288be815a1a2ff516@bloxroute.hoodi.blxrbdn.com"
+    - "https://0xaa58208899c6105603b74396734a6263cc7d947f444f396a90f7b7d3e65d102aec7e5e5291b27e08d02c50a050825c2f@hoodi.titanrelay.xyz"
+    - "https://0x98f0ef62f00780cf8eb06701a7d22725b9437d4768bb19b363e882ae87129945ec206ec2dc16933f31d983f8225772b6@hoodi.aestus.live"
+    - "https://0xb20c3fe59db9c3655088839ef3d972878d182eb745afd8abb1dd2abf6c14f93cd5934ed4446a5fe1ba039e2bc0cf1011@hoodi-relay.ethgas.com"
+    # haven't had success getting data from TOOL + interstate, but these endpoints are supposed to work...
+    # - "https://0x9110847c15a7f5c80a9fdd5db989a614cc01104e53bd8c252b6f46a4842c7fdef6b9593336035b5094878deff386804c@hoodi-builder-proxy-alpha.interstate.so:443"
+    # - "https://0xa0f46566247ceb1f259a7189d5ac8bf2f0f07c135f081b0b5a9f226ef864bf6362c74306fcd02a87b7941f6feac57dc7@relay-hoodi.nuconstruct.xyz"
+
+builder_addresses:

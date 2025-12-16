@@ -44,10 +44,25 @@ https://bidarchive.relayscan.io
 
 * Uses PostgreSQL as data store
 * Configuration:
-  * Relays in [`/vars/relays.go`](/vars/relays.go)
+  * Relays and builder addresses in [`config-mainnet.yaml`](/config-mainnet.yaml)
   * Builder aliases in [`/vars/builder_aliases.go`](/vars/builder_aliases.go)
   * Version and common env vars in [`/vars/vars.go`](/vars/vars.go)
 * Some environment variables are required, see [`.env.example`](/.env.example)
+
+### Config file
+
+Relay URLs and builder addresses are configured via a YAML config file. By default, `config-mainnet.yaml` is used.
+
+```bash
+# Use default config (config-mainnet.yaml)
+./relayscan <command>
+
+# Use a custom config file
+./relayscan --config config-hoodi.yaml <command>
+
+# Or via environment variable
+CONFIG_FILE=config-hoodi.yaml ./relayscan <command>
+```
 * Saving and checking payloads is split into phases/commands:
   * [`data-api-backfill`](/cmd/core/data-api-backfill.go) -- queries the data API of all relays and puts that data into the database
   * [`check-payload-value`](/cmd/core/check-payload-value.go) -- checks all new database entries for payment validity

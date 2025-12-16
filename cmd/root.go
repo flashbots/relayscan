@@ -12,13 +12,25 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var configFile string
+
 var rootCmd = &cobra.Command{
 	Short: "relayscan",
 	Long:  `https://github.com/flashbots/relayscan`,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		if configFile == "" {
+			configFile = "config-mainnet.yaml"
+		}
+		return vars.LoadConfig(configFile)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("relayscan %s\n", vars.Version)
 		_ = cmd.Help()
 	},
+}
+
+func init() {
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", os.Getenv("CONFIG_FILE"), "path to config file (default: config-mainnet.yaml)")
 }
 
 func Execute() {
