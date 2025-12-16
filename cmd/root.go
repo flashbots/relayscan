@@ -30,7 +30,7 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&configFile, "config", os.Getenv("CONFIG_FILE"), "path to config file (required)")
+	rootCmd.PersistentFlags().StringVar(&configFile, "config", os.Getenv("CONFIG_FILE"), "path to config file (default: config-mainnet.yaml)")
 }
 
 func Execute() {
