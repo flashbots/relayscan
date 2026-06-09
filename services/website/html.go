@@ -2,7 +2,7 @@ package website
 
 import (
 	_ "embed"
-	"text/template"
+	"html/template"
 	"time"
 
 	"github.com/dustin/go-humanize"
