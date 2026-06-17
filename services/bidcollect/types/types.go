@@ -60,6 +60,10 @@ func (bid *CommonBid) UniqueKey() string {
 	return fmt.Sprintf("%d-%s-%s-%s-%s", bid.Slot, bid.BlockHash, bid.ParentHash, bid.BuilderPubkey, bid.Value)
 }
 
+func (bid *CommonBid) UniqueKeyWithRelay() string {
+	return fmt.Sprintf("%d-%s-%s-%s-%s-%s", bid.Slot, bid.BlockHash, bid.ParentHash, bid.Relay, bid.BuilderPubkey, bid.Value)
+}
+
 func (bid *CommonBid) ValueAsBigInt() *big.Int {
 	value := new(big.Int)
 	value.SetString(bid.Value, 10)

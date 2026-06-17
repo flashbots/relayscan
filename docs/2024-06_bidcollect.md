@@ -74,6 +74,9 @@ Different data sources have different limitations:
 - Bids are deduplicated based on this key:
   - `fmt.Sprintf("%d-%s-%s-%s-%s", bid.Slot, bid.BlockHash, bid.ParentHash, bid.BuilderPubkey, bid.Value)`
   - this means only the first bid for a given key is stored, even if - for instance - other relays also deliver the same bid
+- To store the same bid delivered by different relays use the `--with-duplicates` flag. This will change the deduplication key to:
+  - `fmt.Sprintf("%d-%s-%s-%s-%s-%s", bid.Slot, bid.BlockHash, bid.ParentHash, bid.Relay, bid.BuilderPubkey, bid.Value)`
+  - this is helpful to measure builder to relay latency.
 - Bids can be published to Redis (to be consumed by whatever, i.e. a webserver). The channel is called `bidcollect/bids`.
   - Enable publishing to Redis with the `--redis` flag
   - You can start a webserver that publishes the data via a SSE stream with `--webserver`
