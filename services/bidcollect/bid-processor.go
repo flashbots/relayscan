@@ -50,6 +50,7 @@ type BidProcessor struct {
 	csvFileEnding string
 
 	redisClient *redis.Client
+	redisC      chan *types.CommonBid
 }
 
 func NewBidProcessor(opts *BidProcessorOpts) (*BidProcessor, error) {
@@ -59,6 +60,7 @@ func NewBidProcessor(opts *BidProcessorOpts) (*BidProcessor, error) {
 		outFiles:    make(map[int64]*OutFiles),
 		bidCache:    make(map[uint64]map[string]*types.CommonBid),
 		topBidCache: make(map[uint64]*types.CommonBid),
+		redisC:      make(chan *types.CommonBid, 10),
 	}
 
 	if opts.OutputTSV {
@@ -85,6 +87,12 @@ func NewBidProcessor(opts *BidProcessorOpts) (*BidProcessor, error) {
 }
 
 func (c *BidProcessor) Start() {
+	// If needed, start publish worker
+	if c.opts.RedisAddr != "" {
+		go c.redisPublishWorker()
+	}
+
+	// Main loop
 	for {
 		time.Sleep(30 * time.Second)
 		c.housekeeping()
@@ -121,16 +129,26 @@ func (c *BidProcessor) processBids(bids []*types.CommonBid) {
 			isNewBid = true
 		}
 
-		// Send to Redis
 		if c.redisClient != nil {
-			err := c.redisClient.Publish(context.Background(), types.RedisChannel, bid.ToCSVLine(",")).Err()
-			if err != nil {
-				c.log.WithError(err).Error("failed to publish bid to redis")
+			// Publish bid to Redis (async)
+			select {
+			case c.redisC <- bid:
+			default:
+				c.log.Warnf("redis channel full, dropping bid %s", bid.UniqueKey())
 			}
 		}
 
 		// Write to CSV
 		c.writeBidToFile(bid, isNewBid, isTopBid)
+	}
+}
+
+func (c *BidProcessor) redisPublishWorker() {
+	for bid := range c.redisC {
+		err := c.redisClient.Publish(context.Background(), types.RedisChannel, bid.ToCSVLine(",")).Err()
+		if err != nil {
+			c.log.WithError(err).Error("failed to publish bid to redis")
+		}
 	}
 }
 
